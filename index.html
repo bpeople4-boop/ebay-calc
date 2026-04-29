@@ -1336,8 +1336,23 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     return calcFull(i);
   }).filter(Boolean);
   const junkLoss     = filtered.filter(i=>i.isJunk&&!isSold(i)&&i.junkDate).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
-  const visibleProfitTotal = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
-  const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss;
+  // 返品損失: fStatus="sold"のとき返品商品がfilteredから除外されるため別途計算
+  const returnedLoss = (fStatus==="sold" ? items.filter(i => {
+    if (i.status!=="returned" || (i.bundleGroupId&&!i.isBundleLeader)) return false;
+    if (fYearMonth!=="all") {
+      const [fy,fm]=fYearMonth.split("-").map(Number);
+      if (!i.saleDate||i.saleDate.startsWith("1900")) return false;
+      const d=new Date(i.saleDate);
+      if (d.getFullYear()!==fy||d.getMonth()+1!==fm) return false;
+    }
+    if (fCat!=="all"&&(i.category||"")!==fCat) return false;
+    return true;
+  }) : []).reduce((s,i) => {
+    const c=calcFull(i);
+    return s+(c?c.profitJPY:-(+i.cost||0)-(+i.storageShipping||0)-(+i.returnShippingJPY||0));
+  },0);
+  const visibleProfitTotal = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss + returnedLoss;
+  const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss+returnedLoss;
   const totalRevenue = soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const avgRate      = soldCalcs.length ? soldCalcs.reduce((s,c)=>s+c.profitRate,0)/soldCalcs.length : 0;
   const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk).length;
