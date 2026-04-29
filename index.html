@@ -557,8 +557,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>実際の手数料（確定後に入力）</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
-                  <span style={lblS()}>eBay落札手数料（$）実費</span>
-                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
+                  <span style={lblS()}>eBay落札手数料（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD&&<span style={{ color:C.red, fontWeight:700 }}>※必須</span>}</span>
+                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
                   {!form.actualEbayFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>
                   )}
@@ -652,13 +652,22 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       </div>}
 
       {/* ── 保存ボタン ── */}
-      <div style={{ display:"flex", gap:10 }}>
-        <button onClick={()=>onSave({ ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" })}
-          style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15 })}>
-          {initial.id?"更新する":"追加する"}
-        </button>
-        <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
-      </div>
+      {(() => {
+        const needsFeeCheck = initial.id && (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
+        const feeError = needsFeeCheck && (!form.actualEbayFeeUSD);
+        return (
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {feeError && <div style={{ background:C.redLo, border:`1px solid ${C.red}40`, borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:C.red }}>⚠️ 「eBay落札手数料（実費）」を入力してください。空欄のまま更新すると概算値が使われます。</div>}
+            <div style={{ display:"flex", gap:10 }}>
+              <button onClick={()=>{ const needsCheck=initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0; if(needsCheck&&!form.actualEbayFeeUSD){return;} onSave({ ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" }); }}
+                style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15, opacity:(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD)?0.4:1 })}>
+                {initial.id?"更新する":"追加する"}
+              </button>
+              <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
@@ -1535,6 +1544,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
                   <td colSpan={8} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
                   <td style={{ padding:"8px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))), textAlign:"right" }}>
                     {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
+                    {returnedLoss!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLoss<0?C.red:C.green, marginLeft:6 }}>（返品 {(returnedLoss>0?"+":"")+yen(returnedLoss)}）</span>}
                   </td>
                   <td colSpan={2}/>
                 </tr>
