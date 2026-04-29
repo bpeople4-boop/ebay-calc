@@ -179,7 +179,7 @@ const C = {
   jp:'"Noto Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif',
 };
 const pColor = r => r > 0.1 ? C.green : r > 0 ? C.amber : C.red;
-const pColorSafe = (jpy, rate) => jpy >= 0 ? (rate > 0.1 ? C.green : C.amber) : C.red;
+const pColorSafe = (jpy, rate) => jpy > 0 ? C.green : jpy === 0 ? C.amber : C.red;
 const pBg    = r => r > 0.1 ? C.greenLo : r > 0 ? C.amberLo : C.redLo;
 
 // ── Style helpers ─────────────────────────────────────────────
