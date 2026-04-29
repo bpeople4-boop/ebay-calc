@@ -6,7 +6,1855 @@
   <title>eBay 利益計算</title>
   <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorig<!DOCTYPE html>
+<html lang="ja"<!DOCTYPE html>
 <html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eBay 利益計算</title>
+  <script crossorigin="anonymous" src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script crossorigin="anonymous" src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { font-size: clamp(13px, 0.9vw + 8px, 16px); height: 100%; overflow: hidden; }
+    body { background: #ebedf5; }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+  <script>
+    var deps = { React: typeof React, ReactDOM: typeof ReactDOM, Babel: typeof Babel };
+    window.onerror = function(msg, url, line, col, err) {
+      document.getElementById('root').innerHTML =
+        '<div style="padding:40px;font-family:sans-serif;color:#c00"><h2>Error</h2><p>' + msg + '</p><p>Line: ' + line + '</p><pre style="white-space:pre-wrap">' + (err && err.stack || '') + '</pre></div>';
+    };
+  </script>
+  <script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+// ── Icons ─────────────────────────────────────────────────────
+const Ic = ({size=16,color="currentColor",children,...p}) =>
+  <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" style={{flexShrink:0,display:"inline-block",verticalAlign:"middle"}} {...p}>{children}</svg>;
+const ChevronDown  = p => <Ic {...p}><polyline points="6 9 12 15 18 9"/></Ic>;
+const ChevronUp    = p => <Ic {...p}><polyline points="18 15 12 9 6 15"/></Ic>;
+const ChevronLeft  = p => <Ic {...p}><polyline points="15 18 9 12 15 6"/></Ic>;
+const ChevronRight = p => <Ic {...p}><polyline points="9 18 15 12 9 6"/></Ic>;
+const Trash2       = p => <Ic {...p}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></Ic>;
+const Pencil       = p => <Ic {...p}><path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></Ic>;
+const Plus         = p => <Ic {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Ic>;
+const Calculator   = p => <Ic {...p}><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="8" y2="10.01"/><line x1="12" y1="10" x2="12" y2="10.01"/><line x1="16" y1="10" x2="16" y2="10.01"/><line x1="8" y1="14" x2="8" y2="14.01"/><line x1="12" y1="14" x2="12" y2="14.01"/><line x1="16" y1="14" x2="16" y2="18"/><line x1="8" y1="18" x2="8" y2="18.01"/><line x1="12" y1="18" x2="12" y2="18.01"/></Ic>;
+const RotateCcw    = p => <Ic {...p}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></Ic>;
+const Link2        = p => <Ic {...p}><path d="M15 7h3a5 5 0 0 1 0 10h-3m-6 0H6A5 5 0 0 1 6 7h3"/><line x1="8" y1="12" x2="16" y2="12"/></Ic>;
+const TrendingUp   = p => <Ic {...p}><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></Ic>;
+const TrendingDown = p => <Ic {...p}><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></Ic>;
+const Package      = p => <Ic {...p}><path d="M16.5 9.4 7.55 4.24"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></Ic>;
+const X            = p => <Ic {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ic>;
+const PanelLeft    = p => <Ic {...p}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="3" x2="9" y2="21"/></Ic>;
+
+// ── Storage shim ──────────────────────────────────────────────
+window.storage = {
+  get: async (key) => { try { const v=localStorage.getItem(key); return v?{key,value:v}:null; } catch(e){return null;} },
+  set: async (key, value) => { try { localStorage.setItem(key,value); return {key,value}; } catch(e){return null;} },
+  delete: async (key) => { try { localStorage.removeItem(key); return {key,deleted:true}; } catch(e){return null;} },
+  list: async (prefix) => { try { return {keys:Object.keys(localStorage).filter(k=>!prefix||k.startsWith(prefix))}; } catch(e){return {keys:[]};} }
+};
+
+// ── Utils ─────────────────────────────────────────────────────
+const yen   = n => `¥${Math.round(n ?? 0).toLocaleString()}`;
+const usd   = n => `$${Number(n ?? 0).toFixed(2)}`;
+const pct   = n => n != null ? `${((n ?? 0) * 100).toFixed(1)}%` : "—";
+const dt    = s => {
+  if (!s || s.startsWith("1900")) return "—";
+  const sep = s.includes("-") ? "-" : "/";
+  const [y,m,d] = s.split(sep).map(Number);
+  if (!y || !m || !d) return s;
+  const date = new Date(y, m-1, d);
+  const days = ["日","月","火","水","木","金","土"];
+  return `${y}/${m}/${d}(${days[date.getDay()]})`;
+};
+const today = () => new Date().toISOString().slice(0, 10);
+const genId = () => Math.random().toString(36).slice(2, 10);
+const nextNo = items => String(Math.max(0, ...items.map(i => parseInt(i.managementNumber) || 0)) + 1).padStart(4, "0");
+const roundUp5 = n => Math.ceil(n / 5) * 5;
+const ddpCalc = (salePrice) => Math.max(20, roundUp5(+salePrice * 0.15));
+const resizeImage = (file, maxPx=900) => new Promise(resolve => {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = new Image();
+    img.onload = () => {
+      const ratio = Math.min(maxPx / img.width, maxPx / img.height, 1);
+      const canvas = document.createElement("canvas");
+      canvas.width  = img.width  * ratio;
+      canvas.height = img.height * ratio;
+      canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+      resolve(canvas.toDataURL("image/jpeg", 0.72));
+    };
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+});
+const getYear = s => s && !s.startsWith("1900") ? new Date(s).getFullYear() : null;
+
+// ── Settings defaults ─────────────────────────────────────────
+const DEFAULT_SETTINGS = {
+  exchangeRate: 158,
+  camera: { ebayPct: 12, promoPct: 2, shippingJPY: 6000, targetPct: 15 },
+  watch:  { ebayPct: 12, promoPct: 2, shippingJPY: 6000, targetPct: 15 },
+};
+const getCatSettings = (cat, settings) => cat === "watch" ? settings.watch : settings.camera;
+
+// ── Exchange rate fetch ───────────────────────────────────────
+async function fetchExchangeRate(onSuccess, onError, onLoading) {
+  onLoading(true);
+  try {
+    const res  = await fetch("https://api.frankfurter.app/latest?from=USD&to=JPY");
+    const data = await res.json();
+    onSuccess(Math.round(data.rates.JPY));
+  } catch(e) {
+    try {
+      const res  = await fetch("https://open.er-api.com/v6/latest/USD");
+      const data = await res.json();
+      onSuccess(Math.round(data.rates.JPY));
+    } catch(e) { onError("取得失敗"); }
+  }
+  onLoading(false);
+}
+
+// ── Calculation ───────────────────────────────────────────────
+function quickCalc(usd_, { exchangeRate=158, ebayPct=12, promoPct=2, shippingJPY=6000, targetPct=15 } = {}) {
+  const s = usd_ * exchangeRate;
+  const ebayFeeJPY = s * (ebayPct / 100);
+  const promoFeeJPY = s * (promoPct / 100);
+  return {
+    salesJPY: s, ebayFeeJPY, promoFeeJPY,
+    targetProfJPY: s * (targetPct / 100),
+    shippingJPY,
+    maxBuyJPY: s * (1 - (ebayPct + promoPct) / 100 - targetPct / 100) - shippingJPY,
+  };
+}
+
+function calcFull(item, overrideCost = null) {
+  const { salePrice=0, saleShipping=0, ddpSurcharge=0, exchangeRate=158,
+          ebayFeeRate=12, promotionRate=2, cost=0, storageShipping=0, intlShipping=6000,
+          actualDdpFee="", actualEbayFeeUSD="", actualPromoFeeUSD="",
+          refundUSD="", refundExchangeRate="", refundType="none",
+          returnShippingJPY="",
+          destination="other" } = item;
+  if (!+salePrice) return null;
+  // eBay手数料は落札価格ベースのみ（DDP上乗せは含まない）
+  const totalUSD  = +salePrice + +saleShipping;
+  const totalJPY  = totalUSD * +exchangeRate;
+  const hasActualEbay  = actualEbayFeeUSD  !== "" && actualEbayFeeUSD  != null;
+  const hasActualPromo = actualPromoFeeUSD !== "" && actualPromoFeeUSD != null;
+  const ebayBase  = hasActualEbay  ? +actualEbayFeeUSD  * +exchangeRate : totalJPY * (+ebayFeeRate / 100);
+  const promoFee  = hasActualPromo ? +actualPromoFeeUSD * +exchangeRate : totalJPY * (+promotionRate / 100);
+  const totalFee  = ebayBase + promoFee;
+  const usedCost  = overrideCost ?? (+cost + +storageShipping);
+  // DDP実費が入力済みならそちらを使用、なければDDP上乗せ×為替で概算
+  const ddpCostJPY = +actualDdpFee ? +actualDdpFee : (destination === "us" ? +ddpSurcharge * +exchangeRate : 0);
+  const isActualDdp = !!+actualDdpFee;
+  const refundJPY = refundType !== "none" && +refundUSD ? +refundUSD * (+refundExchangeRate || +exchangeRate) : 0;
+  const retShipJPY = +returnShippingJPY || 0;
+  const profitJPY = totalJPY - totalFee - usedCost - +intlShipping - ddpCostJPY - refundJPY - retShipJPY;
+  const isActual  = hasActualEbay || hasActualPromo;
+  return { totalUSD, totalJPY, ebayBase, promoFee, totalFee, usedCost, profitJPY, profitRate: profitJPY / totalJPY, isActual, isActualDdp, ddpCostJPY, refundJPY, retShipJPY };
+}
+
+function calcJunk(item) {
+  const loss = (+item.cost || 0) + (+item.storageShipping || 0);
+  return { profitJPY: -loss, profitRate: null, isJunkCalc: true };
+}
+
+function calcBundle(leader, members) {
+  const totalCost = [...members, leader].reduce((s, i) => s + (+i.cost||0) + (+i.storageShipping||0), 0);
+  return calcFull(leader, totalCost);
+}
+
+// ── Design tokens ─────────────────────────────────────────────
+const C = {
+  bg:"#e8eaf3", surface:"#ffffff", card:"#ffffff",
+  border:"#d0d3e4", borderHi:"#b0b4d0",
+  text:"#1a1b3c", textSub:"#3d3e5c", muted:"#7578a0",
+  accent:"#4f52b5", accentLo:"#eceeff",
+  green:"#15803d", greenLo:"#ecfdf0",
+  red:"#c81e1e", redLo:"#fef0f0",
+  amber:"#b45309", amberLo:"#fef9e7",
+  indigo:"#6366f1", indigoLo:"#eef2ff",
+  shadow:"0 1px 4px rgba(30,32,80,.10)",
+  shadowMd:"0 4px 16px rgba(30,32,80,.12)",
+  num:'"Inter","Segoe UI","Helvetica Neue","Arial",sans-serif',
+  jp:'"Noto Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif',
+};
+const pColor = r => r > 0.1 ? C.green : r > 0 ? C.amber : C.red;
+const pColorSafe = (jpy, rate) => jpy >= 0 ? (rate > 0.1 ? C.green : C.amber) : C.red;
+const pBg    = r => r > 0.1 ? C.greenLo : r > 0 ? C.amberLo : C.redLo;
+
+// ── Style helpers ─────────────────────────────────────────────
+const cardS  = (x={}) => ({ background:C.card, borderRadius:14, boxShadow:C.shadow, border:`1px solid ${C.border}`, padding:20, ...x });
+const inpS   = (x={}) => ({ background:"#fff", border:`1.5px solid ${C.border}`, borderRadius:9, color:C.text, padding:"10px 14px", fontFamily:C.num, fontSize:14, fontVariantNumeric:"tabular-nums", outline:"none", width:"100%", transition:"border-color .15s, box-shadow .15s", ...x });
+const lblS   = (x={}) => ({ color:C.muted, fontSize:11, fontWeight:700, letterSpacing:"0.06em", textTransform:"uppercase", fontFamily:C.jp, display:"block", marginBottom:5, ...x });
+const pillS  = (a,x={}) => ({ padding:"7px 16px", borderRadius:20, border:"none", cursor:"pointer", fontFamily:C.jp, fontWeight:700, fontSize:12, background:a?C.accent:C.bg, color:a?"#fff":C.muted, boxShadow:a?`0 2px 8px ${C.accent}40`:"none", transition:"all .15s", ...x });
+const btnS   = (v="primary",x={}) => {
+  const m = { primary:{background:C.accent,color:"#fff",border:"none",boxShadow:`0 2px 8px ${C.accent}40`}, secondary:{background:C.bg,color:C.textSub,border:`1px solid ${C.border}`}, danger:{background:C.redLo,color:C.red,border:`1px solid ${C.red}30`}, ghost:{background:"transparent",color:C.muted,border:`1px solid ${C.border}`} };
+  return { ...m[v], padding:"9px 16px", borderRadius:9, cursor:"pointer", fontFamily:C.jp, fontWeight:600, fontSize:13, display:"inline-flex", alignItems:"center", gap:5, transition:"opacity .12s", ...x };
+};
+
+// ── Small components ──────────────────────────────────────────
+const Badge = ({ label, color, bg }) => (
+  <span style={{ background:bg||`${color}18`, color, fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:6, fontFamily:C.jp, whiteSpace:"nowrap" }}>{label}</span>
+);
+
+const StatusBadge = ({ item }) => {
+  if (item.isJunk)               return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
+  if (item.status==="sold")      return <Badge label="✅ 売却済み" color={C.green} bg={C.greenLo} />;
+  if (item.status==="returned")  return <Badge label="↩️ 返品"     color={C.red}   bg={C.redLo} />;
+  if (item.status==="unlisted")  return <Badge label="📝 未出品"   color={C.indigo} bg={C.indigoLo} />;
+  return <Badge label="📦 出品中" color={C.amber} bg={C.amberLo} />;
+};
+
+const StatCard = ({ label, value, sub, color }) => (
+  <div style={cardS({ textAlign:"center" })}>
+    <span style={lblS({ display:"block", marginBottom:8 })}>{label}</span>
+    <div style={{ fontFamily:C.num, fontSize:22, fontWeight:700, color:color??C.text }}>{value}</div>
+    {sub && <div style={{ color:C.muted, fontSize:11, marginTop:4 }}>{sub}</div>}
+  </div>
+);
+
+// ── Modal ─────────────────────────────────────────────────────
+function Modal({ title, onClose, children, width=480 }) {
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+      <div style={{ background:C.card, borderRadius:18, boxShadow:C.shadowMd, width:"100%", maxWidth:width, maxHeight:"90vh", overflow:"auto" }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:`1px solid ${C.border}` }}>
+          <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:16, color:C.text }}>{title}</span>
+          <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:4 }}><X size={18}/></button>
+        </div>
+        <div style={{ padding:24 }}>{children}</div>
+      </div>
+    </div>
+  );
+}
+
+// ── PhotoLightbox ─────────────────────────────────────────────
+function PhotoLightbox({ photos, startIndex=0, onClose }) {
+  const [idx, setIdx] = useState(startIndex);
+  const prev = () => setIdx(i => (i - 1 + photos.length) % photos.length);
+  const next = () => setIdx(i => (i + 1) % photos.length);
+  useEffect(() => {
+    const handler = e => { if(e.key==="ArrowLeft") prev(); if(e.key==="ArrowRight") next(); if(e.key==="Escape") onClose(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
+  return (
+    <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.92)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center" }} onClick={onClose}>
+      <button onClick={e=>{e.stopPropagation();prev();}} style={{ position:"absolute", left:16, background:"rgba(255,255,255,.15)", border:"none", borderRadius:"50%", width:40, height:40, cursor:"pointer", color:"#fff", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>‹</button>
+      <img src={photos[idx]} alt="" onClick={e=>e.stopPropagation()} style={{ maxWidth:"92vw", maxHeight:"88vh", borderRadius:10, objectFit:"contain", boxShadow:"0 8px 40px rgba(0,0,0,.6)" }} />
+      <button onClick={e=>{e.stopPropagation();next();}} style={{ position:"absolute", right:16, background:"rgba(255,255,255,.15)", border:"none", borderRadius:"50%", width:40, height:40, cursor:"pointer", color:"#fff", fontSize:20, display:"flex", alignItems:"center", justifyContent:"center" }}>›</button>
+      <button onClick={onClose} style={{ position:"absolute", top:16, right:16, background:"rgba(255,255,255,.15)", border:"none", borderRadius:"50%", width:36, height:36, cursor:"pointer", color:"#fff", fontSize:16, display:"flex", alignItems:"center", justifyContent:"center" }}><X size={16}/></button>
+      {photos.length > 1 && <div style={{ position:"absolute", bottom:20, color:"rgba(255,255,255,.7)", fontSize:13, fontFamily:C.num }}>{idx+1} / {photos.length}</div>}
+    </div>
+  );
+}
+
+// ── PhotoUpload ───────────────────────────────────────────────
+function PhotoUpload({ photos=[], onChange }) {
+  const [lightbox, setLightbox] = useState(null);
+  const handleFiles = async (e) => {
+    const files = [...e.target.files];
+    const resized = await Promise.all(files.map(f => resizeImage(f)));
+    onChange([...photos, ...resized]);
+    e.target.value = "";
+  };
+  const remove = (i, ev) => { ev.stopPropagation(); onChange(photos.filter((_,idx)=>idx!==i)); };
+  return (
+    <div>
+      <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginBottom: photos.length ? 8 : 0 }}>
+        {photos.map((src, i) => (
+          <div key={i} style={{ position:"relative", width:72, height:72, borderRadius:8, overflow:"hidden", cursor:"pointer", border:`2px solid ${C.border}`, flexShrink:0 }} onClick={()=>setLightbox(i)}>
+            <img src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+            <button onClick={e=>remove(i,e)} style={{ position:"absolute", top:2, right:2, background:"rgba(0,0,0,.6)", border:"none", borderRadius:"50%", width:18, height:18, cursor:"pointer", color:"#fff", fontSize:11, display:"flex", alignItems:"center", justifyContent:"center", padding:0 }}>×</button>
+          </div>
+        ))}
+        <label style={{ width:72, height:72, borderRadius:8, border:`2px dashed ${C.border}`, display:"flex", flexDirection:"column", alignItems:"center", justifyContent:"center", cursor:"pointer", color:C.muted, fontSize:11, fontFamily:C.jp, flexShrink:0, background:C.bg }}>
+          <span style={{ fontSize:22, lineHeight:1 }}>+</span>
+          <span style={{ marginTop:3 }}>写真</span>
+          <input type="file" accept="image/*" multiple onChange={handleFiles} style={{ display:"none" }} />
+        </label>
+      </div>
+      {lightbox !== null && <PhotoLightbox photos={photos} startIndex={lightbox} onClose={()=>setLightbox(null)} />}
+    </div>
+  );
+}
+
+// ── Field / DateField / CardSection ───────────────────────────
+function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub }) {
+  const isNum = type === "number";
+  const locked = readOnly || disabled;
+  return (
+    <div style={{ gridColumn:col, minWidth:0 }}>
+      <span style={lblS()}>{label}</span>
+      <input
+        style={inpS(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
+        type={isNum ? "text" : type}
+        inputMode={isNum ? "decimal" : undefined}
+        placeholder={placeholder}
+        readOnly={locked}
+        value={value ?? ""}
+        onChange={locked ? undefined : onChange}
+      />
+      {sub && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>{sub}</div>}
+    </div>
+  );
+}
+
+function DateField({ label, value, onChange, col }) {
+  const ref = useRef(null);
+  const openPicker = () => { if (ref.current) { ref.current.showPicker ? ref.current.showPicker() : ref.current.click(); } };
+  return (
+    <div style={{ gridColumn:col, minWidth:0 }}>
+      <span style={lblS()}>{label}</span>
+      <div style={{ position:"relative" }}>
+        <div onClick={openPicker} style={{ ...inpS({ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", userSelect:"none" }) }}>
+          <span style={{ color: value ? C.text : C.muted }}>{value ? dt(value) : "日付を選択"}</span>
+          <span style={{ color:C.muted, fontSize:16, lineHeight:1 }}>📅</span>
+        </div>
+        <input ref={ref} type="date" value={value||""} onChange={onChange} style={{ position:"absolute", opacity:0, width:0, height:0, top:0, left:0, pointerEvents:"none" }} />
+      </div>
+    </div>
+  );
+}
+
+function CardSection({ title, children, disabled }) {
+  return (
+    <div style={{ ...cardS({ marginBottom:14 }), ...(disabled ? { opacity:.45, pointerEvents:"none" } : {}) }}>
+      <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:16 }}>▸ {title}</div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>{children}</div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ItemForm（商品登録・編集）
+// ═══════════════════════════════════════════════════════════════
+function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
+  const isBundleMember = !!(initial.bundleGroupId && !initial.isBundleLeader);
+  const catS = getCatSettings(initial.category || "", settings);
+  const [form, setForm] = useState({
+    purchaseDate:today(), productName:"", category:"", source:"", purchaseUrl:"",
+    cost:"", storageShipping:0, isJunk:false, junkDate:today(),
+    auctRevoId:"",
+    ebayUrl:"", ebayTitle:"",
+    destination:"other", saleDate:"", salePrice:"", saleShipping:"",
+    ddpSurcharge:"", ddpMethod:"", actualDdpFee:"",
+    exchangeRate: settings.exchangeRate,
+    exchangeRateLocked:false,
+    ebayFeeRate: catS.ebayPct,
+    promotionRate: catS.promoPct,
+    intlShipping: catS.shippingJPY,
+    actualEbayFeeUSD:"", actualPromoFeeUSD:"",
+    refundUSD:"", refundExchangeRate:"", refundType:"none",
+    returnShippingJPY:"",
+    status:"unlisted", returnDate:"", returnShipping:"", returnNotes:"",
+    notes:"", photos:[],
+    ...initial,
+  });
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError,   setRateError]   = useState("");
+  const [showOffer,   setShowOffer]   = useState(false);
+  const [offerPrice,  setOfferPrice]  = useState("");
+
+  const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
+
+  const handleCategoryChange = (newCat) => {
+    const actualCat = form.category === newCat ? "" : newCat;
+    const cs = getCatSettings(actualCat, settings);
+    setForm(p => ({
+      ...p, category: actualCat,
+      ebayFeeRate: cs.ebayPct, promotionRate: cs.promoPct, intlShipping: cs.shippingJPY,
+    }));
+  };
+
+  const autoDdp = form.destination === "us"
+    ? ddpCalc(form.salePrice).toFixed(2) : "0";
+  const calcItem = { ...form, ddpSurcharge: form.destination==="us" ? autoDdp : 0 };
+  const c = calcFull(calcItem);
+
+  // Offer comparison
+  const offerCalcItem = { ...calcItem, salePrice: offerPrice };
+  const offerC = showOffer && +offerPrice ? calcFull(offerCalcItem) : null;
+
+  // Estimated fees for display
+  const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
+  const estEbayUSD = totalUSD * (+form.ebayFeeRate || 12) / 100;
+  const estPromoUSD = totalUSD * (+form.promotionRate || 2) / 100;
+
+  const ProfitBar = ({ label, calc, highlight }) => (
+    <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
+      {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr" }}>
+        {[["決済合計",yen(calc.totalJPY),C.text],["最終利益",yen(calc.profitJPY),pColorSafe(calc.profitJPY,calc.profitRate)],["利益率",pct(calc.profitRate),pColorSafe(calc.profitJPY,calc.profitRate)]].map(([l,v,col],i)=>(
+          <div key={i} style={{ textAlign:"center", padding:"4px", borderLeft:i>0?`1px solid ${C.border}`:"none" }}>
+            <span style={lblS({ display:"block", marginBottom:4 })}>{l}</span>
+            <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* バンドルメンバー注意バナー */}
+      {isBundleMember && (
+        <div style={{ ...cardS({ marginBottom:14, padding:12 }), background:`${C.accent}10`, borderColor:`${C.accent}30` }}>
+          <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+            <Link2 size={14} color={C.accent}/>
+            <span style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.accent }}>おまとめ商品の一部です</span>
+          </div>
+          <div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, marginTop:4 }}>原価・転送送料のみ編集できます。売上情報はおまとめ側から編集してください。</div>
+        </div>
+      )}
+      {/* ── 仕入れ情報 ── */}
+      <CardSection title="仕入れ情報">
+        <Field label="商品名" value={form.productName} onChange={set("productName")} placeholder="Canon AE-1 Black" col="1/-1" />
+        <div style={{ gridColumn:"1/-1" }}>
+          <span style={lblS()}>カテゴリ</span>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap" }}>
+            {[["camera","📷 カメラ"],["watch","⌚ 時計"],["other","🏷️ その他"]].map(([v,l]) => (
+              <button key={v} type="button" style={pillS(form.category===v,{padding:"6px 16px",fontSize:12})} onClick={()=>handleCategoryChange(v)}>{l}</button>
+            ))}
+          </div>
+        </div>
+        <DateField label="仕入れ日" value={form.purchaseDate} onChange={set("purchaseDate")} col="1/-1" />
+        <Field label="原価（¥）" type="number" value={form.cost} onChange={set("cost")} placeholder="0" />
+        <Field label="転送送料（¥）" type="number" value={form.storageShipping} onChange={set("storageShipping")} />
+        <div style={{ gridColumn:"1/-1" }}>
+          <span style={lblS()}>仕入れ先</span>
+          <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
+            {["ヤフオク","メルカリ"].map(s => (
+              <button key={s} type="button" style={pillS(form.source===s,{padding:"5px 14px",fontSize:12})} onClick={()=>setForm(p=>({...p,source:p.source===s?"":s}))}>{s}</button>
+            ))}
+            <input style={inpS({ flex:1, minWidth:120 })} type="text" placeholder="その他（直接入力）"
+              value={["ヤフオク","メルカリ"].includes(form.source) ? "" : (form.source||"")}
+              onChange={e => setForm(p=>({...p, source: e.target.value}))}
+              onFocus={() => { if(["ヤフオク","メルカリ"].includes(form.source)) setForm(p=>({...p, source:""})); }}
+            />
+          </div>
+        </div>
+        <Field label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
+        <Field label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
+        <div style={{ gridColumn:"1/-1" }}>
+          <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
+            <input type="checkbox" checked={form.isJunk} onChange={tog("isJunk")} style={{ width:16, height:16, accentColor:C.red }} />
+            💀 損切り（ジャンク）
+          </label>
+          {form.isJunk && (
+            <div style={{ marginTop:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+              <span style={lblS({ color:C.red })}>損切り確定日</span>
+              <DateField label="" value={form.junkDate??today()} onChange={set("junkDate")} />
+              <div style={{ color:C.muted, fontSize:11, fontFamily:C.jp, marginTop:6 }}>この日付で集計に損失が反映されます</div>
+            </div>
+          )}
+        </div>
+      </CardSection>
+
+      {/* ── eBay出品情報 ── */}
+      <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" />
+        <Field label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
+      </CardSection>
+
+      {/* ── 落札情報 ── */}
+      <div style={{ ...cardS({ marginBottom:14 }), ...((form.isJunk || isBundleMember) ? { opacity:.45, pointerEvents:"none" } : {}) }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <span style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp }}>▸ 落札情報</span>
+          <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={set("status")}>
+            <option value="unlisted">📝 未出品</option>
+            <option value="unsold">📦 出品中</option>
+            <option value="sold">✅ 売却済み</option>
+            <option value="returned">↩️ 返品</option>
+          </select>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
+          <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
+          <div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+              <span style={lblS({ marginBottom:0 })}>落札価格（$）</span>
+              <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
+                style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
+                📊 オファー比較
+              </button>
+            </div>
+            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
+          </div>
+          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+
+          {/* オファー比較入力 */}
+          {showOffer && (
+            <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
+              <span style={lblS({ color:C.accent })}>オファー金額（$）</span>
+              <input style={inpS({ background:"#fff", fontSize:18, fontWeight:700 })} type="text" inputMode="decimal" placeholder="0.00" value={offerPrice} onChange={e=>setOfferPrice(e.target.value)} />
+            </div>
+          )}
+
+          {/* 為替レート */}
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>為替レート {form.saleDate && <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}</span>
+            <div style={{ display:"flex", gap:6 }}>
+              <input style={inpS({ flex:1 })} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
+              {!form.saleDate && (
+                <button type="button" onClick={()=>fetchExchangeRate(r=>setForm(p=>({...p,exchangeRate:r})),setRateError,setRateLoading)} disabled={rateLoading}
+                  style={{ ...btnS("secondary",{ padding:"0 10px", fontSize:11, flexShrink:0 }), ...(rateLoading?{opacity:.6}:{}) }}>
+                  {rateLoading ? "…" : "🔄"}
+                </button>
+              )}
+            </div>
+            {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
+          </div>
+          <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+          <Field label="国際送料＋手数料（¥）" type="number" value={form.intlShipping} onChange={set("intlShipping")} />
+
+          {/* 送り先・DDP */}
+          <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
+            <span style={lblS()}>送り先</span>
+            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={set("destination")}>
+              <option value="other">その他</option>
+              <option value="us">🇺🇸 アメリカ（DDP）</option>
+            </select>
+          </div>
+          {form.destination === "us" && (
+            <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+              <div>
+                <span style={lblS()}>DDP上乗せ（$）</span>
+                <div style={{ position:"relative", display:"inline-block", marginTop:6 }}>
+                  <div style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color: form.actualDdpFee ? C.muted : C.accent, textDecoration: form.actualDdpFee ? "line-through" : "none", opacity: form.actualDdpFee ? 0.45 : 1 }}>${autoDdp}</div>
+                  {form.actualDdpFee && <span style={{ fontSize:11, color:C.green, fontFamily:C.jp, display:"block", marginTop:2 }}>✅ 実費で上書き中</span>}
+                </div>
+                {!form.actualDdpFee && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:2 }}>15% × $5刻み切上 / 最低$20</div>}
+              </div>
+              <div>
+                <span style={lblS()}>申告方法</span>
+                <select style={inpS({ cursor:"pointer", marginTop:4 })} value={form.ddpMethod} onChange={set("ddpMethod")}>
+                  <option value="">—</option>
+                  <option value="①">①通常</option><option value="②">②五十嵐</option><option value="③">③石川</option>
+                </select>
+              </div>
+              <div>
+                <span style={lblS()}>実際DDP料金（¥）</span>
+                <input style={inpS({ marginTop:4 })} type="text" inputMode="decimal" value={form.actualDdpFee??""} onChange={set("actualDdpFee")} />
+                <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>
+                  {form.actualDdpFee ? "✅ 実費入力済み" : `概算：${yen(+autoDdp * +(form.exchangeRate||158))}`}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 返品フィールド */}
+          {form.status === "returned" && (<>
+            <DateField label="返品日" value={form.returnDate} onChange={set("returnDate")} col="1/-1" />
+            <Field label="返品送料（¥）" type="number" value={form.returnShipping} onChange={set("returnShipping")} />
+            <Field label="返品メモ" value={form.returnNotes} onChange={set("returnNotes")} placeholder="理由など" col="1/-1" />
+          </>)}
+
+          {/* 実際の手数料 */}
+          {(form.status === "sold" || form.status === "returned") && (
+            <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
+              <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>実際の手数料（確定後に入力）</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+                <div>
+                  <span style={lblS()}>eBay落札手数料（$）実費</span>
+                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
+                  {!form.actualEbayFeeUSD && totalUSD > 0 && (
+                    <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>
+                  )}
+                  {form.actualEbayFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
+                </div>
+                <div>
+                  <span style={lblS()}>プロモート費用（$）実費</span>
+                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
+                  {!form.actualPromoFeeUSD && totalUSD > 0 && (
+                    <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>
+                  )}
+                  {form.actualPromoFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
+                </div>
+              </div>
+
+              {/* 返金セクション */}
+              <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>返金処理（一部返金・全額返金）</div>
+              <div style={{ marginBottom:8 }}>
+                <span style={lblS()}>返金タイプ</span>
+                <div style={{ display:"flex", gap:8 }}>
+                  {[["none","なし"],["partial","一部返金"],["full","全額返金"]].map(([v,l])=>(
+                    <button key={v} type="button" style={pillS(form.refundType===v,{padding:"5px 14px",fontSize:12})} onClick={()=>setForm(p=>({...p,refundType:v}))}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              {form.refundType !== "none" && (
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+                  <div>
+                    <span style={lblS({ color:C.red })}>返金額（$）</span>
+                    <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal"
+                      placeholder={form.refundType==="full" ? String((+form.salePrice)+(+form.saleShipping||0)) : "0.00"}
+                      value={form.refundUSD??""} onChange={set("refundUSD")} />
+                  </div>
+                  <div>
+                    <span style={lblS({ color:C.red })}>返金時の為替レート</span>
+                    <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal"
+                      placeholder={String(form.exchangeRate)} value={form.refundExchangeRate??""} onChange={set("refundExchangeRate")} />
+                    <div style={{ color:C.muted, fontSize:10, marginTop:4, fontFamily:C.jp }}>空欄なら落札時の為替を使用</div>
+                  </div>
+                  <div style={{ gridColumn:"1/-1" }}>
+                    <span style={lblS({ color:C.red })}>返送送料（¥）</span>
+                    <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal"
+                      placeholder="0" value={form.returnShippingJPY??""} onChange={set("returnShippingJPY")} />
+                    <div style={{ color:C.muted, fontSize:10, marginTop:3, fontFamily:C.jp }}>バイヤーへの返送にかかった実費を入力</div>
+                  </div>
+                  {(+form.refundUSD > 0 || +form.returnShippingJPY > 0) && (
+                    <div style={{ gridColumn:"1/-1", display:"flex", justifyContent:"flex-end", gap:16 }}>
+                      {+form.refundUSD > 0 && <span style={{ fontFamily:C.num, fontSize:13, color:C.red }}>返金額 △{yen(+form.refundUSD * (+form.refundExchangeRate || +form.exchangeRate))}</span>}
+                      {+form.returnShippingJPY > 0 && <span style={{ fontFamily:C.num, fontSize:13, color:C.red }}>返送送料 △{yen(+form.returnShippingJPY)}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 利益プレビュー ── */}
+      {!isBundleMember && c && <ProfitBar label={showOffer ? "📌 出品価格での利益" : null} calc={c} />}
+      {!isBundleMember && offerC && <ProfitBar label="📊 オファー価格での利益" calc={offerC} highlight />}
+      {!isBundleMember && c && offerC && (
+        <div style={{ ...cardS({ marginBottom:14, padding:14 }), background:"#f8f9ff", borderColor:`${C.accent}30` }}>
+          <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:8, letterSpacing:"0.06em" }}>差額</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr" }}>
+            {[
+              ["決済差額", yen(offerC.totalJPY - c.totalJPY), C.text],
+              ["利益差額", yen(offerC.profitJPY - c.profitJPY), offerC.profitJPY - c.profitJPY >= 0 ? C.green : C.red],
+              ["利益率差", pct(offerC.profitRate - c.profitRate), offerC.profitRate - c.profitRate >= 0 ? C.green : C.red],
+            ].map(([l,v,col],i) => (
+              <div key={i} style={{ textAlign:"center", padding:"4px", borderLeft:i>0?`1px solid ${C.border}`:"none" }}>
+                <span style={lblS({ display:"block", marginBottom:4 })}>{l}</span>
+                <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 備考 ── */}
+      {!isBundleMember && <div style={cardS({ marginBottom:14 })}>
+        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:12 }}>▸ 備考</div>
+        <textarea style={{ ...inpS(), resize:"vertical", minHeight:60, fontFamily:C.jp, fontSize:13, lineHeight:1.6 }}
+          placeholder="組み合わせ・関連商品など" value={form.notes||""} onChange={set("notes")} />
+      </div>}
+
+      {/* ── 写真 ── */}
+      {!isBundleMember && <div style={cardS({ marginBottom:14 })}>
+        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:14 }}>▸ 写真</div>
+        <PhotoUpload photos={form.photos||[]} onChange={photos=>setForm(p=>({...p,photos}))} />
+      </div>}
+
+      {/* ── 保存ボタン ── */}
+      <div style={{ display:"flex", gap:10 }}>
+        <button onClick={()=>onSave({ ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" })}
+          style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15 })}>
+          {initial.id?"更新する":"追加する"}
+        </button>
+        <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Return Modal
+// ═══════════════════════════════════════════════════════════════
+function ReturnModal({ item, onConfirm, onClose }) {
+  const [form, setForm] = useState({ returnDate:today(), returnShipping:"", returnNotes:"" });
+  const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  return (
+    <Modal title="返品処理" onClose={onClose}>
+      <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
+        <div style={{ padding:"12px 16px", background:C.bg, borderRadius:9, fontFamily:C.jp, fontSize:14, color:C.textSub }}>{item.productName}</div>
+        <DateField label="返品日" value={form.returnDate} onChange={set("returnDate")} />
+        <div>
+          <span style={lblS()}>返品送料・費用（¥）</span>
+          <input style={inpS()} type="number" placeholder="0" value={form.returnShipping} onChange={set("returnShipping")} />
+        </div>
+        <div>
+          <span style={lblS()}>メモ</span>
+          <input style={inpS()} type="text" placeholder="理由・状況など" value={form.returnNotes} onChange={set("returnNotes")} />
+        </div>
+        <div style={{ display:"flex", gap:10, marginTop:4 }}>
+          <button onClick={()=>onConfirm(form)} style={btnS("danger",{ flex:1, justifyContent:"center" })}>返品として完結する</button>
+          <button onClick={onClose} style={btnS("ghost")}>キャンセル</button>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Bundle Sale Modal
+// ═══════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// Split Modal
+// ═══════════════════════════════════════════════════════════════
+function SplitModal({ item, onConfirm, onClose }) {
+  const [count, setCount] = useState(2);
+  const [parts, setParts] = useState([
+    { name: item.productName + " ①", cost: Math.floor((+item.cost||0)/2) },
+    { name: item.productName + " ②", cost: Math.ceil((+item.cost||0)/2) },
+  ]);
+  const updateCount = (n) => {
+    const c = Math.max(2, Math.min(10, +n));
+    const base = Math.floor((+item.cost||0) / c);
+    const extra = (+item.cost||0) - base * c;
+    const nums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
+    setParts(Array.from({ length:c }, (_, i) => ({ name: item.productName + ` ${nums[i]||`(${i+1})`}`, cost: i === 0 ? base + extra : base })));
+    setCount(c);
+  };
+  const setPart = (i, k, v) => setParts(p => p.map((x,idx) => idx===i ? {...x,[k]:v} : x));
+  const totalCost = parts.reduce((s,p) => s + (+p.cost||0), 0);
+  const origCost = +item.cost || 0;
+  const diff = totalCost - origCost;
+  return (
+    <Modal title={`セット分割：${item.productName}`} onClose={onClose} width={500}>
+      <div style={{ marginBottom:16 }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
+          <span style={{ fontFamily:C.jp, fontSize:13, color:C.textSub }}>分割数</span>
+          <div style={{ display:"flex", gap:6 }}>
+            {[2,3,4,5].map(n => <button key={n} onClick={()=>updateCount(n)} style={pillS(count===n,{padding:"5px 14px"})}>{n}点</button>)}
+          </div>
+        </div>
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {parts.map((p, i) => (
+            <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:10, alignItems:"center", padding:"10px 12px", background:C.bg, borderRadius:9, border:`1px solid ${C.border}` }}>
+              <input style={inpS({ background:"#fff", fontSize:13 })} type="text" value={p.name} onChange={e=>setPart(i,"name",e.target.value)} placeholder="商品名" />
+              <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                <span style={{ color:C.muted, fontSize:12, fontFamily:C.num }}>¥</span>
+                <input style={inpS({ width:100, background:"#fff", fontSize:13 })} type="text" inputMode="decimal" value={p.cost} onChange={e=>setPart(i,"cost",e.target.value)} />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div style={{ marginTop:12, padding:"10px 14px", borderRadius:9, background: diff===0 ? C.greenLo : C.amberLo, border:`1px solid ${diff===0?C.green:C.amber}40` }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontFamily:C.num, fontSize:13 }}>
+            <span style={{ color:C.textSub, fontFamily:C.jp }}>元の原価</span><span>{yen(origCost)}</span>
+          </div>
+          <div style={{ display:"flex", justifyContent:"space-between", fontFamily:C.num, fontSize:13, marginTop:4 }}>
+            <span style={{ color:C.textSub, fontFamily:C.jp }}>配分合計</span>
+            <span style={{ color:diff===0?C.green:C.amber, fontWeight:700 }}>{yen(totalCost)} {diff!==0?`(${diff>0?"+":""}${yen(diff)})`:"✓"}</span>
+          </div>
+        </div>
+      </div>
+      <div style={{ display:"flex", gap:10 }}>
+        <button onClick={()=>onConfirm(parts)} style={btnS("primary",{ flex:1, justifyContent:"center" })}>分割して登録</button>
+        <button onClick={onClose} style={btnS("ghost")}>キャンセル</button>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MiniCalc（デスクトップ右パネル上部）
+// ═══════════════════════════════════════════════════════════════
+function MiniCalc({ settings, onSettingsChange }) {
+  const [mode, setMode]       = useState("forward");
+  const [v, setV]             = useState("");
+  const [showCfg, setShowCfg] = useState(false);
+  const [cat, setCat]         = useState("camera");
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError,   setRateError]   = useState("");
+
+  const catS = settings[cat] || settings.camera;
+  const cfg = { exchangeRate: settings.exchangeRate, ebayPct: catS.ebayPct, promoPct: catS.promoPct, shippingJPY: catS.shippingJPY, targetPct: catS.targetPct };
+
+  const fwd = (mode==="forward" && v) ? quickCalc(+v, cfg) : null;
+  const rev = (mode==="reverse" && v) ? (() => {
+    const minUSD = (+v + cfg.shippingJPY) / (cfg.exchangeRate * (1 - (cfg.ebayPct+cfg.promoPct)/100 - cfg.targetPct/100));
+    return { ...quickCalc(minUSD, cfg), minUSD };
+  })() : null;
+
+  const updateCatSetting = (key, val) => {
+    onSettingsChange({ ...settings, [cat]: { ...settings[cat], [key]: +val } });
+  };
+  const updateRate = (val) => {
+    onSettingsChange({ ...settings, exchangeRate: +val });
+  };
+
+  return (
+    <div style={{ ...cardS({ padding:14, marginBottom:16 }), background:C.accentLo, border:`1px solid ${C.accent}28` }}>
+      <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:10 }}>
+        <Calculator size={13} color={C.accent}/>
+        <span style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent }}>仕入れ計算</span>
+        <button onClick={()=>setShowCfg(o=>!o)} style={{ marginLeft:"auto", background:"none", border:"none", cursor:"pointer", color:C.muted, fontSize:11, fontFamily:C.jp, padding:0 }}>⚙ 設定</button>
+      </div>
+
+      {/* カテゴリ選択 */}
+      <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+        {[["camera","📷 カメラ"],["watch","⌚ 時計"]].map(([k,l])=>(
+          <button key={k} style={pillS(cat===k,{fontSize:10,padding:"4px 10px"})} onClick={()=>setCat(k)}>{l}</button>
+        ))}
+      </div>
+
+      {/* モード切替 */}
+      <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+        <button style={pillS(mode==="forward",{fontSize:10,padding:"4px 10px"})} onClick={()=>{setMode("forward");setV("");}}>出品価格→仕入上限</button>
+        <button style={pillS(mode==="reverse",{fontSize:10,padding:"4px 10px"})} onClick={()=>{setMode("reverse");setV("");}}>仕入値→最低出品</button>
+      </div>
+
+      <div style={{ position:"relative" }}>
+        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted, fontFamily:C.num, pointerEvents:"none" }}>{mode==="forward"?"$":"¥"}</span>
+        <input style={inpS({ paddingLeft:28, fontSize:18, fontWeight:700, height:42, background:"#fff" })}
+          type="text" inputMode="decimal" placeholder={mode==="forward"?"出品価格":"仕入れ価格"} value={v} onChange={e=>setV(e.target.value)} />
+      </div>
+      {fwd && (
+        <div style={{ marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:"#fff", borderRadius:8 }}>
+          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>仕入れ上限</span>
+          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:fwd.maxBuyJPY>0?C.green:C.red }}>{yen(fwd.maxBuyJPY)}</span>
+        </div>
+      )}
+      {rev && (
+        <div style={{ marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:"#fff", borderRadius:8 }}>
+          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>最低出品価格</span>
+          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:C.accent }}>{usd(rev.minUSD)}</span>
+        </div>
+      )}
+
+      {/* 設定パネル */}
+      {showCfg && (
+        <div style={{ marginTop:10, paddingTop:10, borderTop:`1px solid ${C.border}` }}>
+          {/* 為替（共通） */}
+          <div style={{ marginBottom:10 }}>
+            <span style={lblS()}>為替（¥/$）共通</span>
+            <div style={{ display:"flex", gap:6 }}>
+              <input style={inpS({ fontSize:12, padding:"5px 8px", background:"#fff", flex:1 })} type="text" inputMode="decimal" value={settings.exchangeRate} onChange={e=>updateRate(e.target.value)} />
+              <button onClick={()=>fetchExchangeRate(r=>updateRate(r),setRateError,setRateLoading)} disabled={rateLoading}
+                style={btnS("secondary",{ padding:"0 8px", fontSize:10, flexShrink:0 })}>{rateLoading?"…":"🔄"}</button>
+            </div>
+            {rateError && <div style={{ color:C.red, fontSize:10, marginTop:3 }}>{rateError}</div>}
+          </div>
+          {/* カテゴリ別設定 */}
+          <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:8 }}>
+            {cat==="camera" ? "📷 カメラ設定" : "⌚ 時計設定"}
+          </div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8 }}>
+            {[["ebayPct","eBay手数料（%）"],["promoPct","プロモ（%）"],["shippingJPY","送料（¥）"],["targetPct","目標利益（%）"]].map(([k,l])=>(
+              <div key={k}>
+                <span style={lblS()}>{l}</span>
+                <input style={inpS({ fontSize:12, padding:"5px 8px", background:"#fff" })} type="text" inputMode="decimal" value={catS[k]} onChange={e=>updateCatSetting(k, e.target.value)} />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BundleEditForm（まとめ売り編集フォーム）
+// ═══════════════════════════════════════════════════════════════
+function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, settings }) {
+  const allMembers = [leader, ...members];
+  const combinedName = allMembers.map(i => i.productName || "—").join(" + ");
+
+  const [form, setForm] = useState({
+    productName: leader.productName || combinedName,
+    auctRevoId: leader.auctRevoId || "",
+    ebayTitle: leader.ebayTitle || "",
+    ebayUrl: leader.ebayUrl || "",
+    category: "bundle",
+    saleDate: leader.saleDate || "",
+    salePrice: leader.salePrice || "",
+    saleShipping: leader.saleShipping || "",
+    exchangeRate: leader.exchangeRate || settings.exchangeRate,
+    ebayFeeRate: leader.ebayFeeRate || 12,
+    promotionRate: leader.promotionRate || 2,
+    intlShipping: leader.intlShipping || 6000,
+    destination: leader.destination || "other",
+    ddpMethod: leader.ddpMethod || "",
+    actualDdpFee: leader.actualDdpFee || "",
+    actualEbayFeeUSD: leader.actualEbayFeeUSD || "",
+    actualPromoFeeUSD: leader.actualPromoFeeUSD || "",
+    refundUSD: leader.refundUSD || "",
+    refundExchangeRate: leader.refundExchangeRate || "",
+    refundType: leader.refundType || "none",
+    returnShippingJPY: leader.returnShippingJPY || "",
+    status: leader.status || "unsold",
+    notes: leader.notes || "",
+    photos: leader.photos || [],
+  });
+  const [costs, setCosts] = useState(
+    allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber }))
+  );
+  const [rateLoading, setRateLoading] = useState(false);
+  const [rateError,   setRateError]   = useState("");
+  const [showOffer,   setShowOffer]   = useState(false);
+  const [offerPrice,  setOfferPrice]  = useState("");
+
+  const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const setCost = (idx, k, v) => setCosts(p => p.map((c,i) => i===idx ? {...c,[k]:v} : c));
+
+  const totalCost = costs.reduce((s,m) => s + (+m.cost||0), 0);
+  const totalShipping = costs.reduce((s,m) => s + (+m.storageShipping||0), 0);
+  const grandCost = totalCost + totalShipping;
+
+  const autoDdp = form.destination==="us" ? ddpCalc(form.salePrice).toFixed(2) : "0";
+  const calcItem = { ...form, cost:grandCost, storageShipping:0, ddpSurcharge:form.destination==="us"?autoDdp:0 };
+  const c = calcFull(calcItem);
+  const offerCalcItem = { ...calcItem, salePrice: offerPrice };
+  const offerC = showOffer && +offerPrice ? calcFull(offerCalcItem) : null;
+
+  const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
+  const estEbayUSD = totalUSD * (+form.ebayFeeRate||12) / 100;
+  const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
+
+  const handleSave = () => {
+    onSave({
+      leaderData: { ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" },
+      memberCosts: costs.map(c => ({ id:c.id, cost:+c.cost||0, storageShipping:+c.storageShipping||0 })),
+    });
+  };
+
+  const ProfitBar = ({ label, calc, highlight }) => (
+    <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
+      {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr" }}>
+        {[["決済合計",yen(calc.totalJPY),C.text],["最終利益",yen(calc.profitJPY),pColorSafe(calc.profitJPY,calc.profitRate)],["利益率",pct(calc.profitRate),pColorSafe(calc.profitJPY,calc.profitRate)]].map(([l,v,col],i)=>(
+          <div key={i} style={{ textAlign:"center", padding:"4px", borderLeft:i>0?`1px solid ${C.border}`:"none" }}>
+            <span style={lblS({ display:"block", marginBottom:4 })}>{l}</span>
+            <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col }}>{v}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  return (
+    <div>
+      {/* ── まとめ売り概要 ── */}
+      <div style={{ ...cardS({ marginBottom:14 }), background:`${C.accent}08`, borderColor:`${C.accent}30` }}>
+        <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
+          <Link2 size={16} color={C.accent}/>
+          <span style={{ color:C.accent, fontSize:13, fontWeight:700, fontFamily:C.jp }}>📦 まとめ売り（{allMembers.length}点）</span>
+        </div>
+        <div style={{ marginBottom:12 }}>
+          <span style={lblS()}>商品名</span>
+          <input style={inpS()} type="text" value={form.productName} onChange={set("productName")} />
+        </div>
+        <Field label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
+      </div>
+
+      {/* ── 原価内訳 ── */}
+      <div style={cardS({ marginBottom:14 })}>
+        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:14 }}>▸ 原価内訳</div>
+        {costs.map((m, idx) => (
+          <div key={m.id} style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"center", padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
+            <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
+            <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
+            <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+              <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
+              <input style={inpS({ width:90, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.cost} onChange={e=>setCost(idx,"cost",e.target.value)} />
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+              <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>転送</span>
+              <input style={inpS({ width:80, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.storageShipping} onChange={e=>setCost(idx,"storageShipping",e.target.value)} />
+            </div>
+          </div>
+        ))}
+        <div style={{ display:"flex", justifyContent:"flex-end", gap:16, marginTop:10, padding:"8px 12px", background:C.accentLo, borderRadius:8 }}>
+          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>原価合計 <span style={{ fontFamily:C.num, fontWeight:700, color:C.text }}>{yen(totalCost)}</span></span>
+          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>転送合計 <span style={{ fontFamily:C.num, fontWeight:700, color:C.text }}>{yen(totalShipping)}</span></span>
+          <span style={{ fontFamily:C.jp, fontSize:12, color:C.accent, fontWeight:700 }}>総額 <span style={{ fontFamily:C.num }}>{yen(grandCost)}</span></span>
+        </div>
+      </div>
+
+      {/* ── eBay出品情報 ── */}
+      <CardSection title="eBay出品情報">
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" />
+        <Field label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
+      </CardSection>
+
+      {/* ── 落札情報 ── */}
+      <div style={cardS({ marginBottom:14 })}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
+          <span style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp }}>▸ 落札情報</span>
+          <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={set("status")}>
+            <option value="unlisted">📝 未出品</option>
+            <option value="unsold">📦 出品中</option>
+            <option value="sold">✅ 売却済み</option>
+            <option value="returned">↩️ 返品</option>
+          </select>
+        </div>
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
+          <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
+          <div>
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
+              <span style={lblS({ marginBottom:0 })}>落札価格（$）</span>
+              <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
+                style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
+                📊 オファー比較
+              </button>
+            </div>
+            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
+          </div>
+          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+
+          {showOffer && (
+            <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
+              <span style={lblS({ color:C.accent })}>オファー金額（$）</span>
+              <input style={inpS({ background:"#fff", fontSize:18, fontWeight:700 })} type="text" inputMode="decimal" placeholder="0.00" value={offerPrice} onChange={e=>setOfferPrice(e.target.value)} />
+            </div>
+          )}
+
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>為替レート</span>
+            <div style={{ display:"flex", gap:6 }}>
+              <input style={inpS({ flex:1 })} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
+              <button type="button" onClick={()=>fetchExchangeRate(r=>setForm(p=>({...p,exchangeRate:r})),setRateError,setRateLoading)} disabled={rateLoading}
+                style={{ ...btnS("secondary",{ padding:"0 10px", fontSize:11, flexShrink:0 }), ...(rateLoading?{opacity:.6}:{}) }}>
+                {rateLoading?"…":"🔄"}
+              </button>
+            </div>
+            {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4 }}>{rateError}</div>}
+          </div>
+          <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+          <Field label="国際送料＋手数料（¥）" type="number" value={form.intlShipping} onChange={set("intlShipping")} />
+
+          <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
+            <span style={lblS()}>送り先</span>
+            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={set("destination")}>
+              <option value="other">その他</option>
+              <option value="us">🇺🇸 アメリカ（DDP）</option>
+            </select>
+          </div>
+          {form.destination==="us" && (
+            <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:12 }}>
+              <div>
+                <span style={lblS()}>DDP上乗せ（$）</span>
+                <div style={{ position:"relative", display:"inline-block", marginTop:6 }}>
+                  <div style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color: form.actualDdpFee ? C.muted : C.accent, textDecoration: form.actualDdpFee ? "line-through" : "none", opacity: form.actualDdpFee ? 0.45 : 1 }}>${autoDdp}</div>
+                  {form.actualDdpFee && <span style={{ fontSize:11, color:C.green, fontFamily:C.jp, display:"block", marginTop:2 }}>✅ 実費で上書き中</span>}
+                </div>
+                {!form.actualDdpFee && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:2 }}>最低$20</div>}
+              </div>
+              <div>
+                <span style={lblS()}>申告方法</span>
+                <select style={inpS({ cursor:"pointer", marginTop:4 })} value={form.ddpMethod} onChange={set("ddpMethod")}><option value="">—</option><option value="①">①通常</option><option value="②">②五十嵐</option><option value="③">③石川</option></select>
+              </div>
+              <div>
+                <span style={lblS()}>実際DDP料金（¥）</span>
+                <input style={inpS({ marginTop:4 })} type="text" inputMode="decimal" value={form.actualDdpFee??""} onChange={set("actualDdpFee")} />
+              </div>
+            </div>
+          )}
+
+          {(form.status==="sold"||form.status==="returned") && (
+            <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
+              <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>実際の手数料（確定後に入力）</div>
+              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
+                <div>
+                  <span style={lblS()}>eBay手数料（$）実費</span>
+                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
+                  {!form.actualEbayFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>}
+                </div>
+                <div>
+                  <span style={lblS()}>プロモート費用（$）実費</span>
+                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
+                  {!form.actualPromoFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>}
+                </div>
+              </div>
+              <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>返金処理</div>
+              <div style={{ display:"flex", gap:8, marginBottom:8 }}>
+                {[["none","なし"],["partial","一部返金"],["full","全額返金"]].map(([v,l])=>(
+                  <button key={v} type="button" style={pillS(form.refundType===v,{padding:"5px 14px",fontSize:12})} onClick={()=>setForm(p=>({...p,refundType:v}))}>{l}</button>
+                ))}
+              </div>
+              {form.refundType!=="none" && (
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+                  <div><span style={lblS({ color:C.red })}>返金額（$）</span><input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" value={form.refundUSD??""} onChange={set("refundUSD")} /></div>
+                  <div><span style={lblS({ color:C.red })}>返金時の為替レート</span><input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" placeholder={String(form.exchangeRate)} value={form.refundExchangeRate??""} onChange={set("refundExchangeRate")} /></div>
+                  <div style={{ gridColumn:"1/-1" }}>
+                    <span style={lblS({ color:C.red })}>返送送料（¥）</span>
+                    <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" placeholder="0" value={form.returnShippingJPY??""} onChange={set("returnShippingJPY")} />
+                    <div style={{ color:C.muted, fontSize:10, marginTop:3, fontFamily:C.jp }}>バイヤーへの返送にかかった実費を入力</div>
+                  </div>
+                  {(+form.refundUSD > 0 || +form.returnShippingJPY > 0) && (
+                    <div style={{ gridColumn:"1/-1", display:"flex", justifyContent:"flex-end", gap:16 }}>
+                      {+form.refundUSD > 0 && <span style={{ fontFamily:C.num, fontSize:13, color:C.red }}>返金額 △{yen(+form.refundUSD * (+form.refundExchangeRate || +form.exchangeRate))}</span>}
+                      {+form.returnShippingJPY > 0 && <span style={{ fontFamily:C.num, fontSize:13, color:C.red }}>返送送料 △{yen(+form.returnShippingJPY)}</span>}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── 利益プレビュー ── */}
+      {c && <ProfitBar label={showOffer ? "📌 出品価格での利益" : null} calc={c} />}
+      {offerC && <ProfitBar label="📊 オファー価格での利益" calc={offerC} highlight />}
+      {c && offerC && (
+        <div style={{ ...cardS({ marginBottom:14, padding:14 }), background:"#f8f9ff", borderColor:`${C.accent}30` }}>
+          <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:8 }}>差額</div>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr" }}>
+            {[["決済差額",yen(offerC.totalJPY-c.totalJPY),C.text],["利益差額",yen(offerC.profitJPY-c.profitJPY),offerC.profitJPY-c.profitJPY>=0?C.green:C.red],["利益率差",pct(offerC.profitRate-c.profitRate),offerC.profitRate-c.profitRate>=0?C.green:C.red]].map(([l,v,col],i)=>(
+              <div key={i} style={{ textAlign:"center", padding:"4px", borderLeft:i>0?`1px solid ${C.border}`:"none" }}>
+                <span style={lblS({ display:"block", marginBottom:4 })}>{l}</span>
+                <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col }}>{v}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── 備考・写真 ── */}
+      <div style={cardS({ marginBottom:14 })}>
+        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:12 }}>▸ 備考</div>
+        <textarea style={{ ...inpS(), resize:"vertical", minHeight:60, fontFamily:C.jp, fontSize:13, lineHeight:1.6 }} value={form.notes||""} onChange={set("notes")} />
+      </div>
+      <div style={cardS({ marginBottom:14 })}>
+        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:14 }}>▸ 写真</div>
+        <PhotoUpload photos={form.photos||[]} onChange={photos=>setForm(p=>({...p,photos}))} />
+      </div>
+
+      {/* ── 保存 ── */}
+      <div style={{ display:"flex", gap:10 }}>
+        <button onClick={handleSave} style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15 })}>更新する</button>
+        <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
+      </div>
+      <div style={{ marginTop:10 }}>
+        <button onClick={onDissolve} style={btnS("danger",{ width:"100%", justifyContent:"center", fontSize:12, padding:"8px" })}>🔓 まとめ売りを解除する</button>
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Report Modal（月次損益レポート）
+// ═══════════════════════════════════════════════════════════════
+function ReportModal({ items, onClose }) {
+  const [filterYear, setFilterYear] = useState("all");
+  const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
+
+  // 月別集計
+  const monthlyMap = {};
+  items.forEach(item => {
+    if (!isSold(item)) return;
+    if (item.bundleGroupId && !item.isBundleLeader) return; // bundle member はスキップ
+    const c = item.isJunk && !item.salePrice ? calcJunk(item) : calcFull(item);
+    if (!c) return;
+    const d = new Date(item.saleDate);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    if (isNaN(y)) return;
+    const key = `${y}-${String(m).padStart(2,"0")}`;
+    if (!monthlyMap[key]) monthlyMap[key] = { year:y, month:m, key, revenue:0, cost:0, profit:0, count:0 };
+    monthlyMap[key].revenue += c.totalJPY || 0;
+    monthlyMap[key].cost    += c.usedCost || 0;
+    monthlyMap[key].profit  += c.profitJPY || 0;
+    monthlyMap[key].count   += 1;
+  });
+  // 損切り確定（junkDate基準、未売却のみ）
+  items.forEach(item => {
+    if (!item.isJunk || !item.junkDate || isSold(item)) return;
+    const d = new Date(item.junkDate);
+    const y = d.getFullYear(), m = d.getMonth() + 1;
+    if (isNaN(y)) return;
+    const key = `${y}-${String(m).padStart(2,"0")}`;
+    const loss = (+item.cost||0) + (+item.storageShipping||0);
+    if (!monthlyMap[key]) monthlyMap[key] = { year:y, month:m, key, revenue:0, cost:0, profit:0, count:0 };
+    monthlyMap[key].profit -= loss;
+    monthlyMap[key].cost   += loss;
+  });
+
+
+  const years = [...new Set(Object.values(monthlyMap).map(r=>r.year))].sort((a,b)=>b-a);
+  const rows = Object.values(monthlyMap)
+    .filter(r => filterYear==="all" || r.year===+filterYear)
+    .sort((a,b) => b.key.localeCompare(a.key));
+
+  const totRevenue = rows.reduce((s,r)=>s+r.revenue,0);
+  const totProfit  = rows.reduce((s,r)=>s+r.profit,0);
+  const totCount   = rows.reduce((s,r)=>s+r.count,0);
+  const avgRate    = totRevenue ? totProfit / totRevenue : 0;
+
+  const TH2 = ({children,align="left"}) => (
+    <th style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap" }}>{children}</th>
+  );
+
+  return (
+    <Modal title="📊 月次損益レポート" onClose={onClose} width={640}>
+      <div style={{ display:"flex", gap:8, marginBottom:16, alignItems:"center" }}>
+        <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>年度：</span>
+        <div style={{ display:"flex", gap:6 }}>
+          {["all",...years].map(y=>(
+            <button key={y} style={pillS(filterYear===(y==="all"?y:+y),{padding:"3px 10px",fontSize:11})} onClick={()=>setFilterYear(y==="all"?"all":+y)}>
+              {y==="all"?"全期間":`${y}年`}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* サマリーカード */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:16 }}>
+        {[["売却件数",`${totCount}件`,C.accent],["総売上",yen(totRevenue),C.accent],["純利益",yen(totProfit),totProfit>=0?C.green:C.red],["平均利益率",pct(avgRate),pColor(avgRate)]].map(([l,v,col])=>(
+          <div key={l} style={{ background:C.bg, borderRadius:9, padding:"10px 12px", border:`1px solid ${C.border}` }}>
+            <div style={{ color:C.muted, fontSize:10, fontWeight:700, letterSpacing:"0.07em", fontFamily:C.jp, marginBottom:3 }}>{l}</div>
+            <div style={{ fontFamily:C.num, fontSize:15, fontWeight:700, color:col }}>{v}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* 月別テーブル */}
+      <div style={{ borderRadius:10, overflow:"hidden", border:`1px solid ${C.border}` }}>
+        <table style={{ width:"100%", borderCollapse:"collapse" }}>
+          <thead>
+            <tr>
+              <TH2>月</TH2>
+              <TH2 align="right">件数</TH2>
+              <TH2 align="right">売上</TH2>
+              <TH2 align="right">原価</TH2>
+              <TH2 align="right">利益</TH2>
+              <TH2 align="right">利益率</TH2>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.length === 0 ? (
+              <tr><td colSpan={6} style={{ textAlign:"center", padding:"30px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>データがありません</td></tr>
+            ) : rows.map((r, idx) => {
+              const rate = r.revenue ? r.profit / r.revenue : null;
+              return (
+                <tr key={r.key} style={{ background:idx%2===0?"#fff":C.bg, borderBottom:`1px solid ${C.border}` }}>
+                  <td style={{ padding:"9px 12px", fontFamily:C.num, fontWeight:700, fontSize:13, color:C.text }}>{r.year}/{String(r.month).padStart(2,"0")}</td>
+                  <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, textAlign:"right", color:C.textSub }}>{r.count}件</td>
+                  <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, textAlign:"right", color:C.textSub }}>{yen(r.revenue)}</td>
+                  <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, textAlign:"right", color:C.textSub }}>{yen(r.cost)}</td>
+                  <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, textAlign:"right", color:r.profit>=0?C.green:C.red }}>
+                    {(r.profit>=0?"+":"")+yen(r.profit)}
+                  </td>
+                  <td style={{ padding:"9px 12px", textAlign:"right" }}>
+                    {rate!=null ? (
+                      <span style={{ fontFamily:C.num, fontSize:12, fontWeight:700, color:pColor(rate), background:`${pColor(rate)}15`, padding:"2px 8px", borderRadius:5 }}>{pct(rate)}</span>
+                    ) : "—"}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Desktop Table
+// ═══════════════════════════════════════════════════════════════
+function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundleHeaderClick, onDelete, onReturn, onRelist, onBundleSale, onSplit }) {
+  const [selecting, setSelecting] = useState(false);
+  const [selSet, setSelSet]       = useState(new Set());
+  const [search, setSearch]       = useState("");
+  const [fStatus, setFStatus]     = useState("all");
+  const [fYearMonth, setFYearMonth] = useState("all");
+  const [sortAsc, setSortAsc]     = useState(false);
+  const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
+  const [fCat,    setFCat]        = useState("all");
+  const scrollRef = useRef(null);
+
+  const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
+
+  // 年月セレクト用（落札日基準）
+  const saleMYs = [...new Set(
+    items.filter(i => i.saleDate && !i.saleDate.startsWith("1900"))
+      .map(i => { const d = new Date(i.saleDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })
+  )].sort((a,b) => b.localeCompare(a));
+
+  // 今月利益（全アイテム対象・常時表示用）
+  const _now = new Date();
+  const _ny = _now.getFullYear(), _nm = _now.getMonth()+1;
+  const thisMonthProfit = (() => {
+    const sold = items.filter(i => {
+      if (!isSold(i) || (i.bundleGroupId && !i.isBundleLeader)) return false;
+      const d = new Date(i.saleDate);
+      return d.getFullYear()===_ny && d.getMonth()+1===_nm;
+    }).map(i => {
+      if (i.isBundleLeader) {
+        const members = items.filter(m => m.bundleGroupId===i.bundleGroupId && !m.isBundleLeader);
+        return calcBundle(i, members);
+      }
+      return calcFull(i);
+    }).filter(Boolean).reduce((s,c) => s+c.profitJPY, 0);
+    const junk = items.filter(i => {
+      if (!i.isJunk || !i.junkDate) return false;
+      const d = new Date(i.junkDate);
+      return d.getFullYear()===_ny && d.getMonth()+1===_nm;
+    }).reduce((s,i) => s+(+i.cost||0)+(+i.storageShipping||0), 0);
+    return sold - junk;
+  })();
+
+  const filtered = items.filter(i => {
+    if (fStatus==="junk"     && !i.isJunk) return false;
+    if (fStatus==="unlisted" && i.status!=="unlisted") return false;
+    if (fStatus==="unsold"   && (i.status!=="unsold"||i.isJunk)) return false;
+    if (fStatus==="sold"     && (i.status!=="sold"||i.isJunk)) return false;
+    if (fStatus==="returned" && i.status!=="returned") return false;
+    if (fStatus==="sold" && fYearMonth!=="all") {
+      const [fy,fm] = fYearMonth.split("-").map(Number);
+      if (!i.saleDate || i.saleDate.startsWith("1900")) return false;
+      const d = new Date(i.saleDate);
+      if (d.getFullYear()!==fy || d.getMonth()+1!==fm) return false;
+    }
+    if (fCat!=="all" && (i.category||"") !== fCat) return false;
+    if (search) { const q=search.toLowerCase(); if(!i.productName?.toLowerCase().includes(q)&&!i.source?.toLowerCase().includes(q)&&!String(i.managementNumber||"").includes(q)&&!i.auctRevoId?.includes(q)) return false; }
+    return true;
+  });
+
+  const bundleMap = {}; const singles = [];
+  filtered.forEach(item => {
+    if (item.bundleGroupId) { if(!bundleMap[item.bundleGroupId]) bundleMap[item.bundleGroupId]=[]; bundleMap[item.bundleGroupId].push(item); }
+    else singles.push(item);
+  });
+  const groups = [];
+  Object.entries(bundleMap).forEach(([gid,grp]) => {
+    const leader=grp.find(i=>i.isBundleLeader)||grp[0]; const members=grp.filter(i=>i!==leader);
+    groups.push({ type:"bundle", leader, members, key:gid, date:leader.purchaseDate, saleDate:leader.saleDate||"" });
+  });
+  singles.forEach(item => groups.push({ type:"single", item, key:item.id, date:item.purchaseDate, saleDate:item.saleDate||"" }));
+  const getSortDate = g => sortKey==="sale" ? (g.saleDate||"") : (g.date||"");
+  groups.sort((a,b) => sortAsc ? getSortDate(a).localeCompare(getSortDate(b)) : getSortDate(b).localeCompare(getSortDate(a)));
+
+  const filteredTopCount = filtered.filter(i => !i.bundleGroupId || i.isBundleLeader).length;
+  // バンドルはcalcBundle（メンバー原価込み）、単品はcalcFull
+  const soldCalcs = filtered.filter(i=>isSold(i)&&(!i.bundleGroupId||i.isBundleLeader)).map(i => {
+    if (i.isBundleLeader) {
+      const members = filtered.filter(m => m.bundleGroupId===i.bundleGroupId && !m.isBundleLeader);
+      // filtered内にメンバーがいない場合はitems全体から取得
+      const allMembers = members.length ? members : items.filter(m => m.bundleGroupId===i.bundleGroupId && !m.isBundleLeader);
+      return calcBundle(i, allMembers);
+    }
+    return calcFull(i);
+  }).filter(Boolean);
+  const junkLoss     = filtered.filter(i=>i.isJunk&&!isSold(i)&&i.junkDate).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+  const visibleProfitTotal = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
+  const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss;
+  const totalRevenue = soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
+  const avgRate      = soldCalcs.length ? soldCalcs.reduce((s,c)=>s+c.profitRate,0)/soldCalcs.length : 0;
+  const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk).length;
+
+  const startBundle = () => {
+    const sel=items.filter(i=>selSet.has(i.id));
+    if(sel.length<2){alert("2点以上選択してください");return;}
+    const savedScroll = scrollRef.current?.scrollTop ?? 0;
+    onBundleSale(sel); setSelecting(false); setSelSet(new Set());
+    requestAnimationFrame(() => { if(scrollRef.current) scrollRef.current.scrollTop = savedScroll; });
+  };
+
+  const TH = ({children,w,align="left"}) => (
+    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}) }}>{children}</th>
+  );
+
+  const TR = ({item, bundleCalc, indent=false, isLastInBundle=false}) => {
+    const [thumbLightbox, setThumbLightbox] = useState(null);
+    const c = bundleCalc!==undefined ? bundleCalc : (item.isJunk&&!item.salePrice ? calcJunk(item) : calcFull(item));
+    const isSel=selectedId===item.id, isChk=selSet.has(item.id);
+    const thumb = item.photos?.[0];
+    const bundleBg = indent ? "#f0f1ff" : "transparent";
+    const rowBg = isSel ? C.accentLo : isChk ? "#eef3ff" : bundleBg;
+    const handleRowClick = (e) => {
+      if (selecting) { e.preventDefault(); setSelSet(prev=>{const n=new Set(prev);n.has(item.id)?n.delete(item.id):n.add(item.id);return n;}); }
+      else if (item.bundleGroupId) { onBundleHeaderClick(item.bundleGroupId); }
+      else onRowClick(item);
+    };
+    return (<>
+      <tr onClick={handleRowClick}
+        style={{ background:rowBg, cursor:"pointer", borderBottom: isLastInBundle ? `3px solid ${C.accent}40` : `1px solid ${C.border}`, transition:"background .08s" }}
+        onMouseEnter={e=>{if(!isSel&&!isChk&&!indent)e.currentTarget.style.background="#f4f5fc";}}
+        onMouseLeave={e=>{if(!isSel&&!isChk)e.currentTarget.style.background=rowBg;}}>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
+          {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `#${item.managementNumber||"—"}`}
+        </td>
+        <td style={{ padding:"6px 8px", width:52 }} onClick={e=>{if(thumb){e.stopPropagation();setThumbLightbox(0);}}}>
+          <div style={{ width:38, height:38, borderRadius:6, overflow:"hidden", border:`1px solid ${C.border}`, background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", cursor:thumb?"zoom-in":"default" }}>
+            {thumb ? <img src={thumb} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ color:C.border, fontSize:14 }}>📷</span>}
+          </div>
+        </td>
+        <td style={{ padding:"9px 12px", maxWidth:0 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:5 }}>
+            {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
+            <div style={{ minWidth:0 }}>
+              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+              {item.source&&<div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.source}</div>}
+            </div>
+          </div>
+        </td>
+        <td style={{ padding:"9px 12px", width:88 }}><StatusBadge item={item}/></td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
+          {c?(c.profitJPY>=0?"+":"")+yen(c.profitJPY):"—"}
+        </td>
+        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:64 }}>
+          {c?(c.profitRate!=null?pct(c.profitRate):"損切り"):"—"}
+        </td>
+        <td style={{ padding:"9px 12px", width:88 }} onClick={e=>e.stopPropagation()}>
+          <div style={{ display:"flex", gap:1, justifyContent:"flex-end" }}>
+            <button onClick={()=>onRowClick(item)} title="編集" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Pencil size={13}/></button>
+            {item.status==="unsold"&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
+            {item.status==="sold"&&!item.bundleGroupId&&<button onClick={()=>onReturn(item)} title="返品" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}><RotateCcw size={13}/></button>}
+            {item.status==="returned"&&<button onClick={()=>{if(window.confirm("再出品しますか？"))onRelist(item);}} title="再出品" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Plus size={13}/></button>}
+            <button onClick={()=>{if(window.confirm("削除しますか？"))onDelete(item.id);}} title="削除" style={{ background:"none", border:"none", cursor:"pointer", color:C.red, padding:"4px 5px", borderRadius:5 }}><Trash2 size={13}/></button>
+          </div>
+        </td>
+      </tr>
+      {thumbLightbox !== null && item.photos?.length > 0 && <PhotoLightbox photos={item.photos} startIndex={thumbLightbox} onClose={()=>setThumbLightbox(null)} />}
+    </>);
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, padding:"12px 18px", borderBottom:`1px solid ${C.border}`, background:C.bg, flexShrink:0 }}>
+        {[
+          [
+            fStatus==="all" ? "売却済み" : fStatus==="sold" ? "売却済み" : fStatus==="unlisted" ? "未出品" : fStatus==="unsold" ? "出品中" : fStatus==="returned" ? "返品" : "損切り",
+            fStatus==="all" ? `${soldCalcs.length} / ${filteredTopCount}点` : fStatus==="sold" ? `${soldCalcs.length}件` : `${filteredTopCount}点`,
+            null, C.accent
+          ],["総売上",yen(totalRevenue),`${soldCalcs.length}件`,C.accent],["純利益",yen(totalProfit),junkLoss>0?`損切 △${yen(junkLoss)}`:"",totalProfit>=0?C.green:C.red],["平均利益率",pct(avgRate),`未売却 ${unsoldCount}点`,pColor(avgRate)]].map(([l,v,s,col])=>(
+          <div key={l} style={{ background:C.card, borderRadius:9, padding:"9px 12px", border:`1px solid ${C.border}`, boxShadow:C.shadow }}>
+            <div style={{ color:C.muted, fontSize:10, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, textTransform:"uppercase" }}>{l}</div>
+            <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col, marginTop:3 }}>{v}</div>
+            {s&&<div style={{ color:C.muted, fontSize:10, marginTop:1, fontFamily:C.jp }}>{s}</div>}
+          </div>
+        ))}
+      </div>
+      <div style={{ display:"flex", gap:8, padding:"9px 18px", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", alignItems:"center", background:C.surface, flexShrink:0 }}>
+        <input style={inpS({ width:190, height:32, fontSize:12, padding:"4px 10px" })} type="text" placeholder="🔍 商品名 / 管理番号 / オークレボ" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
+          {[["all","すべて"],["unlisted","未出品"],["unsold","出品中"],["sold","売却済み"]].map(([v,l])=>(
+            <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
+              onClick={()=>{ setFStatus(v); if(v!=="sold") setFYearMonth("all"); }}>{l}</button>
+          ))}
+          {fStatus==="sold" && (
+            <select style={inpS({ height:28, fontSize:11, padding:"2px 6px", cursor:"pointer", width:"auto", minWidth:80 })}
+              value={fYearMonth} onChange={e=>setFYearMonth(e.target.value)}>
+              <option value="all">全期間</option>
+              {saleMYs.map(ym => {
+                const [y,m] = ym.split("-");
+                return <option key={ym} value={ym}>{y}.{+m}</option>;
+              })}
+            </select>
+          )}
+          {[["returned","返品"],["junk","💀"]].map(([v,l])=>(
+            <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
+              onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
+          ))}
+        </div>
+        <select style={inpS({ width:110, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fCat} onChange={e=>setFCat(e.target.value)}>
+          <option value="all">全カテゴリ</option>
+          <option value="camera">📷 カメラ</option>
+          <option value="watch">⌚ 時計</option>
+          <option value="other">🏷️ その他</option>
+        </select>
+        <div style={{ display:"flex", gap:4, alignItems:"center" }}>
+          {[["purchase","仕入れ日"],["sale","落札日"]].map(([k,l])=>(
+            <button key={k} onClick={()=>{ if(sortKey===k) setSortAsc(v=>!v); else { setSortKey(k); setSortAsc(false); } }}
+              style={{ ...btnS(sortKey===k?"primary":"secondary",{fontSize:11,padding:"4px 10px"}), gap:3 }}>
+              {sortKey===k ? (sortAsc ? "🔼" : "🔽") : "⬜"} {l}
+            </button>
+          ))}
+        </div>
+        {/* 今月利益 — 常時表示 */}
+        <div style={{ display:"flex", alignItems:"center", gap:6, padding:"4px 12px", background:thisMonthProfit>=0?C.greenLo:C.redLo, borderRadius:8, border:`1px solid ${thisMonthProfit>=0?C.green:C.red}28` }}>
+          <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted }}>{_nm}月利益 ☞</span>
+          <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:thisMonthProfit>=0?C.green:C.red }}>
+            {thisMonthProfit>=0?"+":""}{yen(thisMonthProfit)}
+          </span>
+        </div>
+        <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+          {!selecting
+            ? <button onClick={()=>setSelecting(true)} style={btnS("secondary",{fontSize:11,padding:"4px 10px"})}><Link2 size={11}/>まとめ売り</button>
+            : <><button onClick={startBundle} style={btnS("primary",{fontSize:11,padding:"4px 10px"})} disabled={selSet.size<2}><Link2 size={11}/>{selSet.size}点でまとめ</button><button onClick={()=>{setSelecting(false);setSelSet(new Set());}} style={btnS("ghost",{fontSize:11,padding:"4px 10px"})}>キャンセル</button></>
+          }
+        </div>
+      </div>
+      <div ref={scrollRef} style={{ flex:1, overflowY:"auto" }}>
+        {filtered.length===0 ? (
+          <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
+        ) : (
+          <table style={{ width:"100%", borderCollapse:"collapse", tableLayout:"fixed" }}>
+            <thead><tr><TH w={52}>#</TH><TH w={52}>画像</TH><TH>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
+            <tbody>
+              {groups.map(g => {
+                if (g.type==="single") return <TR key={g.key} item={g.item}/>;
+                const bc=calcBundle(g.leader, g.members);
+                const allBI = [g.leader, ...g.members];
+                const bCost = allBI.reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+                return [
+                  <tr key={`${g.key}-hdr`} onClick={()=>onBundleHeaderClick(g.key)} style={{ background: selectedBundleId===g.key ? `${C.accent}30` : `${C.accent}18`, borderBottom:`1px solid ${C.accent}30`, cursor:"pointer", transition:"background .1s" }}
+                    onMouseEnter={e=>{if(selectedBundleId!==g.key)e.currentTarget.style.background=`${C.accent}25`;}}
+                    onMouseLeave={e=>{if(selectedBundleId!==g.key)e.currentTarget.style.background=`${C.accent}18`;}}>
+                    <td colSpan={11} style={{ padding:"8px 14px", boxShadow:`inset 4px 0 0 ${C.accent}` }}>
+                      <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                        <Link2 size={13} color={C.accent}/>
+                        <div>
+                          <span style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.accent }}>📦 まとめ売り（{allBI.length}点）</span>
+                          <span style={{ fontFamily:C.num, fontSize:11, color:C.muted, marginLeft:10 }}>原価合計 {yen(bCost)}{g.leader.salePrice ? ` → ${usd(g.leader.salePrice)}` : ""}</span>
+                        </div>
+                        {bc&&(<div style={{ marginLeft:"auto", display:"flex", gap:14, alignItems:"center" }}>
+                          <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(bc.profitJPY,bc.profitRate) }}>{bc.profitJPY>=0?"+":""}{yen(bc.profitJPY)}</span>
+                          <span style={{ fontFamily:C.num, fontSize:12, fontWeight:700, color:pColorSafe(bc.profitJPY,bc.profitRate), background:`${pColorSafe(bc.profitJPY,bc.profitRate)}15`, padding:"2px 8px", borderRadius:5 }}>{pct(bc.profitRate)}</span>
+                        </div>)}
+                      </div>
+                    </td>
+                  </tr>,
+                  <TR key={g.leader.id} item={g.leader} bundleCalc={bc} indent isLastInBundle={g.members.length===0}/>,
+                  ...g.members.map((m,mi)=><TR key={m.id} item={m} bundleCalc={null} indent isLastInBundle={mi===g.members.length-1}/>)
+                ];
+              })}
+            </tbody>
+            {filtered.length > 0 && (
+              <tfoot>
+                <tr style={{ background:C.accentLo, borderTop:`2px solid ${C.border}` }}>
+                  <td colSpan={8} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
+                  <td style={{ padding:"8px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))), textAlign:"right" }}>
+                    {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
+                  </td>
+                  <td colSpan={2}/>
+                </tr>
+              </tfoot>
+            )}
+          </table>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// Desktop App Layout
+// ═══════════════════════════════════════════════════════════════
+function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange }) {
+  const [selectedId, setSelectedId] = useState(null);
+  const [selectedBundleGroupId, setSelectedBundleGroupId] = useState(null);
+  const [formKey, setFormKey]       = useState(0);
+  const [panelW, setPanelW]         = useState(480);
+  const [dragging, setDragging]     = useState(false);
+  const [saved, setSaved]           = useState(false);
+  const [updated, setUpdated]       = useState(false);
+  const [showLeft, setShowLeft]     = useState(true);
+  const [showReport, setShowReport] = useState(false);
+
+  const selectedItem = selectedId ? items.find(i=>i.id===selectedId) : null;
+
+  // Bundle editing
+  const bundleGroupItems = selectedBundleGroupId ? items.filter(i=>i.bundleGroupId===selectedBundleGroupId) : [];
+  const bundleLeader = bundleGroupItems.find(i=>i.isBundleLeader) || bundleGroupItems[0];
+  const bundleMembers = bundleGroupItems.filter(i=>i!==bundleLeader);
+
+  const startDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX, startW = panelW;
+    const onMove = (ev) => setPanelW(Math.max(380, Math.min(800, startW + (startX - ev.clientX))));
+    const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); setDragging(false); };
+    setDragging(true);
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
+
+  const handleSaveAndReset = (form) => {
+    onSave(form);
+    if (!form.id) { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k => k + 1); setSaved(true); setUpdated(false); }
+    else { setUpdated(true); setSaved(false); }
+  };
+  const openNewForm = () => { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); };
+  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); };
+  const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); };
+
+  // まとめ売り作成 → 即バンドル化＋右パネルで編集
+  const handleBundleSale = (selectedItems) => {
+    const gid = genId();
+    onCreateBundle(gid, selectedItems);
+    setSelectedBundleGroupId(gid);
+    setSelectedId(null);
+    setSaved(false);
+    setUpdated(false);
+  };
+
+  return (
+    <div style={{ display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden" }}>
+      {/* Header */}
+      <div style={{ background:C.surface, borderBottom:`1px solid ${C.border}`, padding:"0 24px", display:"flex", alignItems:"center", gap:12, height:50, flexShrink:0, boxShadow:C.shadow }}>
+        <Calculator size={16} color={C.accent}/>
+        <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:15, color:C.text }}>eBay 利益計算</span>
+        <span style={{ color:C.muted, fontSize:11, fontFamily:C.num, background:C.bg, padding:"2px 7px", borderRadius:5, border:`1px solid ${C.border}` }}>v3</span>
+
+        {/* 左パネル開閉ボタン */}
+        <button onClick={()=>setShowLeft(v=>!v)} title={showLeft?"テーブルを閉じる":"テーブルを開く"}
+          style={{ ...btnS("secondary",{ padding:"4px 10px", fontSize:11 }), marginLeft:8 }}>
+          <PanelLeft size={14}/> {showLeft?"テーブルを閉じる":"テーブルを開く"}
+        </button>
+
+        <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <button onClick={()=>setShowReport(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📊 レポート</button>
+          <label style={btnS("secondary",{fontSize:12,cursor:"pointer",padding:"5px 14px"})}>📥 取込<input type="file" accept=".json" onChange={onImport} style={{display:"none"}}/></label>
+          {items.length>0&&<button onClick={onExport} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📤 出力</button>}
+          <button onClick={openNewForm} style={btnS("primary",{fontSize:13,padding:"5px 16px"})}><Plus size={13}/> 新規追加</button>
+        </div>
+      </div>
+
+      {/* Panels */}
+      <div style={{ display:"flex", flex:1, minHeight:0 }}>
+        {/* Left: table */}
+        {showLeft && (
+          <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", background:C.surface, overflow:"hidden" }}>
+            <DesktopTable items={items} selectedId={selectedId} selectedBundleId={selectedBundleGroupId} onRowClick={openEdit} onBundleHeaderClick={openBundleEdit} onDelete={onDelete} onReturn={onReturn} onRelist={onRelist} onBundleSale={handleBundleSale} onSplit={onSplit}/>
+          </div>
+        )}
+        {/* Drag handle */}
+        {showLeft && (
+          <div onMouseDown={startDrag}
+            style={{ width:5, cursor:"col-resize", background:dragging?C.accent:C.border, flexShrink:0, transition:"background .15s" }}
+            onMouseEnter={e=>{if(!dragging)e.currentTarget.style.background=C.accent;}}
+            onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background=C.border;}}
+          />
+        )}
+        {/* Right: form */}
+        <div style={{ width: showLeft ? panelW : "100%", flexShrink: showLeft ? 0 : undefined, flex: showLeft ? undefined : 1, background:C.bg, overflowY:"auto" }}>
+          <div style={{ padding:"16px 18px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
+            <MiniCalc settings={settings} onSettingsChange={onSettingsChange} />
+            {selectedBundleGroupId && bundleLeader && !updated ? (
+              <>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+                  <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.accent }}>
+                    📦 まとめ売り編集
+                  </span>
+                  <button onClick={openNewForm} style={btnS("secondary",{fontSize:11,padding:"3px 10px"})}><Plus size={11}/> 新規</button>
+                </div>
+                <BundleEditForm
+                  key={selectedBundleGroupId}
+                  leader={bundleLeader}
+                  members={bundleMembers}
+                  onSave={(data) => { onBundleSaveEdit(selectedBundleGroupId, data); setUpdated(true); setSaved(false); }}
+                  onCancel={()=>setSelectedBundleGroupId(null)}
+                  onDissolve={()=>{ onBundleDissolve(selectedBundleGroupId); setSelectedBundleGroupId(null); setUpdated(false); }}
+                  settings={settings}
+                />
+              </>
+            ) : updated ? (
+              <div style={{ textAlign:"center", padding:"60px 20px" }}>
+                <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
+                <div style={{ fontFamily:C.jp, fontSize:16, fontWeight:700, color:C.text, marginBottom:8 }}>更新しました</div>
+                <div style={{ fontFamily:C.jp, fontSize:13, color:C.muted, marginBottom:24 }}>変更が保存されました</div>
+                <div style={{ display:"flex", gap:10, justifyContent:"center" }}>
+                  <button onClick={()=>setUpdated(false)} style={btnS("primary",{fontSize:14,padding:"10px 24px"})}>✏️ 続けて編集</button>
+                  <button onClick={openNewForm} style={btnS("secondary",{fontSize:14,padding:"10px 24px"})}><Plus size={14}/> 新規追加</button>
+                </div>
+              </div>
+            ) : saved && !selectedItem ? (
+              <div style={{ textAlign:"center", padding:"60px 20px" }}>
+                <div style={{ fontSize:48, marginBottom:16 }}>✅</div>
+                <div style={{ fontFamily:C.jp, fontSize:16, fontWeight:700, color:C.text, marginBottom:8 }}>追加しました</div>
+                <div style={{ fontFamily:C.jp, fontSize:13, color:C.muted, marginBottom:24 }}>続けて追加する場合は「新規追加」を押してください</div>
+                <button onClick={openNewForm} style={btnS("primary",{fontSize:14,padding:"10px 24px"})}><Plus size={14}/> 新規追加</button>
+              </div>
+            ) : (
+              <>
+                <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+                  <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>
+                    {selectedItem?`✏️ 編集中 #${selectedItem.managementNumber}`:"➕ 新規追加"}
+                  </span>
+                  {selectedItem&&<button onClick={openNewForm} style={btnS("secondary",{fontSize:11,padding:"3px 10px"})}><Plus size={11}/> 新規</button>}
+                </div>
+                <ItemForm
+                  key={selectedId ?? `new-${formKey}`}
+                  initial={selectedItem??{}}
+                  onSave={handleSaveAndReset}
+                  onCancel={()=>setSelectedId(null)}
+                  allItems={items}
+                  settings={settings}
+                />
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {returnItem  && <ReturnModal item={returnItem} onConfirm={onReturnConfirm} onClose={()=>setReturnItem(null)}/>}
+      {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
+      {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ROOT APP
+// ═══════════════════════════════════════════════════════════════
+function App() {
+  const [items,       setItems]       = useState([]);
+  const [loaded,      setLoaded]      = useState(false);
+  const [settings,    setSettings]    = useState(DEFAULT_SETTINGS);
+  const [returnItem,  setReturnItem]  = useState(null);
+  const [splitItem,   setSplitItem]   = useState(null);
+
+  useEffect(() => {
+    (async()=>{
+      try { const r=await window.storage.get("ebay_v3_settings"); if(r?.value) setSettings(prev=>({...DEFAULT_SETTINGS,...JSON.parse(r.value)})); } catch(_){}
+      try {
+        const r=await window.storage.get("ebay_v2_items");
+        if(r?.value) {
+          const loaded = JSON.parse(r.value);
+          const corrected = loaded.map(i => {
+            const hasSaleDate = !!(i.saleDate && i.saleDate !== "" && !i.saleDate.startsWith("1900"));
+            // 落札日あり → sold、なし → 既存statusを優先しつつ"sold"なら"unsold"に補正
+            if (hasSaleDate && i.status !== "returned") return { ...i, status: "sold" };
+            if (!hasSaleDate && i.status === "sold") return { ...i, status: "unsold" };
+            return i;
+          });
+          setItems(corrected);
+        }
+      } catch(_){}
+      setLoaded(true);
+    })();
+  },[]);
+  useEffect(() => { if(!loaded) return; window.storage.set("ebay_v2_items", JSON.stringify(items)).catch(()=>{}); },[items,loaded]);
+  useEffect(() => { if(!loaded) return; window.storage.set("ebay_v3_settings", JSON.stringify(settings)).catch(()=>{}); },[settings,loaded]);
+
+  const handleSave = (form) => {
+    if (form.id) { setItems(p => p.map(i => i.id===form.id ? form : i)); }
+    else { setItems(p => [{ ...form, id:genId(), managementNumber:nextNo(p) }, ...p]); }
+  };
+  const handleDelete       = (id)    => setItems(p => p.filter(i => i.id!==id));
+  const handleReturnOpen   = (item)  => setReturnItem(item);
+  const handleReturnConfirm = (form) => {
+    setItems(p => p.map(i => i.id===returnItem.id ? { ...i, status:"returned", ...form } : i));
+    setReturnItem(null);
+  };
+  const handleRelist = (item) => {
+    setItems(p => [{ ...item, id:genId(), managementNumber:nextNo(p), cost:0, storageShipping:0, salePrice:"", saleDate:"", saleShipping:"", status:"unsold", returnDate:"", returnShipping:"", returnNotes:"", relistFromId:item.id, bundleGroupId:null, isBundleLeader:false }, ...p]);
+  };
+  const handleSplitConfirm = (parts) => {
+    const orig = splitItem;
+    const newItems = parts.map((p, i) => ({
+      ...orig, id: genId(),
+      managementNumber: i === 0 ? orig.managementNumber : nextNo([...items, ...parts.slice(0,i).map((_,j)=>({managementNumber:String(+orig.managementNumber+j+1)}))]),
+      productName: p.name, cost: +p.cost || 0,
+      storageShipping: i === 0 ? orig.storageShipping : 0,
+      notes: `${orig.productName}より分割`, splitFromId: orig.id,
+    }));
+    setItems(p => [...newItems, ...p.filter(i => i.id !== orig.id)]);
+    setSplitItem(null);
+  };
+  const handleCreateBundle = (gid, selectedItems) => {
+    const combinedName = selectedItems.map(i=>i.productName||"—").join(" + ");
+    setItems(p => p.map(i => {
+      const sel = selectedItems.find(s=>s.id===i.id);
+      if (!sel) return i;
+      const isLeader = sel.id===selectedItems[0].id;
+      if (isLeader) {
+        return { ...i, bundleGroupId:gid, isBundleLeader:true, category:"bundle",
+                 productName: combinedName, salePrice:"", saleShipping:"", status:"unsold" };
+      } else {
+        return { ...i, bundleGroupId:gid, isBundleLeader:false,
+                 salePrice:"", saleShipping:"" };
+      }
+    }));
+  };
+  const handleBundleDissolve = (groupId) => {
+    if (!window.confirm("まとめ売りを解除しますか？\nメンバー商品の売上情報はリセットされます。")) return;
+    setItems(p => p.map(i => {
+      if (i.bundleGroupId !== groupId) return i;
+      const { bundleGroupId, isBundleLeader, ...rest } = i;
+      if (isBundleLeader) {
+        return { ...rest, category: rest.category === "bundle" ? "camera" : rest.category };
+      } else {
+        return { ...rest, salePrice:"", saleShipping:"", saleDate:"", status:"unsold" };
+      }
+    }));
+  };
+  const handleBundleSaveEdit = (groupId, { leaderData, memberCosts }) => {
+    setItems(p => p.map(i => {
+      if (i.bundleGroupId !== groupId) return i;
+      const mc = memberCosts.find(c => c.id === i.id);
+      if (i.isBundleLeader) {
+        // リーダーに売上情報 + 原価を保存
+        return { ...i, ...leaderData, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}) };
+      } else {
+        // メンバーの原価・転送送料を更新、ステータスと落札日を同期
+        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate };
+      }
+    }));
+  };
+  const handleImport = (e) => {
+    const file=e.target.files[0]; if(!file) return;
+    const r=new FileReader();
+    r.onload=(ev)=>{
+      try {
+        const d=JSON.parse(ev.target.result);
+        if(!Array.isArray(d)){alert("形式が正しくありません");return;}
+        setItems(d.map(i=>{
+          const hasSaleDate = !!(i.saleDate && i.saleDate !== "" && !i.saleDate.startsWith("1900"));
+          let status = i.status || "unsold";
+          if (hasSaleDate && status !== "returned") status = "sold";
+          if (!hasSaleDate && status === "sold") status = "unsold";
+          return { ...i, id: i.id||genId(), status };
+        }));
+        alert(`✅ ${d.length}件を取り込みました`);
+      } catch(e) { alert("読み込み失敗"); }
+    };
+    r.readAsText(file); e.target.value="";
+  };
+  const handleExport = () => {
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(items,null,2)],{type:"application/json"}));
+    a.download=`ebay_data_${new Date().toISOString().slice(0,10)}.json`; a.click();
+  };
+
+  const globalStyle = `
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap');
+    * { box-sizing:border-box; margin:0; padding:0; }
+    input:focus, select:focus { border-color:#4f52b5 !important; box-shadow:0 0 0 3px rgba(79,82,181,.18) !important; outline:none !important; }
+    ::-webkit-scrollbar { width:6px; height:6px; }
+    ::-webkit-scrollbar-thumb { background:#b0b4d0; border-radius:4px; }
+    button:hover { opacity:.85; }
+    a { color:inherit; }
+  `;
+
+  if (!loaded) return <div style={{ height:"100vh", display:"flex", alignItems:"center", justifyContent:"center", background:C.bg, fontFamily:C.jp, color:C.muted }}>読み込み中...</div>;
+
+  return (
+    <div style={{ fontFamily:C.jp, background:C.bg }}>
+      <style>{globalStyle}</style>
+      <DesktopApp
+        items={items} onSave={handleSave} onDelete={handleDelete}
+        onReturn={handleReturnOpen} onReturnConfirm={handleReturnConfirm}
+        onRelist={handleRelist}
+        onCreateBundle={handleCreateBundle} onBundleSaveEdit={handleBundleSaveEdit}
+        onBundleDissolve={handleBundleDissolve}
+        onSplit={setSplitItem} onSplitConfirm={handleSplitConfirm}
+        onImport={handleImport} onExport={handleExport}
+        returnItem={returnItem}   setReturnItem={setReturnItem}
+        splitItem={splitItem}     setSplitItem={setSplitItem}
+        settings={settings}       onSettingsChange={setSettings}
+      />
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+  </script>
+</body>
+</html>
+>
 <head>
   <meta charset="UTF-8" /><!DOCTYPE html>
 <html lang="ja">
