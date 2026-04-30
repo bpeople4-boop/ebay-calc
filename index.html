@@ -1068,8 +1068,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                   {!form.actualEbayFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>}
                 </div>
                 <div>
-                  <span style={lblS()}>プロモート費用（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
-                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
+                  <span style={lblS()}>プロモート費用（$）実費 {leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
+                  <input style={inpS(leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
                   {!form.actualPromoFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>}
                 </div>
               </div>
