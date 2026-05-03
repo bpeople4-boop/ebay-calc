@@ -1352,7 +1352,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       const d = new Date(i.saleDate);
       if (d.getFullYear()!==fy || d.getMonth()+1!==fm) return false;
     }
-    if (fCat!=="all" && (i.category||"") !== fCat) return false;
+    if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
+    else if (fCat!=="all" && (i.category||"") !== fCat) return false;
     if (search) { const q=search.toLowerCase(); if(!i.productName?.toLowerCase().includes(q)&&!i.source?.toLowerCase().includes(q)&&!String(i.managementNumber||"").includes(q)&&!i.auctRevoId?.includes(q)) return false; }
     return true;
   });
@@ -1392,7 +1393,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       const d=new Date(i.saleDate);
       if (d.getFullYear()!==fy||d.getMonth()+1!==fm) return false;
     }
-    if (fCat!=="all"&&(i.category||"")!==fCat) return false;
+    if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
+    else if (fCat!=="all"&&(i.category||"")!==fCat) return false;
     return true;
   }) : []).reduce((s,i) => {
     const c=calcFull(i);
@@ -1442,7 +1444,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         onMouseEnter={e=>{if(!isSel&&!isChk&&!indent)e.currentTarget.style.background="#f4f5fc";}}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave2}>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
           {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `#${item.managementNumber||"—"}`}
         </td>
         <td style={{ padding:"6px 8px", width:52 }} onClick={e=>{if(thumb){e.stopPropagation();setThumbLightbox(0);}}}>
@@ -1450,27 +1452,27 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {thumb ? <img src={thumb} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ color:C.border, fontSize:14 }}>📷</span>}
           </div>
         </td>
-        <td style={{ padding:"9px 12px", maxWidth:0 }}>
+        <td style={{ padding:"12px 12px", maxWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
-              {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>#{item.auctRevoId}</div>}
+              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4 }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+              {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
             </div>
           </div>
         </td>
-        <td style={{ padding:"9px 12px", width:88 }}><StatusBadge item={item}/></td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
+        <td style={{ padding:"12px 12px", width:88 }}><StatusBadge item={item}/></td>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
           {c?(c.profitJPY>=0?"+":"")+yen(c.profitJPY):"—"}
         </td>
-        <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:12, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:64 }}>
+        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:64 }}>
           {c?(c.profitRate!=null?pct(c.profitRate):"損切り"):"—"}
         </td>
-        <td style={{ padding:"9px 12px", width:88 }} onClick={e=>e.stopPropagation()}>
+        <td style={{ padding:"12px 12px", width:88 }} onClick={e=>e.stopPropagation()}>
           <div style={{ display:"flex", gap:1, justifyContent:"flex-end" }}>
             <button onClick={()=>onRowClick(item)} title="編集" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Pencil size={13}/></button>
             {item.status==="unsold"&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
@@ -1549,11 +1551,12 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
           ))}
         </div>
-        <select style={inpS({ width:110, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fCat} onChange={e=>setFCat(e.target.value)}>
+        <select style={inpS({ width:120, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fCat} onChange={e=>setFCat(e.target.value)}>
           <option value="all">全カテゴリ</option>
           <option value="camera">📷 カメラ</option>
           <option value="watch">⌚ 時計</option>
           <option value="other">🏷️ その他</option>
+          <option value="bundle">📦 おまとめ</option>
         </select>
         <div style={{ display:"flex", gap:4, alignItems:"center" }}>
           {[["purchase","仕入れ日"],["sale","落札日"]].map(([k,l])=>(
@@ -1874,7 +1877,7 @@ function App() {
       const isLeader = sel.id===selectedItems[0].id;
       if (isLeader) {
         return { ...i, bundleGroupId:gid, isBundleLeader:true, category:"bundle",
-                 productName: combinedName, salePrice:"", saleShipping:"", status:"unsold" };
+                 salePrice:"", saleShipping:"", status:"unsold" };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
                  salePrice:"", saleShipping:"" };
