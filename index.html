@@ -1951,6 +1951,7 @@ function App() {
   const handleBundleAddMember = (groupId, itemId) => {
     setItems(p => p.map(i => i.id===itemId ? {...i, bundleGroupId:groupId, isBundleLeader:false, salePrice:"", saleShipping:""} : i));
   };
+  const handleBundleDissolve = (groupId) => {
     if (!window.confirm("まとめ売りを解除しますか？\nメンバー商品の売上情報はリセットされます。")) return;
     setItems(p => p.map(i => {
       if (i.bundleGroupId !== groupId) return i;
