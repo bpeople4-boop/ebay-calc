@@ -1307,7 +1307,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
   const [fCat,    setFCat]        = useState("all");
   const [bundleTooltip, setBundleTooltip] = useState(null);
-  const [nameTooltip, setNameTooltip] = useState(null);
   const scrollRef = useRef(null);
 
   const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
@@ -1451,10 +1450,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {thumb ? <img src={thumb} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ color:C.border, fontSize:14 }}>📷</span>}
           </div>
         </td>
-        <td style={{ padding:"9px 12px", maxWidth:0 }}
-          onMouseEnter={e=>{ if(item.productName) setNameTooltip({ text: item.productName, x: e.clientX, y: e.clientY }); }}
-          onMouseMove={e=>{ if(item.productName) setNameTooltip(prev => prev ? { ...prev, x: e.clientX, y: e.clientY } : null); }}
-          onMouseLeave={()=>setNameTooltip(null)}>
+        <td style={{ padding:"9px 12px", maxWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
@@ -1490,18 +1486,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
-      {/* 商品名全文ツールチップ */}
-      {nameTooltip && (() => {
-        const vw = window.innerWidth;
-        const left = nameTooltip.x + 12 + 320 > vw ? nameTooltip.x - 332 : nameTooltip.x + 12;
-        return (
-          <div style={{ position:"fixed", left, top: nameTooltip.y - 36, zIndex:998, pointerEvents:"none",
-            background:"rgba(26,27,60,.92)", color:"#fff", borderRadius:8, boxShadow:C.shadowMd,
-            padding:"7px 12px", maxWidth:320, fontFamily:C.jp, fontSize:12, lineHeight:1.5, wordBreak:"break-all" }}>
-            {nameTooltip.text}
-          </div>
-        );
-      })()}
       {/* おまとめ選択ツールチップ */}
       {bundleTooltip && selecting && (() => {
         const it = bundleTooltip.item;
@@ -1729,8 +1713,14 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         )}
         {showLeft && (
           <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", background:C.surface, overflow:"hidden", position:"relative" }}>
-            <button onClick={()=>setShowLeft(false)} title="テーブルを閉じる"
-              style={{ position:"absolute", top:8, right:8, zIndex:10, background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, cursor:"pointer", fontSize:14, lineHeight:1, padding:"2px 7px", fontFamily:C.num }}>✕</button>
+            {showRight && (
+              <div style={{ height:28, flexShrink:0, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:8 }}>
+                <button onClick={()=>setShowLeft(false)} title="テーブルを閉じる"
+                  style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1, padding:"3px 7px", borderRadius:6, fontFamily:C.num }}
+                  onMouseEnter={e=>e.currentTarget.style.color=C.text}
+                  onMouseLeave={e=>e.currentTarget.style.color=C.muted}>✕</button>
+              </div>
+            )}
             <DesktopTable items={items} selectedId={selectedId} selectedBundleId={selectedBundleGroupId} onRowClick={openEdit} onBundleHeaderClick={openBundleEdit} onDelete={onDelete} onReturn={onReturn} onRelist={onRelist} onBundleSale={handleBundleSale} onSplit={onSplit}/>
           </div>
         )}
@@ -1745,9 +1735,13 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         {/* Right: form */}
         {showRight && (
         <div style={{ width: showLeft ? panelW : "100%", flexShrink: showLeft ? 0 : undefined, flex: showLeft ? undefined : 1, background:C.bg, overflowY:"auto", position:"relative" }}>
-          <button onClick={()=>setShowRight(false)} title="右パネルを閉じる"
-            style={{ position:"absolute", top:8, right:18, zIndex:10, background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, cursor:"pointer", fontSize:14, lineHeight:1, padding:"2px 7px", fontFamily:C.num }}>✕</button>
-          <div style={{ padding:"16px 18px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
+          <div style={{ height:28, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:18, flexShrink:0 }}>
+            <button onClick={()=>setShowRight(false)} title="右パネルを閉じる"
+              style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1, padding:"3px 7px", borderRadius:6, fontFamily:C.num }}
+              onMouseEnter={e=>e.currentTarget.style.color=C.text}
+              onMouseLeave={e=>e.currentTarget.style.color=C.muted}>✕</button>
+          </div>
+          <div style={{ padding:"0 18px 16px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
             <MiniCalc settings={settings} onSettingsChange={onSettingsChange} />
             {selectedBundleGroupId && bundleLeader && !updated ? (
               <>
