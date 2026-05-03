@@ -1459,7 +1459,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
               <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
-              {item.source&&<div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.source}</div>}
+              {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>#{item.auctRevoId}</div>}
             </div>
           </div>
         </td>
@@ -1663,6 +1663,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [saved, setSaved]           = useState(false);
   const [updated, setUpdated]       = useState(false);
   const [showLeft, setShowLeft]     = useState(true);
+  const [showRight, setShowRight]   = useState(true);
   const [showReport, setShowReport] = useState(false);
 
   const selectedItem = selectedId ? items.find(i=>i.id===selectedId) : null;
@@ -1688,8 +1689,8 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
     else { setUpdated(true); setSaved(false); }
   };
   const openNewForm = () => { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); };
-  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); };
-  const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); };
+  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
+  const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
 
   // まとめ売り作成 → 即バンドル化＋右パネルで編集
   const handleBundleSale = (selectedItems) => {
@@ -1709,12 +1710,6 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:15, color:C.text }}>eBay 利益計算</span>
         <span style={{ color:C.muted, fontSize:11, fontFamily:C.num, background:C.bg, padding:"2px 7px", borderRadius:5, border:`1px solid ${C.border}` }}>v3</span>
 
-        {/* 左パネル開閉ボタン */}
-        <button onClick={()=>setShowLeft(v=>!v)} title={showLeft?"テーブルを閉じる":"テーブルを開く"}
-          style={{ ...btnS("secondary",{ padding:"4px 10px", fontSize:11 }), marginLeft:8 }}>
-          <PanelLeft size={14}/> {showLeft?"テーブルを閉じる":"テーブルを開く"}
-        </button>
-
         <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
           <button onClick={()=>setShowReport(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📊 レポート</button>
           <label style={btnS("secondary",{fontSize:12,cursor:"pointer",padding:"5px 14px"})}>📥 取込<input type="file" accept=".json" onChange={onImport} style={{display:"none"}}/></label>
@@ -1726,13 +1721,21 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {/* Panels */}
       <div style={{ display:"flex", flex:1, minHeight:0 }}>
         {/* Left: table */}
+        {!showLeft && (
+          <button onClick={()=>setShowLeft(true)} title="テーブルを開く"
+            style={{ ...btnS("secondary",{fontSize:11,padding:"6px 8px"}), alignSelf:"flex-start", margin:"12px 0 0 8px", writingMode:"vertical-rl", borderRadius:8 }}>
+            ▶ テーブル
+          </button>
+        )}
         {showLeft && (
-          <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", background:C.surface, overflow:"hidden" }}>
+          <div style={{ flex:1, minWidth:0, display:"flex", flexDirection:"column", background:C.surface, overflow:"hidden", position:"relative" }}>
+            <button onClick={()=>setShowLeft(false)} title="テーブルを閉じる"
+              style={{ position:"absolute", top:8, right:8, zIndex:10, background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, cursor:"pointer", fontSize:14, lineHeight:1, padding:"2px 7px", fontFamily:C.num }}>✕</button>
             <DesktopTable items={items} selectedId={selectedId} selectedBundleId={selectedBundleGroupId} onRowClick={openEdit} onBundleHeaderClick={openBundleEdit} onDelete={onDelete} onReturn={onReturn} onRelist={onRelist} onBundleSale={handleBundleSale} onSplit={onSplit}/>
           </div>
         )}
         {/* Drag handle */}
-        {showLeft && (
+        {showLeft && showRight && (
           <div onMouseDown={startDrag}
             style={{ width:5, cursor:"col-resize", background:dragging?C.accent:C.border, flexShrink:0, transition:"background .15s" }}
             onMouseEnter={e=>{if(!dragging)e.currentTarget.style.background=C.accent;}}
@@ -1740,7 +1743,10 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
           />
         )}
         {/* Right: form */}
-        <div style={{ width: showLeft ? panelW : "100%", flexShrink: showLeft ? 0 : undefined, flex: showLeft ? undefined : 1, background:C.bg, overflowY:"auto" }}>
+        {showRight && (
+        <div style={{ width: showLeft ? panelW : "100%", flexShrink: showLeft ? 0 : undefined, flex: showLeft ? undefined : 1, background:C.bg, overflowY:"auto", position:"relative" }}>
+          <button onClick={()=>setShowRight(false)} title="右パネルを閉じる"
+            style={{ position:"absolute", top:8, right:18, zIndex:10, background:"none", border:`1px solid ${C.border}`, borderRadius:6, color:C.muted, cursor:"pointer", fontSize:14, lineHeight:1, padding:"2px 7px", fontFamily:C.num }}>✕</button>
           <div style={{ padding:"16px 18px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
             <MiniCalc settings={settings} onSettingsChange={onSettingsChange} />
             {selectedBundleGroupId && bundleLeader && !updated ? (
@@ -1798,6 +1804,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
             )}
           </div>
         </div>
+        )}
       </div>
 
       {returnItem  && <ReturnModal item={returnItem} onConfirm={onReturnConfirm} onClose={()=>setReturnItem(null)}/>}
