@@ -300,6 +300,42 @@ function Field({ label, type="text", placeholder, col, readOnly, disabled, value
   );
 }
 
+function CopyField({ label, value, onChange, placeholder, col, readOnly, disabled }) {
+  const [copied, setCopied] = useState(false);
+  const locked = readOnly || disabled;
+  const handleCopy = (e) => {
+    e.stopPropagation();
+    if (!value) return;
+    navigator.clipboard.writeText(String(value)).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+  return (
+    <div style={{ gridColumn:col, minWidth:0 }}>
+      <span style={lblS()}>{label}</span>
+      <div style={{ position:"relative" }}>
+        <input
+          style={inpS({ paddingRight:36, ...(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {}) })}
+          type="text"
+          placeholder={placeholder}
+          readOnly={locked}
+          value={value ?? ""}
+          onChange={locked ? undefined : onChange}
+        />
+        <button
+          type="button"
+          onClick={handleCopy}
+          title="コピー"
+          style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:copied?C.green:C.muted, padding:"3px 5px", borderRadius:5, fontSize:12, fontFamily:C.num, lineHeight:1, transition:"color .2s" }}
+        >
+          {copied ? "✓" : "⎘"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function DateField({ label, value, onChange, col }) {
   const ref = useRef(null);
   const openPicker = () => { if (ref.current) { ref.current.showPicker ? ref.current.showPicker() : ref.current.click(); } };
@@ -335,7 +371,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const [form, setForm] = useState({
     purchaseDate:today(), productName:"", category:"", source:"", purchaseUrl:"",
     cost:"", storageShipping:0, isJunk:false, junkDate:today(),
-    auctRevoId:"",
+    serialNumber:"", auctRevoId:"",
     ebayUrl:"", ebayTitle:"",
     destination:"other", saleDate:"", salePrice:"", saleShipping:"",
     ddpSurcharge:"", ddpMethod:"", actualDdpFee:"",
@@ -435,7 +471,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             />
           </div>
         </div>
-        <Field label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
+        <CopyField label="シリアルナンバー" value={form.serialNumber} onChange={set("serialNumber")} placeholder="例：123456" />
+        <CopyField label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
         <Field label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
         <div style={{ gridColumn:"1/-1" }}>
           <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
@@ -950,7 +987,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <span style={lblS()}>商品名</span>
           <input style={inpS()} type="text" value={form.productName} onChange={set("productName")} />
         </div>
-        <Field label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
+        <CopyField label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
       </div>
 
       {/* ── 原価内訳 ── */}
@@ -1269,6 +1306,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [sortAsc, setSortAsc]     = useState(false);
   const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
   const [fCat,    setFCat]        = useState("all");
+  const [bundleTooltip, setBundleTooltip] = useState(null);
   const scrollRef = useRef(null);
 
   const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
@@ -1390,11 +1428,20 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       else if (item.bundleGroupId) { onBundleHeaderClick(item.bundleGroupId); }
       else onRowClick(item);
     };
+    const handleMouseMove = (e) => {
+      if (!selecting) return;
+      setBundleTooltip({ item, x: e.clientX, y: e.clientY });
+    };
+    const handleMouseLeave2 = (e) => {
+      if (selecting) setBundleTooltip(null);
+      if (!isSel&&!isChk) e.currentTarget.style.background=rowBg;
+    };
     return (<>
       <tr onClick={handleRowClick}
         style={{ background:rowBg, cursor:"pointer", borderBottom: isLastInBundle ? `3px solid ${C.accent}40` : `1px solid ${C.border}`, transition:"background .08s" }}
         onMouseEnter={e=>{if(!isSel&&!isChk&&!indent)e.currentTarget.style.background="#f4f5fc";}}
-        onMouseLeave={e=>{if(!isSel&&!isChk)e.currentTarget.style.background=rowBg;}}>
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave2}>
         <td style={{ padding:"9px 12px", fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
           {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `#${item.managementNumber||"—"}`}
         </td>
@@ -1407,7 +1454,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+              <div title={item.productName||""} style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
               {item.source&&<div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.source}</div>}
             </div>
           </div>
@@ -1439,6 +1486,33 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
 
   return (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+      {/* おまとめ選択ツールチップ */}
+      {bundleTooltip && selecting && (() => {
+        const it = bundleTooltip.item;
+        const thumb = it.photos?.[0];
+        const vw = window.innerWidth;
+        const left = bundleTooltip.x + 14 + 300 > vw ? bundleTooltip.x - 314 : bundleTooltip.x + 14;
+        return (
+          <div style={{ position:"fixed", left, top: bundleTooltip.y - 10, zIndex:999, pointerEvents:"none",
+            background:C.card, border:`1.5px solid ${C.accent}50`, borderRadius:12, boxShadow:C.shadowMd,
+            padding:"10px 14px", minWidth:220, maxWidth:300 }}>
+            {thumb && <img src={thumb} alt="" style={{ width:"100%", maxHeight:80, objectFit:"cover", borderRadius:7, marginBottom:8, display:"block" }} />}
+            <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, marginBottom:6, lineHeight:1.4, wordBreak:"break-all" }}>{it.productName||"—"}</div>
+            <div style={{ display:"flex", flexDirection:"column", gap:4 }}>
+              {it.serialNumber && (
+                <div style={{ display:"flex", justifyContent:"space-between", gap:8 }}>
+                  <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted }}>S/N</span>
+                  <span style={{ fontFamily:C.num, fontSize:11, color:C.textSub }}>{it.serialNumber}</span>
+                </div>
+              )}
+              <div style={{ display:"flex", justifyContent:"space-between", gap:8 }}>
+                <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted }}>原価</span>
+                <span style={{ fontFamily:C.num, fontSize:12, fontWeight:700, color:C.accent }}>{yen(it.cost)}</span>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, padding:"12px 18px", borderBottom:`1px solid ${C.border}`, background:C.bg, flexShrink:0 }}>
         {[
           [
@@ -1542,9 +1616,13 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               <tfoot>
                 <tr style={{ background:C.accentLo, borderTop:`2px solid ${C.border}` }}>
                   <td colSpan={8} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
-                  <td style={{ padding:"8px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))), textAlign:"right" }}>
-                    {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
-                    {returnedLoss!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLoss<0?C.red:C.green, marginLeft:6 }}>（返品 {(returnedLoss>0?"+":"")+yen(returnedLoss)}）</span>}
+                  <td style={{ padding:"8px 12px", textAlign:"right" }}>
+                    <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1 }}>
+                      <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))) }}>
+                        {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
+                      </span>
+                      {returnedLoss!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLoss<0?C.red:C.green, whiteSpace:"nowrap" }}>返品 {(returnedLoss>0?"+":"")+yen(returnedLoss)}</span>}
+                    </div>
                   </td>
                   <td colSpan={2}/>
                 </tr>
