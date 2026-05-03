@@ -198,6 +198,7 @@ const Badge = ({ label, color, bg }) => (
 );
 
 const StatusBadge = ({ item }) => {
+  if (item.isPurchaseReturned)   return <Badge label="🔄 仕入返品"   color="#6b7280" bg="#f3f4f6" />;
   if (item.isJunk)               return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
   if (item.status==="sold")      return <Badge label="✅ 売却済み" color={C.green} bg={C.greenLo} />;
   if (item.status==="returned")  return <Badge label="↩️ 返品"     color={C.red}   bg={C.redLo} />;
@@ -330,6 +331,22 @@ function CopyField({ label, value, onChange, placeholder, col, readOnly, disable
           style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:copied?C.green:C.muted, padding:"3px 5px", borderRadius:5, fontSize:12, fontFamily:C.num, lineHeight:1, transition:"color .2s" }}
         >
           {copied ? "✓" : "⎘"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function UrlField({ label, value, onChange, placeholder, col }) {
+  const handleOpen = () => { if (value) window.open(value, "_blank", "noopener"); };
+  return (
+    <div style={{ gridColumn:col, minWidth:0 }}>
+      <span style={lblS()}>{label}</span>
+      <div style={{ position:"relative" }}>
+        <input style={inpS({ paddingRight:36 })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
+        <button type="button" onClick={handleOpen} title="URLを開く"
+          style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:value?C.accent:C.border, padding:"3px 5px", borderRadius:5, fontSize:13, lineHeight:1 }}>
+          🔗
         </button>
       </div>
     </div>
@@ -473,20 +490,24 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
         </div>
         <CopyField label="シリアルナンバー" value={form.serialNumber} onChange={set("serialNumber")} placeholder="例：123456" />
         <CopyField label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
-        <Field label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
-        <div style={{ gridColumn:"1/-1" }}>
+        <UrlField label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
+        <div style={{ gridColumn:"1/-1", display:"flex", gap:16, flexWrap:"wrap" }}>
           <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
             <input type="checkbox" checked={form.isJunk} onChange={tog("isJunk")} style={{ width:16, height:16, accentColor:C.red }} />
             💀 損切り（ジャンク）
           </label>
+          <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
+            <input type="checkbox" checked={!!form.isPurchaseReturned} onChange={tog("isPurchaseReturned")} style={{ width:16, height:16, accentColor:"#6b7280" }} />
+            🔄 仕入れ返品
+          </label>
+        </div>
           {form.isJunk && (
-            <div style={{ marginTop:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+            <div style={{ gridColumn:"1/-1", marginTop:4, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
               <span style={lblS({ color:C.red })}>損切り確定日</span>
               <DateField label="" value={form.junkDate??today()} onChange={set("junkDate")} />
               <div style={{ color:C.muted, fontSize:11, fontFamily:C.jp, marginTop:6 }}>この日付で集計に損失が反映されます</div>
             </div>
           )}
-        </div>
       </CardSection>
 
       {/* ── eBay出品情報 ── */}
@@ -899,7 +920,7 @@ function MiniCalc({ settings, onSettingsChange }) {
 // ═══════════════════════════════════════════════════════════════
 // BundleEditForm（まとめ売り編集フォーム）
 // ═══════════════════════════════════════════════════════════════
-function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, settings }) {
+function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, settings, allItems, onAddMember }) {
   const allMembers = [leader, ...members];
   const combinedName = allMembers.map(i => i.productName || "—").join(" + ");
 
@@ -930,8 +951,9 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     photos: leader.photos || [],
   });
   const [costs, setCosts] = useState(
-    allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber }))
+    allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber, purchaseUrl:i.purchaseUrl||"" }))
   );
+  const [showAddPicker, setShowAddPicker] = useState(false);
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError,   setRateError]   = useState("");
   const [showOffer,   setShowOffer]   = useState(false);
@@ -992,19 +1014,57 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── 原価内訳 ── */}
       <div style={cardS({ marginBottom:14 })}>
-        <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp, marginBottom:14 }}>▸ 原価内訳</div>
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
+          <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp }}>▸ 原価内訳</div>
+          <button type="button" onClick={()=>setShowAddPicker(v=>!v)}
+            style={btnS("secondary",{fontSize:11,padding:"3px 10px"})}><Plus size={11}/> 商品を追加</button>
+        </div>
+        {showAddPicker && (() => {
+          const bundleIds = new Set(costs.map(c=>c.id));
+          const candidates = (allItems||[]).filter(i => !i.bundleGroupId && !bundleIds.has(i.id) && !i.isPurchaseReturned);
+          return (
+            <div style={{ marginBottom:12, padding:"10px 12px", background:C.accentLo, borderRadius:9, border:`1px dashed ${C.accent}50` }}>
+              <div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, marginBottom:8 }}>追加する商品を選択</div>
+              {candidates.length===0 ? (
+                <div style={{ fontFamily:C.jp, fontSize:12, color:C.muted }}>追加できる商品がありません</div>
+              ) : candidates.map(i => (
+                <div key={i.id} onClick={()=>{
+                  onAddMember(i.id);
+                  setCosts(p=>[...p,{id:i.id,name:i.productName||"—",cost:String(i.cost||0),storageShipping:String(i.storageShipping||0),managementNumber:i.managementNumber,purchaseUrl:i.purchaseUrl||""}]);
+                  setShowAddPicker(false);
+                }} style={{ padding:"6px 10px", borderRadius:7, cursor:"pointer", display:"flex", gap:8, alignItems:"center", fontFamily:C.jp, fontSize:12, color:C.text, marginBottom:4, background:C.card }}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.accentLo}
+                  onMouseLeave={e=>e.currentTarget.style.background=C.card}>
+                  <span style={{ color:C.muted, fontFamily:C.num, fontSize:11 }}>#{i.managementNumber}</span>
+                  <span style={{ flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{i.productName||"—"}</span>
+                  <span style={{ color:C.muted, fontFamily:C.num, fontSize:11 }}>{yen(i.cost)}</span>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
         {costs.map((m, idx) => (
-          <div key={m.id} style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"center", padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
-            <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
-            <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
-            <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
-              <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
-              <input style={inpS({ width:90, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.cost} onChange={e=>setCost(idx,"cost",e.target.value)} />
+          <div key={m.id} style={{ padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"center", marginBottom: m.purchaseUrl!==undefined?4:0 }}>
+              <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
+              <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
+              <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+                <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
+                <input style={inpS({ width:90, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.cost} onChange={e=>setCost(idx,"cost",e.target.value)} />
+              </div>
+              <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
+                <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>転送</span>
+                <input style={inpS({ width:80, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.storageShipping} onChange={e=>setCost(idx,"storageShipping",e.target.value)} />
+              </div>
             </div>
-            <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
-              <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>転送</span>
-              <input style={inpS({ width:80, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.storageShipping} onChange={e=>setCost(idx,"storageShipping",e.target.value)} />
-            </div>
+            {m.purchaseUrl && (
+              <div style={{ display:"flex", alignItems:"center", gap:6, paddingLeft:2 }}>
+                <button type="button" onClick={()=>window.open(m.purchaseUrl,"_blank","noopener")}
+                  style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, fontSize:11, fontFamily:C.jp, padding:0, display:"flex", alignItems:"center", gap:4 }}>
+                  🔗 <span style={{ textDecoration:"underline", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:240 }}>{m.purchaseUrl}</span>
+                </button>
+              </div>
+            )}
           </div>
         ))}
         <div style={{ display:"flex", justifyContent:"flex-end", gap:16, marginTop:10, padding:"8px 12px", background:C.accentLo, borderRadius:8 }}>
@@ -1341,6 +1401,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   })();
 
   const filtered = items.filter(i => {
+    if (i.isPurchaseReturned && fStatus!=="purchaseReturned") return false;
+    if (fStatus==="purchaseReturned" && !i.isPurchaseReturned) return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
     if (fStatus==="unlisted" && i.status!=="unlisted") return false;
     if (fStatus==="unsold"   && (i.status!=="unsold"||i.isJunk)) return false;
@@ -1456,7 +1518,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4 }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.isPurchaseReturned?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.isPurchaseReturned?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
               {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
             </div>
           </div>
@@ -1546,7 +1608,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               })}
             </select>
           )}
-          {[["returned","返品"],["junk","💀"]].map(([v,l])=>(
+          {[["returned","返品"],["junk","💀"],["purchaseReturned","🔄"]].map(([v,l])=>(
             <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
               onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
           ))}
@@ -1641,7 +1703,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
 // ═══════════════════════════════════════════════════════════════
 // Desktop App Layout
 // ═══════════════════════════════════════════════════════════════
-function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange }) {
+function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onBundleAddMember, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange }) {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedBundleGroupId, setSelectedBundleGroupId] = useState(null);
   const [formKey, setFormKey]       = useState(0);
@@ -1762,6 +1824,8 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
                   onCancel={()=>setSelectedBundleGroupId(null)}
                   onDissolve={()=>{ onBundleDissolve(selectedBundleGroupId); setSelectedBundleGroupId(null); setUpdated(false); }}
                   settings={settings}
+                  allItems={items}
+                  onAddMember={(itemId)=>onBundleAddMember(selectedBundleGroupId, itemId)}
                 />
               </>
             ) : updated ? (
@@ -1884,7 +1948,9 @@ function App() {
       }
     }));
   };
-  const handleBundleDissolve = (groupId) => {
+  const handleBundleAddMember = (groupId, itemId) => {
+    setItems(p => p.map(i => i.id===itemId ? {...i, bundleGroupId:groupId, isBundleLeader:false, salePrice:"", saleShipping:""} : i));
+  };
     if (!window.confirm("まとめ売りを解除しますか？\nメンバー商品の売上情報はリセットされます。")) return;
     setItems(p => p.map(i => {
       if (i.bundleGroupId !== groupId) return i;
@@ -1954,7 +2020,7 @@ function App() {
         onReturn={handleReturnOpen} onReturnConfirm={handleReturnConfirm}
         onRelist={handleRelist}
         onCreateBundle={handleCreateBundle} onBundleSaveEdit={handleBundleSaveEdit}
-        onBundleDissolve={handleBundleDissolve}
+        onBundleDissolve={handleBundleDissolve} onBundleAddMember={handleBundleAddMember}
         onSplit={setSplitItem} onSplitConfirm={handleSplitConfirm}
         onImport={handleImport} onExport={handleExport}
         returnItem={returnItem}   setReturnItem={setReturnItem}
