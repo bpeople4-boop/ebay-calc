@@ -1075,15 +1075,10 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
         })()}
         {costs.map((m, idx) => (
           <div key={m.id} style={{ padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"start", marginBottom: (m.purchaseUrl||m.serialNumber!==undefined)?4:0 }}>
+            {/* 行1: 管理番号 | 商品名 | 原価 | 転送 */}
+            <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
               <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
-              <div style={{ minWidth:0 }}>
-                <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block" }}>{m.name}</span>
-                <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
-                  <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp, flexShrink:0 }}>S/N</span>
-                  <input style={inpS({ width:130, fontSize:11, padding:"3px 6px" })} type="text" placeholder="例：123456" value={m.serialNumber||""} onChange={e=>setCost(idx,"serialNumber",e.target.value)} />
-                </div>
-              </div>
+              <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{m.name}</span>
               <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
                 <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
                 <input style={inpS({ width:90, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.cost} onChange={e=>setCost(idx,"cost",e.target.value)} />
@@ -1093,8 +1088,14 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                 <input style={inpS({ width:80, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.storageShipping} onChange={e=>setCost(idx,"storageShipping",e.target.value)} />
               </div>
             </div>
+            {/* 行2: S/N（固定） */}
+            <div style={{ display:"flex", alignItems:"center", gap:4, paddingLeft:2 }}>
+              <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp, flexShrink:0 }}>S/N</span>
+              <input style={inpS({ width:150, fontSize:11, padding:"3px 6px" })} type="text" placeholder="例：123456" value={m.serialNumber||""} onChange={e=>setCost(idx,"serialNumber",e.target.value)} />
+            </div>
+            {/* 行3: URL */}
             {m.purchaseUrl && (
-              <div style={{ display:"flex", alignItems:"center", gap:6, paddingLeft:2 }}>
+              <div style={{ display:"flex", alignItems:"center", gap:6, paddingLeft:2, marginTop:4 }}>
                 <button type="button" onClick={()=>window.open(m.purchaseUrl,"_blank","noopener")}
                   style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, fontSize:11, fontFamily:C.jp, padding:0, display:"flex", alignItems:"center", gap:4 }}>
                   🔗 <span style={{ textDecoration:"underline", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", maxWidth:240 }}>{m.purchaseUrl}</span>
