@@ -977,7 +977,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     photos: leader.photos || [],
   });
   const [costs, setCosts] = useState(
-    allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber, purchaseUrl:i.purchaseUrl||"" }))
+    allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber, purchaseUrl:i.purchaseUrl||"", serialNumber:i.serialNumber||"" }))
   );
   const [showAddPicker, setShowAddPicker] = useState(false);
   const [rateLoading, setRateLoading] = useState(false);
@@ -1009,7 +1009,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     if (feeError) return;
     onSave({
       leaderData: { ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" },
-      memberCosts: costs.map(c => ({ id:c.id, cost:+c.cost||0, storageShipping:+c.storageShipping||0 })),
+      memberCosts: costs.map(c => ({ id:c.id, cost:+c.cost||0, storageShipping:+c.storageShipping||0, serialNumber:c.serialNumber||"" })),
     });
   };
 
@@ -1060,7 +1060,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               ) : candidates.map(i => (
                 <div key={i.id} onClick={()=>{
                   onAddMember(i.id);
-                  setCosts(p=>[...p,{id:i.id,name:i.productName||"—",cost:String(i.cost||0),storageShipping:String(i.storageShipping||0),managementNumber:i.managementNumber,purchaseUrl:i.purchaseUrl||""}]);
+                  setCosts(p=>[...p,{id:i.id,name:i.productName||"—",cost:String(i.cost||0),storageShipping:String(i.storageShipping||0),managementNumber:i.managementNumber,purchaseUrl:i.purchaseUrl||"",serialNumber:i.serialNumber||""}]);
                   setShowAddPicker(false);
                 }} style={{ padding:"6px 10px", borderRadius:7, cursor:"pointer", display:"flex", gap:8, alignItems:"center", fontFamily:C.jp, fontSize:12, color:C.text, marginBottom:4, background:C.card }}
                   onMouseEnter={e=>e.currentTarget.style.background=C.accentLo}
@@ -1075,9 +1075,15 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
         })()}
         {costs.map((m, idx) => (
           <div key={m.id} style={{ padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
-            <div style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"center", marginBottom: m.purchaseUrl!==undefined?4:0 }}>
+            <div style={{ display:"grid", gridTemplateColumns:"auto 1fr auto auto", gap:10, alignItems:"center", marginBottom: (m.purchaseUrl||m.serialNumber!==undefined)?4:0 }}>
               <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
-              <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{m.name}</span>
+              <div style={{ minWidth:0 }}>
+                <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", display:"block" }}>{m.name}</span>
+                <div style={{ display:"flex", alignItems:"center", gap:4, marginTop:2 }}>
+                  <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp, flexShrink:0 }}>S/N</span>
+                  <input style={inpS({ width:130, fontSize:11, padding:"3px 6px" })} type="text" placeholder="例：123456" value={m.serialNumber||""} onChange={e=>setCost(idx,"serialNumber",e.target.value)} />
+                </div>
+              </div>
               <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
                 <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
                 <input style={inpS({ width:90, fontSize:12, padding:"5px 8px" })} type="text" inputMode="decimal" value={m.cost} onChange={e=>setCost(idx,"cost",e.target.value)} />
@@ -1397,7 +1403,17 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
   const [fCat,    setFCat]        = useState("all");
   const [bundleTooltip, setBundleTooltip] = useState(null);
+  const [nameColW, setNameColW] = useState(220);
   const scrollRef = useRef(null);
+
+  const startNameColDrag = (e) => {
+    e.preventDefault();
+    const startX = e.clientX, startW = nameColW;
+    const onMove = (ev) => setNameColW(Math.max(120, Math.min(500, startW + (ev.clientX - startX))));
+    const onUp = () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mouseup", onUp); };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  };
 
   const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
 
@@ -1506,8 +1522,15 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     requestAnimationFrame(() => { if(scrollRef.current) scrollRef.current.scrollTop = savedScroll; });
   };
 
-  const TH = ({children,w,align="left"}) => (
-    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}) }}>{children}</th>
+  const TH = ({children,w,align="left",onDragStart}) => (
+    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}), position:"sticky", top:0 }}>
+      <div style={{ display:"flex", alignItems:"center", gap:4 }}>
+        <span>{children}</span>
+        {onDragStart && (
+          <span onMouseDown={onDragStart} style={{ cursor:"col-resize", color:C.border, fontSize:10, padding:"0 2px", userSelect:"none", flexShrink:0 }} onMouseEnter={e=>e.currentTarget.style.color=C.accent} onMouseLeave={e=>e.currentTarget.style.color=C.border}>⇔</span>
+        )}
+      </div>
+    </th>
   );
 
   const TR = ({item, bundleCalc, indent=false, isLastInBundle=false}) => {
@@ -1678,7 +1701,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
         ) : (
           <table style={{ width:"100%", borderCollapse:"collapse", tableLayout:"fixed" }}>
-            <thead><tr><TH w={52}>#</TH><TH w={52}>画像</TH><TH>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
+            <thead><tr><TH w={52}>#</TH><TH w={52}>画像</TH><TH w={nameColW} onDragStart={startNameColDrag}>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
             <tbody>
               {groups.map(g => {
                 if (g.type==="single") return <TR key={g.key} item={g.item}/>;
@@ -2003,7 +2026,7 @@ function App() {
         return { ...i, ...leaderData, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}) };
       } else {
         // メンバーの原価・転送送料を更新、ステータスと落札日を同期
-        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate };
+        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping, serialNumber: mc.serialNumber } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate };
       }
     }));
   };
