@@ -537,22 +537,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             </div>
             <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
           </div>
-          <div style={{ minWidth:0 }}>
-            <span style={lblS()}>落札送料（$）</span>
-            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <input style={inpS({ flex:1, background: form.shippingConfirmed ? "#fef9c3" : undefined })}
-                type="text" inputMode="decimal" placeholder="0.00"
-                value={form.saleShipping??""} readOnly={!!form.shippingConfirmed}
-                onChange={form.shippingConfirmed ? undefined : set("saleShipping")} />
-              <button type="button" onClick={()=>setForm(p=>({...p, shippingConfirmed:!p.shippingConfirmed}))}
-                title={form.shippingConfirmed ? "確定解除" : "確定する"}
-                style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.shippingConfirmed ? "#f59e0b" : C.border}`, background: form.shippingConfirmed ? "#fef3c7" : C.card, color: form.shippingConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
-                {form.shippingConfirmed ? "確✅" : "確定"}
-              </button>
-            </div>
-          </div>
-
-          {/* オファー比較入力 */}
+          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
           {showOffer && (
             <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
               <span style={lblS({ color:C.accent })}>オファー金額（$）</span>
@@ -576,7 +561,20 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
           <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
-          <Field label="国際送料＋手数料（¥）" type="number" value={form.intlShipping} onChange={set("intlShipping")} />
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>国際送料＋手数料（¥）</span>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              <input style={inpS({ flex:1, background: form.shippingConfirmed ? "#fef9c3" : undefined })}
+                type="text" inputMode="decimal" placeholder="6000"
+                value={form.intlShipping??""} readOnly={!!form.shippingConfirmed}
+                onChange={form.shippingConfirmed ? undefined : set("intlShipping")} />
+              <button type="button" onClick={()=>setForm(p=>({...p, shippingConfirmed:!p.shippingConfirmed}))}
+                title={form.shippingConfirmed ? "確定解除" : "確定する"}
+                style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.shippingConfirmed ? "#f59e0b" : C.border}`, background: form.shippingConfirmed ? "#fef3c7" : C.card, color: form.shippingConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
+                {form.shippingConfirmed ? "確✅" : "確定"}
+              </button>
+            </div>
+          </div>
 
           {/* 送り先・DDP */}
           <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
