@@ -1541,9 +1541,9 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         {children}
         {resizable && (
           <div onMouseDown={startNameColDrag}
-            style={{ position:"absolute", top:-9, bottom:-9, right:-6, width:6, cursor:CURSOR_EW, zIndex:20, background:"transparent" }}
-            onMouseEnter={e=>e.currentTarget.style.background=`${C.accent}60`}
-            onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+            style={{ position:"absolute", top:-9, bottom:-9, right:-6, width:6, cursor:CURSOR_EW, zIndex:20, background:C.border }}
+            onMouseEnter={e=>e.currentTarget.style.background=C.accent}
+            onMouseLeave={e=>e.currentTarget.style.background=C.border}
           />
         )}
       </div>
