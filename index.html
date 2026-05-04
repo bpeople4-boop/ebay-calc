@@ -392,6 +392,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     ebayUrl:"", ebayTitle:"",
     destination:"other", saleDate:"", salePrice:"", saleShipping:"",
     ddpSurcharge:"", ddpMethod:"", actualDdpFee:"",
+    shippingConfirmed: false, ddpConfirmed: false,
     exchangeRate: settings.exchangeRate,
     exchangeRateLocked:false,
     ebayFeeRate: catS.ebayPct,
@@ -536,7 +537,20 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             </div>
             <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
           </div>
-          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>落札送料（$）</span>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              <input style={inpS({ flex:1, background: form.shippingConfirmed ? "#fef9c3" : undefined })}
+                type="text" inputMode="decimal" placeholder="0.00"
+                value={form.saleShipping??""} readOnly={!!form.shippingConfirmed}
+                onChange={form.shippingConfirmed ? undefined : set("saleShipping")} />
+              <button type="button" onClick={()=>setForm(p=>({...p, shippingConfirmed:!p.shippingConfirmed}))}
+                title={form.shippingConfirmed ? "確定解除" : "確定する"}
+                style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.shippingConfirmed ? "#f59e0b" : C.border}`, background: form.shippingConfirmed ? "#fef3c7" : C.card, color: form.shippingConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
+                {form.shippingConfirmed ? "確✅" : "確定"}
+              </button>
+            </div>
+          </div>
 
           {/* オファー比較入力 */}
           {showOffer && (
@@ -591,7 +605,14 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               </div>
               <div>
                 <span style={lblS()}>実際DDP料金（¥）</span>
-                <input style={inpS({ marginTop:4 })} type="text" inputMode="decimal" value={form.actualDdpFee??""} onChange={set("actualDdpFee")} />
+                <div style={{ display:"flex", gap:6, alignItems:"center", marginTop:4 }}>
+                  <input style={inpS({ flex:1, background: form.ddpConfirmed ? "#fef9c3" : undefined })} type="text" inputMode="decimal" value={form.actualDdpFee??""} readOnly={!!form.ddpConfirmed} onChange={form.ddpConfirmed ? undefined : set("actualDdpFee")} />
+                  <button type="button" onClick={()=>setForm(p=>({...p, ddpConfirmed:!p.ddpConfirmed}))}
+                    title={form.ddpConfirmed ? "確定解除" : "確定する"}
+                    style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.ddpConfirmed ? "#f59e0b" : C.border}`, background: form.ddpConfirmed ? "#fef3c7" : C.card, color: form.ddpConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
+                    {form.ddpConfirmed ? "確✅" : "確定"}
+                  </button>
+                </div>
                 <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>
                   {form.actualDdpFee ? "✅ 実費入力済み" : `概算：${yen(+autoDdp * +(form.exchangeRate||158))}`}
                 </div>
@@ -732,7 +753,17 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 // ═══════════════════════════════════════════════════════════════
 function ReturnModal({ item, onConfirm, onClose }) {
   const [form, setForm] = useState({ returnDate:today(), returnShipping:"", returnNotes:"" });
-  const set = k => e => setForm(p=>({...p,[k]:e.target.value}));
+  const set = k => e => {
+    const v = e.target.value;
+    setForm(p => {
+      const next = { ...p, [k]: v };
+      if (k === "status" && v !== "sold") {
+        next.shippingConfirmed = false;
+        next.ddpConfirmed = false;
+      }
+      return next;
+    });
+  };
   return (
     <Modal title="返品処理" onClose={onClose}>
       <div style={{ display:"flex", flexDirection:"column", gap:14 }}>
@@ -973,7 +1004,11 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const estEbayUSD = totalUSD * (+form.ebayFeeRate||12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
 
+  const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
+  const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
+
   const handleSave = () => {
+    if (feeError) return;
     onSave({
       leaderData: { ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" },
       memberCosts: costs.map(c => ({ id:c.id, cost:+c.cost||0, storageShipping:+c.storageShipping||0 })),
@@ -1224,7 +1259,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── 保存 ── */}
       <div style={{ display:"flex", gap:10 }}>
-        <button onClick={handleSave} style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15 })}>更新する</button>
+        <button onClick={handleSave} style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15, opacity: feeError ? 0.4 : 1 })}>更新する</button>
         <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
       </div>
       <div style={{ marginTop:10 }}>
@@ -1517,6 +1552,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             <div style={{ minWidth:0 }}>
               <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.status==="purchaseReturned"?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.status==="purchaseReturned"?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
               {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
+              {item.shippingConfirmed && item.ddpConfirmed && <div style={{ fontSize:10, color:"#b45309", fontFamily:C.jp, marginTop:2 }}>確✅</div>}
             </div>
           </div>
         </td>
@@ -1797,7 +1833,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         {/* Right: form */}
         {showRight && (
         <div style={{ width: showLeft ? panelW : "100%", flexShrink: showLeft ? 0 : undefined, flex: showLeft ? undefined : 1, background:C.bg, overflowY:"auto", position:"relative" }}>
-          <div style={{ height:28, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:18, flexShrink:0 }}>
+          <div style={{ height:28, display:"flex", alignItems:"center", justifyContent:"flex-end", paddingRight:18, flexShrink:0, position:"sticky", top:0, zIndex:10, background:C.bg, borderBottom:`1px solid ${C.border}` }}>
             <button onClick={()=>setShowRight(false)} title="右パネルを閉じる"
               style={{ background:"none", border:"none", color:C.muted, cursor:"pointer", fontSize:13, lineHeight:1, padding:"3px 7px", borderRadius:6, fontFamily:C.num }}
               onMouseEnter={e=>e.currentTarget.style.color=C.text}
