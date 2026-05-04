@@ -1599,13 +1599,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden", position:"relative" }}>
-      {/* 商品名列リサイズハンドル */}
-      <div onMouseDown={startNameColDrag}
-        style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:"col-resize", zIndex:20, background:C.border }}
-        onMouseEnter={e=>e.currentTarget.style.background=C.accent}
-        onMouseLeave={e=>e.currentTarget.style.background=C.border}
-      />
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
       {/* おまとめ選択ツールチップ */}
       {bundleTooltip && selecting && (() => {
         const it = bundleTooltip.item;
@@ -1698,7 +1692,14 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           }
         </div>
       </div>
-      <div ref={scrollRef} style={{ flex:1, overflowY:"auto" }}>
+      <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
+        {/* 商品名列リサイズハンドル - テーブルエリアのみ */}
+        <div onMouseDown={startNameColDrag}
+          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:"col-resize", zIndex:20, background:"#999" }}
+          onMouseEnter={e=>e.currentTarget.style.background=C.accent}
+          onMouseLeave={e=>e.currentTarget.style.background="#999"}
+        />
+        <div ref={scrollRef} style={{ height:"100%", overflowY:"auto" }}>
         {filtered.length===0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
         ) : (
@@ -1751,6 +1752,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             )}
           </table>
         )}
+      </div>
       </div>
     </div>
   );
@@ -1848,9 +1850,9 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         {/* Drag handle */}
         {showLeft && showRight && (
           <div onMouseDown={startDrag}
-            style={{ width:5, cursor:"col-resize", background:dragging?C.accent:C.border, flexShrink:0, transition:"background .15s" }}
+            style={{ width:5, cursor:"col-resize", background:dragging?C.accent:"#999", flexShrink:0, transition:"background .15s" }}
             onMouseEnter={e=>{if(!dragging)e.currentTarget.style.background=C.accent;}}
-            onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background=C.border;}}
+            onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background="#999";}}
           />
         )}
         {/* Right: form */}
