@@ -1695,9 +1695,9 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       <div ref={scrollRef} style={{ flex:1, overflowY:"auto", position:"relative" }}>
         {/* フル高さのリサイズハンドル */}
         <div onMouseDown={startNameColDrag}
-          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-2, width:5, cursor:"col-resize", zIndex:10, background:"transparent" }}
-          onMouseEnter={e=>e.currentTarget.style.background=`${C.accent}60`}
-          onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:"col-resize", zIndex:10, background:`${C.border}` }}
+          onMouseEnter={e=>e.currentTarget.style.background=C.accent}
+          onMouseLeave={e=>e.currentTarget.style.background=C.border}
         />
         {filtered.length===0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
