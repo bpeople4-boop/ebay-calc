@@ -182,6 +182,8 @@ const pColor = r => r > 0.1 ? C.green : r > 0 ? C.amber : C.red;
 const pColorSafe = (jpy, rate) => jpy > 0 ? C.green : jpy === 0 ? C.amber : C.red;
 const pBg    = r => r > 0.1 ? C.greenLo : r > 0 ? C.amberLo : C.redLo;
 
+const CURSOR_EW = `url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNOCA3bC01IDUgNSA1TTE2IDdsNSA1LTUgNSIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+PGxpbmUgeDE9IjQiIHkxPSIxMiIgeDI9IjIwIiB5Mj0iMTIiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4K") 12 12, col-resize`;
+
 // ── Style helpers ─────────────────────────────────────────────
 const cardS  = (x={}) => ({ background:C.card, borderRadius:14, boxShadow:C.shadow, border:`1px solid ${C.border}`, padding:20, ...x });
 const inpS   = (x={}) => ({ background:"#fff", border:`1.5px solid ${C.border}`, borderRadius:9, color:C.text, padding:"10px 14px", fontFamily:C.num, fontSize:14, fontVariantNumeric:"tabular-nums", outline:"none", width:"100%", transition:"border-color .15s, box-shadow .15s", ...x });
@@ -1695,9 +1697,9 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
         {/* 商品名列リサイズハンドル - テーブルエリアのみ */}
         <div onMouseDown={startNameColDrag}
-          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:"col-resize", zIndex:20, background:"#999" }}
+          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:CURSOR_EW, zIndex:20, background:C.border }}
           onMouseEnter={e=>e.currentTarget.style.background=C.accent}
-          onMouseLeave={e=>e.currentTarget.style.background="#999"}
+          onMouseLeave={e=>e.currentTarget.style.background=C.border}
         />
         <div ref={scrollRef} style={{ height:"100%", overflowY:"auto" }}>
         {filtered.length===0 ? (
@@ -1850,9 +1852,9 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         {/* Drag handle */}
         {showLeft && showRight && (
           <div onMouseDown={startDrag}
-            style={{ width:5, cursor:"col-resize", background:dragging?C.accent:"#999", flexShrink:0, transition:"background .15s" }}
+            style={{ width:5, cursor:CURSOR_EW, background:dragging?C.accent:C.border, flexShrink:0, transition:"background .15s" }}
             onMouseEnter={e=>{if(!dragging)e.currentTarget.style.background=C.accent;}}
-            onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background="#999";}}
+            onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background=C.border;}}
           />
         )}
         {/* Right: form */}
