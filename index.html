@@ -1408,6 +1408,22 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [bundleTooltip, setBundleTooltip] = useState(null);
   const [nameColW, setNameColW] = useState(220);
   const scrollRef = useRef(null);
+  const containerRef = useRef(null);
+  const prevContainerW = useRef(null);
+
+  // コンテナ幅が変わったとき（右パネル開閉など）nameColW を比例スケール
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      const w = entries[0].contentRect.width;
+      if (prevContainerW.current && Math.abs(w - prevContainerW.current) > 20) {
+        setNameColW(prev => Math.round(Math.max(120, Math.min(600, prev * (w / prevContainerW.current)))));
+      }
+      prevContainerW.current = w;
+    });
+    ro.observe(containerRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const startNameColDrag = (e) => {
     e.preventDefault();
@@ -1611,7 +1627,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   return (
-    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+    <div ref={containerRef} style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
       {/* おまとめ選択ツールチップ */}
       {bundleTooltip && selecting && (() => {
         const it = bundleTooltip.item;
