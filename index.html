@@ -198,8 +198,8 @@ const Badge = ({ label, color, bg }) => (
 );
 
 const StatusBadge = ({ item }) => {
-  if (item.isPurchaseReturned)   return <Badge label="🔄 仕入返品"   color="#6b7280" bg="#f3f4f6" />;
-  if (item.isJunk)               return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
+  if (item.status==="purchaseReturned") return <Badge label="仕入返品"    color="#6b7280" bg="#f3f4f6" />;
+  if (item.isJunk)                      return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
   if (item.status==="sold")      return <Badge label="✅ 売却済み" color={C.green} bg={C.greenLo} />;
   if (item.status==="returned")  return <Badge label="↩️ 返品"     color={C.red}   bg={C.redLo} />;
   if (item.status==="unlisted")  return <Badge label="📝 未出品"   color={C.indigo} bg={C.indigoLo} />;
@@ -491,23 +491,19 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
         <CopyField label="シリアルナンバー" value={form.serialNumber} onChange={set("serialNumber")} placeholder="例：123456" />
         <CopyField label="オークレボ管理番号" value={form.auctRevoId} onChange={set("auctRevoId")} placeholder="例：2585165" />
         <UrlField label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
-        <div style={{ gridColumn:"1/-1", display:"flex", gap:16, flexWrap:"wrap" }}>
+        <div style={{ gridColumn:"1/-1" }}>
           <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
             <input type="checkbox" checked={form.isJunk} onChange={tog("isJunk")} style={{ width:16, height:16, accentColor:C.red }} />
             💀 損切り（ジャンク）
           </label>
-          <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
-            <input type="checkbox" checked={!!form.isPurchaseReturned} onChange={tog("isPurchaseReturned")} style={{ width:16, height:16, accentColor:"#6b7280" }} />
-            🔄 仕入れ返品
-          </label>
-        </div>
           {form.isJunk && (
-            <div style={{ gridColumn:"1/-1", marginTop:4, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+            <div style={{ marginTop:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
               <span style={lblS({ color:C.red })}>損切り確定日</span>
               <DateField label="" value={form.junkDate??today()} onChange={set("junkDate")} />
               <div style={{ color:C.muted, fontSize:11, fontFamily:C.jp, marginTop:6 }}>この日付で集計に損失が反映されます</div>
             </div>
           )}
+        </div>
       </CardSection>
 
       {/* ── eBay出品情報 ── */}
@@ -525,6 +521,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             <option value="unsold">📦 出品中</option>
             <option value="sold">✅ 売却済み</option>
             <option value="returned">↩️ 返品</option>
+            <option value="purchaseReturned">仕入返品</option>
           </select>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
@@ -1021,7 +1018,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
         </div>
         {showAddPicker && (() => {
           const bundleIds = new Set(costs.map(c=>c.id));
-          const candidates = (allItems||[]).filter(i => !i.bundleGroupId && !bundleIds.has(i.id) && !i.isPurchaseReturned);
+          const candidates = (allItems||[]).filter(i => !i.bundleGroupId && !bundleIds.has(i.id) && i.status!=="purchaseReturned");
           return (
             <div style={{ marginBottom:12, padding:"10px 12px", background:C.accentLo, borderRadius:9, border:`1px dashed ${C.accent}50` }}>
               <div style={{ fontFamily:C.jp, fontSize:11, color:C.muted, marginBottom:8 }}>追加する商品を選択</div>
@@ -1401,8 +1398,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   })();
 
   const filtered = items.filter(i => {
-    if (i.isPurchaseReturned && fStatus!=="purchaseReturned") return false;
-    if (fStatus==="purchaseReturned" && !i.isPurchaseReturned) return false;
+    if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned") return false;
+    if (fStatus==="purchaseReturned" && i.status!=="purchaseReturned") return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
     if (fStatus==="unlisted" && i.status!=="unlisted") return false;
     if (fStatus==="unsold"   && (i.status!=="unsold"||i.isJunk)) return false;
@@ -1518,7 +1515,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
-              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.isPurchaseReturned?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.isPurchaseReturned?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+              <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.status==="purchaseReturned"?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.status==="purchaseReturned"?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
               {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
             </div>
           </div>
@@ -1608,7 +1605,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               })}
             </select>
           )}
-          {[["returned","返品"],["junk","💀"],["purchaseReturned","🔄"]].map(([v,l])=>(
+          {[["returned","返品"],["junk","💀"],["purchaseReturned","仕入返品"]].map(([v,l])=>(
             <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
               onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
           ))}
