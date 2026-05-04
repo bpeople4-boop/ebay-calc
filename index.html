@@ -1449,7 +1449,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     return sold - junk;
   })();
 
-  const filtered = items.filter(i => {
+  let filtered = items.filter(i => {
     if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned" && fStatus!=="all") return false;
     if (fStatus==="purchaseReturned" && i.status!=="purchaseReturned") return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
@@ -1465,9 +1465,19 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     }
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
     else if (fCat!=="all" && (i.category||"") !== fCat) return false;
-    if (search) { const q=search.toLowerCase(); if(!i.productName?.toLowerCase().includes(q)&&!i.source?.toLowerCase().includes(q)&&!String(i.managementNumber||"").includes(q)&&!i.auctRevoId?.includes(q)) return false; }
+    if (search) { const q=search.toLowerCase(); if(!i.productName?.toLowerCase().includes(q)&&!i.source?.toLowerCase().includes(q)&&!String(i.managementNumber||"").includes(q)&&!i.auctRevoId?.toLowerCase().includes(q)&&!i.serialNumber?.toLowerCase().includes(q)) return false; }
     return true;
   });
+
+  // S/N検索でバンドルメンバーがヒットした場合、リーダー・他メンバーも自動で含める
+  if (search) {
+    const matchedGroupIds = new Set(filtered.filter(i => i.bundleGroupId).map(i => i.bundleGroupId));
+    if (matchedGroupIds.size > 0) {
+      const baseIds = new Set(filtered.map(i => i.id));
+      const extras = items.filter(i => i.bundleGroupId && matchedGroupIds.has(i.bundleGroupId) && !baseIds.has(i.id));
+      filtered = [...filtered, ...extras];
+    }
+  }
 
   const bundleMap = {}; const singles = [];
   filtered.forEach(item => {
@@ -1644,7 +1654,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         ))}
       </div>
       <div style={{ display:"flex", gap:8, padding:"9px 18px", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", alignItems:"center", background:C.surface, flexShrink:0 }}>
-        <input style={inpS({ width:190, height:32, fontSize:12, padding:"4px 10px" })} type="text" placeholder="🔍 商品名 / 管理番号 / オークレボ" value={search} onChange={e=>setSearch(e.target.value)}/>
+        <input style={inpS({ width:220, height:32, fontSize:12, padding:"4px 10px" })} type="text" placeholder="🔍 商品名 / 管理番号 / S/N / オークレボ" value={search} onChange={e=>setSearch(e.target.value)}/>
         <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
           {[["all","すべて"],["unlisted","未出品"],["unsold","出品中"],["sold","売却済み"]].map(([v,l])=>(
             <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
