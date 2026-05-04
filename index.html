@@ -1524,15 +1524,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   const TH = ({children,w,align="left",resizable=false}) => (
-    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}), ...(resizable?{position:"relative", paddingRight:6}:{}) }}>
+    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}) }}>
       {children}
-      {resizable && (
-        <span onMouseDown={startNameColDrag}
-          style={{ position:"absolute", right:0, top:0, bottom:0, width:5, cursor:"col-resize", background:`${C.border}`, zIndex:6, transition:"background .15s" }}
-          onMouseEnter={e=>e.currentTarget.style.background=C.accent}
-          onMouseLeave={e=>e.currentTarget.style.background=C.border}
-        />
-      )}
     </th>
   );
 
@@ -1699,7 +1692,13 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           }
         </div>
       </div>
-      <div ref={scrollRef} style={{ flex:1, overflowY:"auto" }}>
+      <div ref={scrollRef} style={{ flex:1, overflowY:"auto", position:"relative" }}>
+        {/* フル高さのリサイズハンドル */}
+        <div onMouseDown={startNameColDrag}
+          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-2, width:5, cursor:"col-resize", zIndex:10, background:"transparent" }}
+          onMouseEnter={e=>e.currentTarget.style.background=`${C.accent}60`}
+          onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+        />
         {filtered.length===0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
         ) : (
