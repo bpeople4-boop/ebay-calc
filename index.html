@@ -1398,7 +1398,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   })();
 
   const filtered = items.filter(i => {
-    if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned") return false;
+    if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned" && fStatus!=="all") return false;
     if (fStatus==="purchaseReturned" && i.status!=="purchaseReturned") return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
     if (fStatus==="unlisted" && i.status!=="unlisted") return false;
