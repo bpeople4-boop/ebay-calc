@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ArigatoCam">
+<meta name="theme-color" content="#0a0a0a">
+<title>ArigatoCam 仕入れ判断</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📷</text></svg>">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23b8860b' width='100' height='100' rx='20'/><text x='50' y='62' text-anchor='middle' font-size='50'>📷</text></svg>">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{font-family:'Helvetica Neue','Hiragino Sans','Yu Gothic',sans-serif;background:linear-gradient(145deg,#0a0a0a,#1a1a2e,#0a0a0a);color:#e0e0e0;min-height:100vh;min-height:100dvh;overflow-x:hidden;padding-bottom:env(safe-area-inset-bottom)}
+.header{background:linear-gradient(135deg,#d4a853,#b8860b,#d4a853);padding:max(env(safe-area-inset-top),12px) 16px 16px;text-align:center;position:relative}
+.header-sub{font-size:11px;letter-spacing:6px;color:#1a1a2e;font-weight:600;margin-bottom:4px}
+.header-title{font-size:20px;font-weight:800;color:#1a1a2e;letter-spacing:1px}
+.header-ver{font-size:10px;color:#3a3a1e;margin-top:4px;letter-spacing:2px}
+.gear-btn{position:absolute;right:12px;top:max(env(safe-area-inset-top),12px);width:36px;height:36px;border-radius:8px;border:none;background:rgba(26,26,46,.5);color:#d4a853;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.sync-bar{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(255,255,255,.03);border-bottom:1px solid rgba(255,255,255,.06);font-size:11px}
+.sync-btn{background:none;border:1px solid #444;color:#aaa;border-radius:6px;padding:3px 10px;font-size:11px;cursor:pointer}
+.panel{margin:12px 12px 0;padding:16px;border-radius:12px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.panel-title{font-size:14px;font-weight:700;color:#d4a853;margin-bottom:10px;letter-spacing:1px}
+.panel-desc{font-size:11px;color:#888;line-height:1.7;margin-bottom:10px}
+.url-row{display:flex;gap:6px}
+.url-input{flex:1;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:12px;outline:none}
+.connect-btn{padding:8px 14px;border-radius:8px;border:none;background:#d4a853;color:#1a1a2e;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap}
+.disconnect-btn{font-size:10px;color:#c44;background:none;border:1px solid #633;border-radius:6px;padding:2px 8px;cursor:pointer}
+.setting-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.setting-label{font-size:13px;color:#bbb}
+.setting-input{width:90px;padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:#fff;font-size:14px;text-align:right;outline:none}
+.main{padding:16px 12px}
+.section-label{display:flex;align-items:center;margin:18px 0 8px;gap:8px}
+.section-num{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#d4a853;color:#1a1a2e;font-size:12px;font-weight:800}
+.section-text{font-size:14px;font-weight:700;color:#d4a853;letter-spacing:1px}
+.reset-btn{margin-left:auto;font-size:11px;color:#888;background:none;border:1px solid #444;border-radius:6px;padding:3px 10px;cursor:pointer}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:10px 18px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .15s;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.06);color:#ccc}
+.chip.active{border:2px solid #d4a853;background:linear-gradient(135deg,#d4a853,#b8860b);color:#1a1a2e}
+.name-list{display:flex;flex-direction:column;gap:6px}
+.name-chip{padding:12px 16px;border-radius:10px;font-size:14px;cursor:pointer;border:1px solid rgba(255,255,255,.1);text-align:left;transition:all .15s;background:rgba(255,255,255,.06);color:#ccc;font-weight:400}
+.name-chip.active{background:linear-gradient(135deg,#d4a853,#b8860b);color:#1a1a2e;font-weight:700;border-color:#d4a853}
+.info-card{margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
+.info-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.info-name{font-size:13px;font-weight:700;color:#e0e0e0;flex:1;line-height:1.4}
+.photo-btn{padding:6px 10px;border-radius:7px;background:rgba(66,133,244,.15);border:1px solid rgba(66,133,244,.3);color:#8ab4f8;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.note-bar{padding:10px 14px;background:rgba(212,168,83,.06);font-size:12px;color:#d4a853;line-height:1.6}
+.cond-row{display:flex;gap:8px}
+.cond-btn{flex:1;padding:14px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#bbb;font-size:13px;font-weight:600;cursor:pointer;text-align:center;line-height:1.3}
+.cond-btn.active{border:2px solid #d4a853;background:rgba(212,168,83,.15);color:#d4a853}
+.cond-btn.disabled{color:#555;text-decoration:line-through;opacity:.4;cursor:default}
+.cond-price{font-size:11px;font-weight:400;margin-top:4px}
+.result{margin-top:20px;border-radius:16px;overflow:hidden;background:linear-gradient(160deg,#1e2a1e,#0d1a0d);border:1px solid rgba(100,200,100,.2);box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.result-top{padding:16px 20px;border-bottom:1px solid rgba(100,200,100,.1)}
+.result-label{font-size:11px;color:#6a6;letter-spacing:3px;margin-bottom:8px}
+.result-jpy{font-size:28px;font-weight:800;color:#8dca8d}
+.result-bottom{padding:16px 20px}
+.result-usd{font-size:36px;font-weight:800;color:#4ade80;line-height:1}
+.tags{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:10px;color:#6a6;background:rgba(100,200,100,.1);border:1px solid rgba(100,200,100,.15);border-radius:6px;padding:3px 8px}
+.hint{margin-top:24px;padding:14px 16px;border-radius:10px;background:rgba(212,168,83,.06);border:1px dashed rgba(212,168,83,.2);font-size:12px;color:#888;line-height:1.6;text-align:center}
+.connected-row{margin-top:8px;display:flex;align-items:center;justify-content:space-between}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script>
+const e=React.createElement,{useState,useMemo,useCallback,useEffect}=React;
+
+const INIT=[
+{brand:"Nikon",cat:"フィルムカメラ",name:"F4s",mint:18000,near:14000,exc:11000,note:"液晶漏れは11000"},
+{brand:"Nikon",cat:"フィルムカメラ",name:"FM2",mint:33000,near:27000,exc:22000,note:""},
+{brand:"Nikon",cat:"フィルムカメラ",name:"F3HP",mint:44000,near:37000,exc:33000,note:""},
+{brand:"Canon",cat:"フィルムカメラ",name:"Eos 1N",mint:19000,near:16000,exc:16000,note:""},
+{brand:"Nikon",cat:"フィルムカメラ",name:"F3HP + 【Ai-s】50mm1.4",mint:63000,near:56000,exc:45000,note:"Ai-sが標準 Aiが回転はいい"},
+{brand:"Canon",cat:"レンズ",name:"Canon EF 100mm f/2.8 Macro USM",mint:25000,near:24000,exc:15700,note:""},
+{brand:"Canon",cat:"シネカメ",name:"Canon auto zoom 814 Super8",mint:50000,near:44000,exc:36000,note:""},
+{brand:"Canon",cat:"シネカメ",name:"Canon AUTO ZOOM 814 Electronic",mint:47000,near:42000,exc:38000,note:""},
+{brand:"Nikon",cat:"フィルムカメラ",name:"FM2 + Ai50mm 1.4",mint:45000,near:39000,exc:33000,note:""},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro】 ＋127",mint:49000,near:45000,exc:38000,note:"レンズ種類別では見ていない"},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro】 ＋90",mint:51000,near:48000,exc:null,note:"レンズ種類別では見ていない"},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro S】 ＋127",mint:51000,near:48000,exc:45000,note:"レンズ種類別では見ていない"},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro S】＋90",mint:57000,near:53000,exc:44000,note:"レンズ種類別では見ていない"},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro SD】＋127",mint:79000,near:75000,exc:null,note:"あまり売られていない"},
+{brand:"Mamiya",cat:"中判",name:"RB67 【pro SD】＋90",mint:null,near:80000,exc:71000,note:"あまり売られていない"},
+{brand:"Nikon",cat:"フィルムカメラ",name:"F3HP + 【Ai】50mm1.4",mint:56000,near:45000,exc:44000,note:"Ai-sが標準 Aiが回転はいい"},
+{brand:"Mamiya",cat:"中判",name:"M645 1000S + 80mm 1.9",mint:80000,near:69000,exc:null,note:"1.9の方が2.8より高単価、プレミア感あり"},
+{brand:"Mamiya",cat:"中判",name:"M645 1000S + 80mm 2.8",mint:49000,near:49000,exc:41000,note:""},
+{brand:"Mamiya",cat:"中判",name:"M645 Body (ファインダー付)",mint:23000,near:22000,exc:21000,note:""},
+{brand:"Kyocera",cat:"フィルムカメラ",name:"Slim T",mint:48000,near:40000,exc:34000,note:"不具合多い注意"},
+{brand:"Fujifilm",cat:"レンズ",name:"Fujinon W 180mm 5.6",mint:22000,near:22000,exc:17000,note:"WSは別種類"},
+{brand:"Nikon",cat:"フィルムカメラ",name:"Nikonos V + 35mm 2.5",mint:25000,near:25000,exc:25000,note:"これが標準レンズ"},
+];
+
+const CONDS=[{key:"mint",label:"MINT"},{key:"near",label:"Near Mint"},{key:"exc",label:"Exc+5"}];
+
+function parseNum(v){if(!v||v==="-"||v===""||v==="–")return null;const s=String(v).replace(/[^0-9.]/g,"");if(!s)return null;const n=Number(s);return isNaN(n)||n===0?null:n}
+
+function parseCSV(t){const l=t.split("\n").filter(x=>x.trim());if(l.length<2)return[];let start=0;for(let i=0;i<l.length;i++){if(l[i].includes("ブランド")||l[i].includes("MINT")){start=i+1;break}}if(start===0){for(let i=0;i<Math.min(3,l.length);i++){const cols=l[i].split(",");const num=parseNum(cols[3]);if(num!==null){start=i;break}}}const p=[];for(let i=start;i<l.length;i++){const c=[];let cur="",q=false;for(let j=0;j<l[i].length;j++){const ch=l[i][j];if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur=""}else cur+=ch}c.push(cur.trim());const[brand,cat,name,mint,near,exc,note]=c;if(!brand||!cat||!name)continue;const mv=parseNum(mint),nv=parseNum(near),ev=parseNum(exc);if(mv===null&&nv===null&&ev===null)continue;p.push({brand,cat,name,mint:mv,near:nv,exc:ev,note:note||""})}return p}
+
+function load(){try{const r=localStorage.getItem("arigato-v2");return r?JSON.parse(r):null}catch(e){return null}}
+function save(d){try{localStorage.setItem("arigato-v2",JSON.stringify(d))}catch(e){}}
+
+function App(){
+const saved=useMemo(()=>load(),[]);
+const[products,setProducts]=useState(saved?.products?.length?saved.products:INIT);
+const[brand,setBrand]=useState("");
+const[cat,setCat]=useState("");
+const[name,setName]=useState("");
+const[cond,setCond]=useState("");
+const[rate,setRate]=useState(saved?.rate||158);
+const[fee,setFee]=useState(saved?.fee||14);
+const[ship,setShip]=useState(saved?.ship||6000);
+const[prof,setProf]=useState(saved?.prof||15);
+const[showSet,setShowSet]=useState(false);
+const[sheetUrl,setSheetUrl]=useState(saved?.sheetUrl||"");
+const[urlIn,setUrlIn]=useState(saved?.sheetUrl||"");
+const[syncSt,setSyncSt]=useState(null);
+const[lastSync,setLastSync]=useState(null);
+const[rateTime,setRateTime]=useState(saved?.rateTime||null);
+const[rateSt,setRateSt]=useState(null);
+
+const persist=useCallback((ov={})=>{const d={rate,fee,ship,prof,sheetUrl,products,rateTime,...ov};save(d)},[rate,fee,ship,prof,sheetUrl,products,rateTime]);
+
+useEffect(()=>{const t=setTimeout(()=>persist(),500);return()=>clearTimeout(t)},[rate,fee,ship,prof,persist]);
+
+const fetchRate=useCallback(async()=>{
+setRateSt("loading");
+try{const r=await fetch("https://open.er-api.com/v6/latest/USD");
+if(!r.ok)throw 0;const d=await r.json();const jpy=d.rates?.JPY;
+if(!jpy){setRateSt("error");return}
+const rounded=Math.round(jpy*100)/100;
+setRate(rounded);const now=new Date().toLocaleString("ja-JP",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"});
+setRateTime(now);setRateSt("success");persist({rate:rounded,rateTime:now})}
+catch(e){setRateSt("error")}
+},[persist]);
+
+const syncSheet=useCallback(async(url)=>{
+if(!url)return;setSyncSt("loading");
+try{const r=await fetch(url);if(!r.ok)throw 0;const t=await r.text();const p=parseCSV(t);
+if(!p.length){setSyncSt("empty");return}
+setProducts(p);setLastSync(new Date().toLocaleTimeString("ja-JP"));setSyncSt("success");
+persist({products:p,sheetUrl:url});setBrand("");setCat("");setName("");setCond("")}
+catch(e){setSyncSt("error")}
+},[persist]);
+
+useEffect(()=>{if(sheetUrl)syncSheet(sheetUrl);fetchRate()},[]);
+
+const connect=()=>{const u=urlIn.trim();if(!u)return;setSheetUrl(u);persist({sheetUrl:u});syncSheet(u)};
+const disconnect=()=>{setSheetUrl("");setUrlIn("");setProducts(INIT);setSyncSt(null);setLastSync(null);setBrand("");setCat("");setName("");setCond("");persist({sheetUrl:"",products:INIT})};
+
+const brands=useMemo(()=>[...new Set(products.map(p=>p.brand))].sort(),[products]);
+const cats=useMemo(()=>brand?[...new Set(products.filter(p=>p.brand===brand).map(p=>p.cat))].sort():[],[products,brand]);
+const names=useMemo(()=>brand&&cat?[...new Set(products.filter(p=>p.brand===brand&&p.cat===cat).map(p=>p.name))].sort():[],[products,brand,cat]);
+const sel=useMemo(()=>name?products.find(p=>p.brand===brand&&p.cat===cat&&p.name===name)||null:null,[products,brand,cat,name]);
+const price=useMemo(()=>sel&&cond?sel[cond]:null,[sel,cond]);
+const usd=useMemo(()=>price&&rate?Math.round((price+ship)/(rate*(1-fee/100-prof/100))):null,[price,rate,fee,ship,prof]);
+
+const reset=()=>{setBrand("");setCat("");setName("");setCond("")};
+
+const imgUrl=(b,n)=>"https://www.google.com/search?tbm=isch&q="+encodeURIComponent(b+" "+n+" camera");
+
+return e("div",null,
+  // Header
+  e("div",{className:"header"},
+    e("div",{className:"header-sub"},"ARIGATO CAM"),
+    e("div",{className:"header-title"},"仕入れ判断ツール"),
+    e("div",{className:"header-ver"},"eBay プロモ2% Ver."),
+    e("div",{style:{fontSize:11,color:"#1a1a2e",marginTop:6,fontWeight:600,opacity:.7}},"💱 ¥"+rate+"/USD"+(rateTime?" ("+rateTime+")":"")),
+    e("button",{className:"gear-btn",onClick:()=>setShowSet(!showSet)},"⚙")
+  ),
+
+  // Sync bar
+  sheetUrl&&e("div",{className:"sync-bar"},
+    e("span",{style:{color:"#888"}},
+      syncSt==="loading"?"⏳ 同期中...":syncSt==="success"?`✅ ${products.length}件 (${lastSync})`:syncSt==="error"?"❌ 読込失敗":syncSt==="empty"?"⚠️ データなし":"📋 連携中"),
+    e("button",{className:"sync-btn",onClick:()=>syncSheet(sheetUrl)},"🔄 再読込")
+  ),
+
+  // Settings
+  showSet&&e("div",{className:"panel"},
+    e("div",{style:{marginBottom:16}},
+      e("div",{className:"panel-title"},"📊 スプレッドシート連携"),
+      e("div",{className:"panel-desc"},
+        "① Google Sheetsを開く",e("br"),
+        "②「ファイル」→「共有」→「ウェブに公開」",e("br"),
+        "③「追加」シート × CSV形式 で「公開」",e("br"),
+        "④ 表示されたURLを下に貼り付け"),
+      e("div",{className:"url-row"},
+        e("input",{className:"url-input",type:"url",placeholder:"公開CSVのURLを貼り付け",value:urlIn,onChange:ev=>setUrlIn(ev.target.value)}),
+        e("button",{className:"connect-btn",onClick:connect},"接続")
+      ),
+      sheetUrl&&e("div",{className:"connected-row"},
+        e("span",{style:{fontSize:11,color:"#6a6"}},"✅ 接続済み"),
+        e("button",{className:"disconnect-btn",onClick:disconnect},"解除")
+      )
+    ),
+    e("div",{className:"panel-title"},"⚙ 計算パラメータ"),
+    e("div",{className:"setting-row"},
+      e("span",{className:"setting-label"},"為替（円/USD）"),
+      e("div",{style:{display:"flex",alignItems:"center",gap:6}},
+        e("input",{className:"setting-input",type:"number",value:rate,onChange:ev=>setRate(Number(ev.target.value)||0)}),
+        e("button",{onClick:fetchRate,style:{padding:"6px 8px",borderRadius:6,border:"none",background:rateSt==="loading"?"#555":"#2a6",color:"#fff",fontSize:11,fontWeight:600,cursor:"pointer",whiteSpace:"nowrap"}},
+          rateSt==="loading"?"...":"💱")
+      )
+    ),
+    rateTime&&e("div",{style:{fontSize:10,color:"#6a6",textAlign:"right",marginBottom:6,marginTop:-4}},"最終取得: "+rateTime),
+    [["eBay手数料（%）",fee,setFee],["国際送料（円）",ship,setShip],["目標利益率（%）",prof,setProf]].map(([l,v,s])=>
+      e("div",{className:"setting-row",key:l},
+        e("span",{className:"setting-label"},l),
+        e("input",{className:"setting-input",type:"number",value:v,onChange:ev=>s(Number(ev.target.value)||0)})
+      )
+    ),
+    e("div",{style:{fontSize:11,color:"#666",marginTop:4}},"(仕入れ+送料) ÷ (為替×(1-手数料%-利益%))")
+  ),
+
+  // Main
+  e("div",{className:"main"},
+    // Brand
+    e("div",{className:"section-label"},
+      e("span",{className:"section-num"},"1"),
+      e("span",{className:"section-text"},"ブランド"),
+      brand&&e("button",{className:"reset-btn",onClick:reset},"リセット")
+    ),
+    e("div",{className:"chips"},brands.map(b=>
+      e("button",{key:b,className:"chip"+(brand===b?" active":""),onClick:()=>{setBrand(b);setCat("");setName("");setCond("")}},b)
+    )),
+
+    // Category
+    brand&&e(React.Fragment,null,
+      e("div",{className:"section-label"},e("span",{className:"section-num"},"2"),e("span",{className:"section-text"},"カテゴリー")),
+      e("div",{className:"chips"},cats.map(c=>
+        e("button",{key:c,className:"chip"+(cat===c?" active":""),onClick:()=>{setCat(c);setName("");setCond("")}},c)
+      ))
+    ),
+
+    // Name
+    cat&&e(React.Fragment,null,
+      e("div",{className:"section-label"},e("span",{className:"section-num"},"3"),e("span",{className:"section-text"},"品名")),
+      e("div",{className:"name-list"},names.map(n=>
+        e("button",{key:n,className:"name-chip"+(name===n?" active":""),onClick:()=>{setName(n);setCond("")}},n)
+      ))
+    ),
+
+    // Info card
+    sel&&e("div",{className:"info-card"},
+      e("div",{className:"info-header"},
+        e("div",{className:"info-name"},sel.brand+" "+sel.name),
+        e("a",{className:"photo-btn",href:imgUrl(sel.brand,sel.name),target:"_blank",rel:"noopener noreferrer"},"📷 写真")
+      ),
+      sel.note&&e("div",{className:"note-bar"},"📝 "+sel.note)
+    ),
+
+    // Condition
+    name&&e(React.Fragment,null,
+      e("div",{className:"section-label"},e("span",{className:"section-num"},"4"),e("span",{className:"section-text"},"コンディション")),
+      e("div",{className:"cond-row"},CONDS.map(c=>{
+        const p=sel?.[c.key];const ok=p!=null;
+        return e("button",{key:c.key,className:"cond-btn"+(cond===c.key?" active":"")+(ok?"":" disabled"),
+          onClick:()=>ok&&setCond(c.key)},
+          c.label,
+          ok&&e("div",{className:"cond-price",style:{color:cond===c.key?"#d4a853":"#888"}},"¥"+p.toLocaleString())
+        )
+      }))
+    ),
+
+    // Result
+    price!=null&&cond&&e("div",{className:"result"},
+      e("div",{className:"result-top"},
+        e("div",{className:"result-label"},"仕入れ金額"),
+        e("div",{className:"result-jpy"},"¥"+price.toLocaleString())
+      ),
+      e("div",{className:"result-bottom"},
+        e("div",{className:"result-label"},"販売価格（送料込）"),
+        e("div",{className:"result-usd"},"$"+(usd!=null?usd.toLocaleString():"—")),
+        e("div",{className:"tags"},
+          [`¥${rate}/USD`,`手数料${fee}%`,`送料¥${ship.toLocaleString()}`,`利益${prof}%`].map(t=>
+            e("span",{className:"tag",key:t},t)
+          )
+        )
+      )
+    ),
+
+    // Hint
+    !sheetUrl&&!showSet&&!name&&e("div",{className:"hint"},
+      "💡 右上の ⚙ からスプレッドシートを接続すると",e("br"),"追加シートの商品が自動で反映されます"
+    )
+  )
+)}
+
+ReactDOM.createRoot(document.getElementById("app")).render(e(App));
+</script>
+</body>
+</html>
