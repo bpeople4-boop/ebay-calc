@@ -1408,22 +1408,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [bundleTooltip, setBundleTooltip] = useState(null);
   const [nameColW, setNameColW] = useState(220);
   const scrollRef = useRef(null);
-  const containerRef = useRef(null);
-  const prevContainerW = useRef(null);
-
-  // コンテナ幅が変わったとき（右パネル開閉など）nameColW を比例スケール
-  useEffect(() => {
-    if (!containerRef.current) return;
-    const ro = new ResizeObserver(entries => {
-      const w = entries[0].contentRect.width;
-      if (prevContainerW.current && Math.abs(w - prevContainerW.current) > 20) {
-        setNameColW(prev => Math.round(Math.max(120, Math.min(600, prev * (w / prevContainerW.current)))));
-      }
-      prevContainerW.current = w;
-    });
-    ro.observe(containerRef.current);
-    return () => ro.disconnect();
-  }, []);
 
   const startNameColDrag = (e) => {
     e.preventDefault();
@@ -1552,8 +1536,17 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   const TH = ({children,w,align="left",resizable=false}) => (
-    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}) }}>
-      {children}
+    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}), ...(resizable?{position:"sticky"}:{}) }}>
+      <div style={{ position:"relative", display:"inline-block", width:"100%" }}>
+        {children}
+        {resizable && (
+          <div onMouseDown={startNameColDrag}
+            style={{ position:"absolute", top:-9, bottom:-9, right:-6, width:6, cursor:CURSOR_EW, zIndex:20, background:"transparent" }}
+            onMouseEnter={e=>e.currentTarget.style.background=`${C.accent}60`}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}
+          />
+        )}
+      </div>
     </th>
   );
 
@@ -1627,7 +1620,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   return (
-    <div ref={containerRef} style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", overflow:"hidden" }}>
       {/* おまとめ選択ツールチップ */}
       {bundleTooltip && selecting && (() => {
         const it = bundleTooltip.item;
@@ -1721,12 +1714,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         </div>
       </div>
       <div style={{ flex:1, position:"relative", overflow:"hidden" }}>
-        {/* 商品名列リサイズハンドル - テーブルエリアのみ */}
-        <div onMouseDown={startNameColDrag}
-          style={{ position:"absolute", top:0, bottom:0, left:52+52+nameColW-1, width:3, cursor:CURSOR_EW, zIndex:20, background:C.border }}
-          onMouseEnter={e=>e.currentTarget.style.background=C.accent}
-          onMouseLeave={e=>e.currentTarget.style.background=C.border}
-        />
         <div ref={scrollRef} style={{ height:"100%", overflowY:"auto" }}>
         {filtered.length===0 ? (
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
