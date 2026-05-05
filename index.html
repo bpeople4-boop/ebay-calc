@@ -199,8 +199,20 @@ const Badge = ({ label, color, bg }) => (
   <span style={{ background:bg||`${color}18`, color, fontSize:11, fontWeight:700, padding:"3px 9px", borderRadius:6, fontFamily:C.jp, whiteSpace:"nowrap" }}>{label}</span>
 );
 
+const getStatusWarnings = (item) => {
+  const warns = [];
+  if (item.status === "unlisted" && !item.auctRevoId?.trim())
+    warns.push("オークレボIDが未入力");
+  if (item.status === "unsold" && !item.ebayUrl?.trim())
+    warns.push("eBay URLが未入力");
+  if ((item.status === "sold" || item.status === "returned") && +item.salePrice > 0 && !item.actualEbayFeeUSD?.trim())
+    warns.push("実績手数料が未入力");
+  return warns;
+};
+
 const StatusBadge = ({ item }) => {
   if (item.status==="purchaseReturned") return <Badge label="仕入返品"    color="#6b7280" bg="#f3f4f6" />;
+  if (item.status==="stored")        return <Badge label="🏠 自宅保管" color="#7c3aed" bg="#ede9fe" />;
   if (item.isJunk)                      return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
   if (item.status==="sold")      return <Badge label="✅ 売却済み" color={C.green} bg={C.greenLo} />;
   if (item.status==="returned")  return <Badge label="↩️ 返品"     color={C.red}   bg={C.redLo} />;
@@ -403,7 +415,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     actualEbayFeeUSD:"", actualPromoFeeUSD:"",
     refundUSD:"", refundExchangeRate:"", refundType:"none",
     returnShippingJPY:"",
-    status:"unlisted", returnDate:"", returnShipping:"", returnNotes:"",
+    status:"stored", returnDate:"", returnShipping:"", returnNotes:"",
     notes:"", photos:[],
     ...initial,
   });
@@ -414,6 +426,29 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
+
+  const [statusWarn, setStatusWarn] = useState("");
+  const handleStatusChange = e => {
+    const next = e.target.value;
+    const cur  = form.status;
+    // 自宅保管 → 未出品: オークレボID必須
+    if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
+      setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
+      return;
+    }
+    // 未出品 → 出品中: eBay URL必須
+    if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
+      setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
+      return;
+    }
+    // 出品中 → 売却済み: 実績手数料必須
+    if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
+      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから「売却済み」に変更してください");
+      return;
+    }
+    setStatusWarn("");
+    setForm(p => ({ ...p, status: next }));
+  };
 
   const handleCategoryChange = (newCat) => {
     const actualCat = form.category === newCat ? "" : newCat;
@@ -519,13 +554,17 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       <div style={{ ...cardS({ marginBottom:14 }), ...((form.isJunk || isBundleMember) ? { opacity:.45, pointerEvents:"none" } : {}) }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <span style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp }}>▸ 落札情報</span>
-          <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={set("status")}>
-            <option value="unlisted">📝 未出品</option>
-            <option value="unsold">📦 出品中</option>
-            <option value="sold">✅ 売却済み</option>
-            <option value="returned">↩️ 返品</option>
-            <option value="purchaseReturned">仕入返品</option>
-          </select>
+          <div>
+            <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={handleStatusChange}>
+              <option value="stored">🏠 自宅保管</option>
+              <option value="unlisted">📝 未出品</option>
+              <option value="unsold">📦 出品中</option>
+              <option value="sold">✅ 売却済み</option>
+              <option value="returned">↩️ 返品</option>
+              <option value="purchaseReturned">仕入返品</option>
+            </select>
+            {statusWarn && <div style={{ marginTop:6, color:"#d97706", fontSize:11, fontFamily:C.jp, fontWeight:600, background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:6, padding:"6px 10px" }}>{statusWarn}</div>}
+          </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
           <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
@@ -988,6 +1027,25 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const [offerPrice,  setOfferPrice]  = useState("");
 
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const [statusWarn, setStatusWarn] = useState("");
+  const handleStatusChange = e => {
+    const next = e.target.value;
+    const cur  = form.status;
+    if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
+      setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
+      return;
+    }
+    if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
+      setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
+      return;
+    }
+    if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
+      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから「売却済み」に変更してください");
+      return;
+    }
+    setStatusWarn("");
+    setForm(p => ({ ...p, status: next }));
+  };
   const setCost = (idx, k, v) => setCosts(p => p.map((c,i) => i===idx ? {...c,[k]:v} : c));
 
   const totalCost = costs.reduce((s,m) => s + (+m.cost||0), 0);
@@ -1123,12 +1181,16 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       <div style={cardS({ marginBottom:14 })}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:16 }}>
           <span style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.1em", fontFamily:C.jp }}>▸ 落札情報</span>
-          <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={set("status")}>
-            <option value="unlisted">📝 未出品</option>
-            <option value="unsold">📦 出品中</option>
-            <option value="sold">✅ 売却済み</option>
-            <option value="returned">↩️ 返品</option>
-          </select>
+          <div>
+            <select style={inpS({ width:"auto", fontSize:13, padding:"6px 12px", cursor:"pointer" })} value={form.status} onChange={handleStatusChange}>
+              <option value="stored">🏠 自宅保管</option>
+              <option value="unlisted">📝 未出品</option>
+              <option value="unsold">📦 出品中</option>
+              <option value="sold">✅ 売却済み</option>
+              <option value="returned">↩️ 返品</option>
+            </select>
+            {statusWarn && <div style={{ marginTop:6, color:"#d97706", fontSize:11, fontFamily:C.jp, fontWeight:600, background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:6, padding:"6px 10px" }}>{statusWarn}</div>}
+          </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
           <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
@@ -1453,6 +1515,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned" && fStatus!=="all") return false;
     if (fStatus==="purchaseReturned" && i.status!=="purchaseReturned") return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
+    if (fStatus==="stored"   && i.status!=="stored")   return false;
     if (fStatus==="unlisted" && i.status!=="unlisted") return false;
     if (fStatus==="unsold"   && (i.status!=="unsold"||i.isJunk)) return false;
     if (fStatus==="sold"     && (i.status!=="sold"||i.isJunk)) return false;
@@ -1525,7 +1588,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss+returnedLoss;
   const totalRevenue = soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const avgRate      = soldCalcs.length ? soldCalcs.reduce((s,c)=>s+c.profitRate,0)/soldCalcs.length : 0;
-  const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk).length;
+  const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk&&i.status!=="purchaseReturned").length;
 
   const startBundle = () => {
     const sel=items.filter(i=>selSet.has(i.id));
@@ -1589,6 +1652,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
               <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.status==="purchaseReturned"?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.status==="purchaseReturned"?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
+            {(()=>{ const w=getStatusWarnings(item); return w.length>0 ? <div title={w.join(" / ")} style={{ display:"inline-block", marginTop:3, fontSize:10, color:"#d97706", background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:4, padding:"1px 6px", cursor:"default" }}>⚠️ {w.join(" / ")}</div> : null; })()}
               {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
               {item.shippingConfirmed && item.ddpConfirmed && <div style={{ fontSize:10, color:"#b45309", fontFamily:C.jp, marginTop:2 }}>確✅</div>}
             </div>
@@ -1651,7 +1715,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:10, padding:"12px 18px", borderBottom:`1px solid ${C.border}`, background:C.bg, flexShrink:0 }}>
         {[
           [
-            fStatus==="all" ? "売却済み" : fStatus==="sold" ? "売却済み" : fStatus==="unlisted" ? "未出品" : fStatus==="unsold" ? "出品中" : fStatus==="returned" ? "返品" : "損切り",
+            fStatus==="all" ? "売却済み" : fStatus==="sold" ? "売却済み" : fStatus==="stored" ? "自宅保管" : fStatus==="unlisted" ? "未出品" : fStatus==="unsold" ? "出品中" : fStatus==="returned" ? "返品" : "損切り",
             fStatus==="all" ? `${soldCalcs.length} / ${filteredTopCount}点` : fStatus==="sold" ? `${soldCalcs.length}件` : `${filteredTopCount}点`,
             null, C.accent
           ],["総売上",yen(totalRevenue),`${soldCalcs.length}件`,C.accent],["純利益",yen(totalProfit),junkLoss>0?`損切 △${yen(junkLoss)}`:"",totalProfit>=0?C.green:C.red],["平均利益率",pct(avgRate),`未売却 ${unsoldCount}点`,pColor(avgRate)]].map(([l,v,s,col])=>(
@@ -1665,7 +1729,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       <div style={{ display:"flex", gap:8, padding:"9px 18px", borderBottom:`1px solid ${C.border}`, flexWrap:"wrap", alignItems:"center", background:C.surface, flexShrink:0 }}>
         <input style={inpS({ width:220, height:32, fontSize:12, padding:"4px 10px" })} type="text" placeholder="🔍 商品名 / 管理番号 / S/N / オークレボ" value={search} onChange={e=>setSearch(e.target.value)}/>
         <div style={{ display:"flex", gap:4, alignItems:"center", flexWrap:"wrap" }}>
-          {[["all","すべて"],["unlisted","未出品"],["unsold","出品中"],["sold","売却済み"]].map(([v,l])=>(
+          {[["all","すべて"],["stored","自宅保管"],["unlisted","未出品"],["unsold","出品中"],["sold","売却済み"]].map(([v,l])=>(
             <button key={v} style={pillS(fStatus===v,{padding:"3px 9px",fontSize:11})}
               onClick={()=>{ setFStatus(v); if(v!=="sold") setFYearMonth("all"); }}>{l}</button>
           ))}
@@ -1992,18 +2056,7 @@ function App() {
     setReturnItem(null);
   };
   const handleRelist = (item) => {
-    setItems(p => [{ ...item,
-      id: genId(), managementNumber: nextNo(p), relistFromId: item.id,
-      purchaseDate: today(), cost: 0, storageShipping: 0,
-      salePrice: "", saleDate: "", saleShipping: "", status: "unsold",
-      ebayUrl: "", shippingConfirmed: false, ddpConfirmed: false, exchangeRateLocked: false,
-      actualEbayFeeUSD: "", actualPromoFeeUSD: "", actualDdpFee: "",
-      refundUSD: "", refundExchangeRate: "", refundType: "none",
-      returnShippingJPY: "", returnDate: "", returnShipping: "", returnNotes: "",
-      bundleGroupId: null, isBundleLeader: false,
-      isJunk: false, junkDate: "",
-      auctRevoId: "",
-    }, ...p]);
+    setItems(p => [{ ...item, id:genId(), managementNumber:nextNo(p), cost:0, storageShipping:0, salePrice:"", saleDate:"", saleShipping:"", status:"stored", returnDate:"", returnShipping:"", returnNotes:"", relistFromId:item.id, bundleGroupId:null, isBundleLeader:false, auctRevoId:"" }, ...p]);
   };
   const handleSplitConfirm = (parts) => {
     const orig = splitItem;
@@ -2072,6 +2125,8 @@ function App() {
           let status = i.status || "unsold";
           if (hasSaleDate && status !== "returned") status = "sold";
           if (!hasSaleDate && status === "sold") status = "unsold";
+          // 旧データ移行: unlisted+オークレボIDなし → stored
+          if (status === "unlisted" && !i.auctRevoId) status = "stored";
           return { ...i, id: i.id||genId(), status };
         }));
         alert(`✅ ${d.length}件を取り込みました`);
