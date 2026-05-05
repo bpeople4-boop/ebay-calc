@@ -144,7 +144,9 @@ function calcFull(item, overrideCost = null) {
   const totalFee  = ebayBase + promoFee;
   const usedCost  = overrideCost ?? (+cost + +storageShipping);
   // DDP実費が入力済みならそちらを使用、なければDDP上乗せ×為替で概算
-  const ddpCostJPY = +actualDdpFee ? +actualDdpFee : (destination === "us" ? +ddpSurcharge * +exchangeRate : 0);
+  const ddpCostJPY = destination === "us"
+    ? (+actualDdpFee ? +actualDdpFee : +ddpSurcharge * +exchangeRate)
+    : 0;
   const isActualDdp = !!+actualDdpFee;
   const refundJPY = refundType !== "none" && +refundUSD ? +refundUSD * (+refundExchangeRate || +exchangeRate) : 0;
   const retShipJPY = +returnShippingJPY || 0;
@@ -660,7 +662,14 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           {/* 送り先・DDP */}
           <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
             <span style={lblS()}>送り先</span>
-            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={set("destination")}>
+            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={e => {
+              const v = e.target.value;
+              setForm(p => ({
+                ...p,
+                destination: v,
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "" } : {}),
+              }));
+            }}>
               <option value="other">その他</option>
               <option value="us">🇺🇸 アメリカ（DDP）</option>
             </select>
@@ -1312,7 +1321,14 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
           <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
             <span style={lblS()}>送り先</span>
-            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={set("destination")}>
+            <select style={inpS({ cursor:"pointer" })} value={form.destination} onChange={e => {
+              const v = e.target.value;
+              setForm(p => ({
+                ...p,
+                destination: v,
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "" } : {}),
+              }));
+            }}>
               <option value="other">その他</option>
               <option value="us">🇺🇸 アメリカ（DDP）</option>
             </select>
