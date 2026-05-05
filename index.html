@@ -430,6 +430,11 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     status:"stored", returnDate:"", returnShipping:"", returnNotes:"",
     notes:"", photos:[],
     ...initial,
+    // 出品中・未出品・保管中は実費フィールドをクリア（残留値がプロモ率を無効化するのを防ぐ）
+    ...((initial.status !== "sold" && initial.status !== "returned") ? {
+      actualEbayFeeUSD: "",
+      actualPromoFeeUSD: "",
+    } : {}),
   });
   const [rateLoading, setRateLoading] = useState(false);
   const [rateError,   setRateError]   = useState("");
@@ -1024,8 +1029,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     destination: leader.destination || "other",
     ddpMethod: leader.ddpMethod || "",
     actualDdpFee: leader.actualDdpFee || "",
-    actualEbayFeeUSD: leader.actualEbayFeeUSD || "",
-    actualPromoFeeUSD: leader.actualPromoFeeUSD || "",
+    actualEbayFeeUSD: (leader.status === "sold" || leader.status === "returned") ? (leader.actualEbayFeeUSD || "") : "",
+    actualPromoFeeUSD: (leader.status === "sold" || leader.status === "returned") ? (leader.actualPromoFeeUSD || "") : "",
     refundUSD: leader.refundUSD || "",
     refundExchangeRate: leader.refundExchangeRate || "",
     refundType: leader.refundType || "none",
