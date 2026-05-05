@@ -1241,7 +1241,20 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
           <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
-          <Field label="国際送料＋手数料（¥）" type="number" value={form.intlShipping} onChange={set("intlShipping")} />
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>国際送料＋手数料（¥）</span>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              <input style={inpS({ flex:1, background: form.shippingConfirmed ? "#fef9c3" : undefined })}
+                type="text" inputMode="decimal" placeholder="6000"
+                value={form.intlShipping??""} readOnly={!!form.shippingConfirmed}
+                onChange={form.shippingConfirmed ? undefined : set("intlShipping")} />
+              <button type="button" onClick={()=>setForm(p=>({...p, shippingConfirmed:!p.shippingConfirmed}))}
+                title={form.shippingConfirmed ? "確定解除" : "確定する"}
+                style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.shippingConfirmed ? "#f59e0b" : C.border}`, background: form.shippingConfirmed ? "#fef3c7" : C.card, color: form.shippingConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
+                {form.shippingConfirmed ? "確✅" : "確定"}
+              </button>
+            </div>
+          </div>
 
           <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
             <span style={lblS()}>送り先</span>
@@ -1266,7 +1279,17 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               </div>
               <div>
                 <span style={lblS()}>実際DDP料金（¥）</span>
-                <input style={inpS({ marginTop:4 })} type="text" inputMode="decimal" value={form.actualDdpFee??""} onChange={set("actualDdpFee")} />
+                <div style={{ display:"flex", gap:6, alignItems:"center", marginTop:4 }}>
+                  <input style={inpS({ flex:1, background: form.ddpConfirmed ? "#fef9c3" : undefined })} type="text" inputMode="decimal" value={form.actualDdpFee??""} readOnly={!!form.ddpConfirmed} onChange={form.ddpConfirmed ? undefined : set("actualDdpFee")} />
+                  <button type="button" onClick={()=>setForm(p=>({...p, ddpConfirmed:!p.ddpConfirmed}))}
+                    title={form.ddpConfirmed ? "確定解除" : "確定する"}
+                    style={{ flexShrink:0, fontSize:11, padding:"5px 8px", borderRadius:7, border:`1px solid ${form.ddpConfirmed ? "#f59e0b" : C.border}`, background: form.ddpConfirmed ? "#fef3c7" : C.card, color: form.ddpConfirmed ? "#b45309" : C.muted, cursor:"pointer", fontFamily:C.jp, whiteSpace:"nowrap" }}>
+                    {form.ddpConfirmed ? "確✅" : "確定"}
+                  </button>
+                </div>
+                <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>
+                  {form.actualDdpFee ? "✅ 実費入力済み" : `概算：${yen(+autoDdp * +(form.exchangeRate||158))}`}
+                </div>
               </div>
             </div>
           )}
