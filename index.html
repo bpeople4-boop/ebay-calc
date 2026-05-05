@@ -1536,7 +1536,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   };
 
   const TH = ({children,w,align="left",resizable=false}) => (
-    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}), ...(resizable?{position:"sticky"}:{}) }}>
+    <th style={{ padding:"9px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.06em", textAlign:align, borderBottom:`2px solid ${C.border}`, background:C.surface, whiteSpace:"nowrap", position:"sticky", top:0, zIndex:5, ...(w?{width:w}:{}) }}>
       <div style={{ position:"relative", display:"inline-block", width:"100%" }}>
         {children}
         {resizable && (
@@ -1992,7 +1992,18 @@ function App() {
     setReturnItem(null);
   };
   const handleRelist = (item) => {
-    setItems(p => [{ ...item, id:genId(), managementNumber:nextNo(p), cost:0, storageShipping:0, salePrice:"", saleDate:"", saleShipping:"", status:"unsold", returnDate:"", returnShipping:"", returnNotes:"", relistFromId:item.id, bundleGroupId:null, isBundleLeader:false }, ...p]);
+    setItems(p => [{ ...item,
+      id: genId(), managementNumber: nextNo(p), relistFromId: item.id,
+      purchaseDate: today(), cost: 0, storageShipping: 0,
+      salePrice: "", saleDate: "", saleShipping: "", status: "unsold",
+      ebayUrl: "", shippingConfirmed: false, ddpConfirmed: false, exchangeRateLocked: false,
+      actualEbayFeeUSD: "", actualPromoFeeUSD: "", actualDdpFee: "",
+      refundUSD: "", refundExchangeRate: "", refundType: "none",
+      returnShippingJPY: "", returnDate: "", returnShipping: "", returnNotes: "",
+      bundleGroupId: null, isBundleLeader: false,
+      isJunk: false, junkDate: "",
+      auctRevoId: "",
+    }, ...p]);
   };
   const handleSplitConfirm = (parts) => {
     const orig = splitItem;
