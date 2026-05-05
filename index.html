@@ -459,7 +459,12 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       return;
     }
     setStatusWarn("");
-    setForm(p => ({ ...p, status: next }));
+    const isSoldState = next === "sold" || next === "returned";
+    setForm(p => ({
+      ...p,
+      status: next,
+      ...(!isSoldState ? { actualEbayFeeUSD: "", actualPromoFeeUSD: "" } : {}),
+    }));
   };
 
   const handleCategoryChange = (newCat) => {
@@ -1061,7 +1066,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       return;
     }
     setStatusWarn("");
-    setForm(p => ({ ...p, status: next }));
+    const isSoldState = next === "sold" || next === "returned";
+    setForm(p => ({
+      ...p,
+      status: next,
+      ...(!isSoldState ? { actualEbayFeeUSD: "", actualPromoFeeUSD: "" } : {}),
+    }));
   };
   const setCost = (idx, k, v) => setCosts(p => p.map((c,i) => i===idx ? {...c,[k]:v} : c));
 
