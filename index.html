@@ -1807,16 +1807,16 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
           ))}
         </div>
-        <select style={inpS({ width:100, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fPurchaseYear} onChange={e=>setFPurchaseYear(e.target.value)}>
-          <option value="all">仕入れ年 全</option>
-          {purchaseYears.map(y => <option key={y} value={y}>{y}年</option>)}
-        </select>
         <select style={inpS({ width:120, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fCat} onChange={e=>setFCat(e.target.value)}>
           <option value="all">全カテゴリ</option>
           <option value="camera">📷 カメラ</option>
           <option value="watch">⌚ 時計</option>
           <option value="other">🏷️ その他</option>
           <option value="bundle">📦 おまとめ</option>
+        </select>
+        <select style={inpS({ width:105, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fPurchaseYear} onChange={e=>setFPurchaseYear(e.target.value)}>
+          <option value="all">仕入年: 全</option>
+          {purchaseYears.map(y => <option key={y} value={y}>{y}年</option>)}
         </select>
         <div style={{ display:"flex", gap:4, alignItems:"center" }}>
           {[["purchase","仕入れ日"],["sale","落札日"]].map(([k,l])=>(
