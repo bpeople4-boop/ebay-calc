@@ -210,8 +210,13 @@ const getStatusWarnings = (item) => {
     if (item.status === "unsold" && !item.ebayUrl?.trim())
       warns.push("eBay URLが未入力");
   }
-  if ((item.status === "sold" || item.status === "returned") && +item.salePrice > 0 && !item.actualEbayFeeUSD?.trim())
+  const isSoldOrReturned = item.status === "sold" || item.status === "returned";
+  if (isSoldOrReturned && +item.salePrice > 0 && !item.actualEbayFeeUSD?.trim())
     warns.push("実績手数料が未入力");
+  if (isSoldOrReturned && !item.shippingConfirmed)
+    warns.push("送料未確定");
+  if (isSoldOrReturned && item.destination === "us" && !item.ddpConfirmed)
+    warns.push("関税未確定");
   return warns;
 };
 
