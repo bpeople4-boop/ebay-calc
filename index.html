@@ -444,6 +444,24 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
 
+  // 実費入力時に手数料率を逆算して自動反映
+  const handleActualEbayFee = e => {
+    const val = e.target.value;
+    setForm(p => {
+      const base = +p.salePrice + (+p.saleShipping || 0);
+      const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.ebayFeeRate;
+      return { ...p, actualEbayFeeUSD: val, ebayFeeRate: val !== "" && !isNaN(+val) ? rate : p.ebayFeeRate };
+    });
+  };
+  const handleActualPromoFee = e => {
+    const val = e.target.value;
+    setForm(p => {
+      const base = +p.salePrice + (+p.saleShipping || 0);
+      const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.promotionRate;
+      return { ...p, actualPromoFeeUSD: val, promotionRate: val !== "" && !isNaN(+val) ? rate : p.promotionRate };
+    });
+  };
+
   const [statusWarn, setStatusWarn] = useState("");
   const handleStatusChange = e => {
     const next = e.target.value;
@@ -695,7 +713,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
                   <span style={lblS()}>eBay落札手数料（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD&&<span style={{ color:C.red, fontWeight:700 }}>※必須</span>}</span>
-                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
+                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={handleActualEbayFee} />
                   {!form.actualEbayFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>
                   )}
@@ -703,7 +721,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
                 </div>
                 <div>
                   <span style={lblS()}>プロモート費用（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
-                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
+                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={handleActualPromoFee} />
                   {!form.actualPromoFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>
                   )}
@@ -1051,6 +1069,25 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const [offerPrice,  setOfferPrice]  = useState("");
 
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+
+  // 実費入力時に手数料率を逆算して自動反映
+  const handleActualEbayFee = e => {
+    const val = e.target.value;
+    setForm(p => {
+      const base = +p.salePrice + (+p.saleShipping || 0);
+      const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.ebayFeeRate;
+      return { ...p, actualEbayFeeUSD: val, ebayFeeRate: val !== "" && !isNaN(+val) ? rate : p.ebayFeeRate };
+    });
+  };
+  const handleActualPromoFee = e => {
+    const val = e.target.value;
+    setForm(p => {
+      const base = +p.salePrice + (+p.saleShipping || 0);
+      const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.promotionRate;
+      return { ...p, actualPromoFeeUSD: val, promotionRate: val !== "" && !isNaN(+val) ? rate : p.promotionRate };
+    });
+  };
+
   const [statusWarn, setStatusWarn] = useState("");
   const handleStatusChange = e => {
     const next = e.target.value;
@@ -1317,12 +1354,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
                   <span style={lblS()}>eBay手数料（$）実費</span>
-                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={set("actualEbayFeeUSD")} />
+                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={handleActualEbayFee} />
                   {!form.actualEbayFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>}
                 </div>
                 <div>
                   <span style={lblS()}>プロモート費用（$）実費 {leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
-                  <input style={inpS(leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={set("actualPromoFeeUSD")} />
+                  <input style={inpS(leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={handleActualPromoFee} />
                   {!form.actualPromoFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>}
                 </div>
               </div>
