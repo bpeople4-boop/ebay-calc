@@ -1028,6 +1028,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     status: leader.status || "unsold",
     notes: leader.notes || "",
     photos: leader.photos || [],
+    shippingConfirmed: leader.shippingConfirmed || false,
+    ddpConfirmed: leader.ddpConfirmed || false,
   });
   const [costs, setCosts] = useState(
     allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber, purchaseUrl:i.purchaseUrl||"", serialNumber:i.serialNumber||"" }))
@@ -1502,6 +1504,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [search, setSearch]       = useState("");
   const [fStatus, setFStatus]     = useState("all");
   const [fYearMonth, setFYearMonth] = useState("all");
+  const [fPurchaseYear, setFPurchaseYear] = useState("all");
   const [sortAsc, setSortAsc]     = useState(false);
   const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
   const [fCat,    setFCat]        = useState("all");
@@ -1525,6 +1528,13 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     items.filter(i => i.saleDate && !i.saleDate.startsWith("1900"))
       .map(i => { const d = new Date(i.saleDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })
   )].sort((a,b) => b.localeCompare(a));
+
+  // 仕入れ年セレクト用
+  const purchaseYears = [...new Set(
+    items.filter(i => i.purchaseDate)
+      .map(i => new Date(i.purchaseDate).getFullYear())
+      .filter(y => !isNaN(y))
+  )].sort((a,b) => b-a);
 
   // 今月利益（全アイテム対象・常時表示用）
   const _now = new Date();
@@ -1563,6 +1573,11 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       if (!i.saleDate || i.saleDate.startsWith("1900")) return false;
       const d = new Date(i.saleDate);
       if (d.getFullYear()!==fy || d.getMonth()+1!==fm) return false;
+    }
+    if (fPurchaseYear !== "all") {
+      if (!i.purchaseDate) return false;
+      const py = new Date(i.purchaseDate).getFullYear();
+      if (py !== +fPurchaseYear) return false;
     }
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
     else if (fCat!=="all" && (i.category||"") !== fCat) return false;
@@ -1792,6 +1807,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
               onClick={()=>{ setFStatus(v); setFYearMonth("all"); }}>{l}</button>
           ))}
         </div>
+        <select style={inpS({ width:100, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fPurchaseYear} onChange={e=>setFPurchaseYear(e.target.value)}>
+          <option value="all">仕入れ年 全</option>
+          {purchaseYears.map(y => <option key={y} value={y}>{y}年</option>)}
+        </select>
         <select style={inpS({ width:120, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fCat} onChange={e=>setFCat(e.target.value)}>
           <option value="all">全カテゴリ</option>
           <option value="camera">📷 カメラ</option>
