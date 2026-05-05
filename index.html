@@ -620,7 +620,16 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             </div>
             <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
           </div>
-          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+          <div>
+            {form.destination === "us"
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+              : <div>
+                  <span style={lblS()}>落札送料（$）</span>
+                  <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                  <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
+                </div>
+            }
+          </div>
           {showOffer && (
             <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
               <span style={lblS({ color:C.accent })}>オファー金額（$）</span>
@@ -667,7 +676,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "" } : {}),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : {}),
               }));
             }}>
               <option value="other">その他</option>
@@ -1282,7 +1291,16 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             </div>
             <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
           </div>
-          <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+          <div>
+            {form.destination === "us"
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+              : <div>
+                  <span style={lblS()}>落札送料（$）</span>
+                  <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                  <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
+                </div>
+            }
+          </div>
 
           {showOffer && (
             <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
@@ -1326,7 +1344,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "" } : {}),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : {}),
               }));
             }}>
               <option value="other">その他</option>
