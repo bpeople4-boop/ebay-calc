@@ -559,7 +559,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
         <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" />
-        <Field label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -1189,7 +1189,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報">
         <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" />
-        <Field label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
       </CardSection>
 
       {/* ── 落札情報 ── */}
