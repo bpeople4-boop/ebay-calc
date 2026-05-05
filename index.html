@@ -200,11 +200,16 @@ const Badge = ({ label, color, bg }) => (
 );
 
 const getStatusWarnings = (item) => {
+  if (item.isJunk) return [];
   const warns = [];
-  if (item.status === "unlisted" && !item.auctRevoId?.trim())
-    warns.push("オークレボIDが未入力");
-  if (item.status === "unsold" && !item.ebayUrl?.trim())
-    warns.push("eBay URLが未入力");
+  // バンドルメンバー（子）はリーダーが管理するので個別チェック不要
+  const isMember = !!(item.bundleGroupId && !item.isBundleLeader);
+  if (!isMember) {
+    if (item.status === "unlisted" && !item.auctRevoId?.trim())
+      warns.push("オークレボIDが未入力");
+    if (item.status === "unsold" && !item.ebayUrl?.trim())
+      warns.push("eBay URLが未入力");
+  }
   if ((item.status === "sold" || item.status === "returned") && +item.salePrice > 0 && !item.actualEbayFeeUSD?.trim())
     warns.push("実績手数料が未入力");
   return warns;
@@ -1031,13 +1036,16 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const handleStatusChange = e => {
     const next = e.target.value;
     const cur  = form.status;
-    if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
-      setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
-      return;
-    }
-    if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
-      setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
-      return;
+    const isMember = !!(form.bundleGroupId && !form.isBundleLeader);
+    if (!isMember) {
+      if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
+        setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
+        return;
+      }
+      if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
+        setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
+        return;
+      }
     }
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
       setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから「売却済み」に変更してください");
