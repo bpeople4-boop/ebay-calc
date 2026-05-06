@@ -2205,7 +2205,25 @@ function App() {
     setReturnItem(null);
   };
   const handleRelist = (item) => {
-    setItems(p => [{ ...item, id:genId(), managementNumber:nextNo(p), cost:0, storageShipping:0, salePrice:"", saleDate:"", saleShipping:"", status:"stored", returnDate:"", returnShipping:"", returnNotes:"", relistFromId:item.id, bundleGroupId:null, isBundleLeader:false, auctRevoId:"" }, ...p]);
+    setItems(p => [{ ...item, id:genId(), managementNumber:nextNo(p),
+      // 仕入れ・保管
+      cost:0, storageShipping:0,
+      // 販売情報リセット
+      salePrice:"", saleDate:"", saleShipping:"", status:"stored",
+      // 返品情報リセット
+      returnDate:"", returnShipping:"", returnNotes:"",
+      refundUSD:"", refundExchangeRate:"", refundType:"none", returnShippingJPY:"",
+      // 実費フィールドリセット
+      actualEbayFeeUSD:"", actualPromoFeeUSD:"",
+      actualDdpFee:"", ddpSurcharge:"",
+      // 確定フラグリセット
+      shippingConfirmed:false, ddpConfirmed:false,
+      // 送料は設定デフォルトに戻す
+      intlShipping: item.intlShipping || 6000,
+      // バンドル・管理
+      bundleGroupId:null, isBundleLeader:false, auctRevoId:"",
+      relistFromId:item.id,
+    }, ...p]);
   };
   const handleSplitConfirm = (parts) => {
     const orig = splitItem;
