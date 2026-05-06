@@ -1467,6 +1467,308 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 }
 
 // ═══════════════════════════════════════════════════════════════
+// Search Modal（絞り込み検索）
+// ═══════════════════════════════════════════════════════════════
+function SearchModal({ items, onClose }) {
+  const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
+
+  const STATUS_OPTS = [
+    { v:"sold",             label:"売却済" },
+    { v:"unsold",           label:"出品中" },
+    { v:"unlisted",         label:"未出品" },
+    { v:"stored",           label:"自宅保管" },
+    { v:"returned",         label:"返品" },
+    { v:"purchaseReturned", label:"仕入返品" },
+    { v:"junk",             label:"損切り" },
+  ];
+  const CAT_LABEL = { camera:"📷 カメラ", watch:"⌚ 時計", other:"🏷️ その他", bundle:"📦 まとめ" };
+  const getItemStatus = i => i.isJunk ? "junk" : (i.status || "unsold");
+
+  const allStatuses = new Set(STATUS_OPTS.map(o => o.v));
+  const [selStatus, setSelStatus] = useState(new Set(STATUS_OPTS.map(o => o.v)));
+  const [selSources, setSelSources] = useState(null);
+  const [selCats,    setSelCats]    = useState(null);
+  const [dateType,   setDateType]   = useState("none");
+  const [dateMode,   setDateMode]   = useState("month");
+  const [dateMonth,  setDateMonth]  = useState("");
+  const [dateFrom,   setDateFrom]   = useState("");
+  const [dateTo,     setDateTo]     = useState("");
+  const [keyword,    setKeyword]    = useState("");
+
+  const sources = [...new Set(items.map(i => i.source).filter(Boolean))].sort();
+  const cats    = [...new Set(items.map(i => i.category).filter(c => c && c !== "bundle"))].sort();
+
+  const srcSet = selSources ?? new Set(sources);
+  const catSet = selCats    ?? new Set(cats);
+
+  const srcCounts = {};
+  const catCounts = {};
+  items.forEach(i => {
+    if (i.source)   srcCounts[i.source]   = (srcCounts[i.source]   || 0) + 1;
+    if (i.category && i.category !== "bundle") catCounts[i.category] = (catCounts[i.category] || 0) + 1;
+  });
+
+  const getDateVal = (item) => {
+    if (dateType === "purchase") return item.purchaseDate;
+    if (dateType === "sale")     return item.saleDate;
+    if (dateType === "junk")     return item.junkDate;
+    return null;
+  };
+
+  const filtered = items.filter(item => {
+    if (item.bundleGroupId && !item.isBundleLeader) return false;
+    const st = getItemStatus(item);
+    if (!selStatus.has(st)) return false;
+    if (!srcSet.has(item.source || "")) {
+      if (selSources !== null) return false;
+    }
+    if (item.category !== "bundle" && !catSet.has(item.category || "")) {
+      if (selCats !== null) return false;
+    }
+    if (dateType !== "none") {
+      const dv = getDateVal(item);
+      if (!dv || dv.startsWith("1900") || dv === "") return false;
+      const ym = dv.substring(0, 7);
+      if (dateMode === "month" && dateMonth && ym !== dateMonth) return false;
+      if (dateMode === "range") {
+        if (dateFrom && ym < dateFrom) return false;
+        if (dateTo   && ym > dateTo)   return false;
+      }
+    }
+    if (keyword) {
+      const q = keyword.toLowerCase();
+      const hit = [item.productName, item.source, String(item.managementNumber||""), item.serialNumber, item.auctRevoId]
+        .some(f => f?.toLowerCase().includes(q));
+      if (!hit) return false;
+    }
+    return true;
+  });
+
+  const calcItem = (item) => {
+    if (item.isBundleLeader) {
+      const members = items.filter(m => m.bundleGroupId === item.bundleGroupId && !m.isBundleLeader);
+      return calcBundle(item, members);
+    }
+    if (item.isJunk && !isSold(item)) return calcJunk(item);
+    if (isSold(item)) return calcFull(item);
+    return null;
+  };
+
+  const calcs       = filtered.map(i => ({ item: i, calc: calcItem(i) }));
+  const soldCalcs   = calcs.filter(({item,calc}) => isSold(item) && calc).map(({calc})=>calc);
+  const junkLoss    = filtered.filter(i => i.isJunk && !isSold(i)).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+  const totalRevenue= soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
+  const totalProfit = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
+
+  const toggleStatus = (v) => setSelStatus(prev => {
+    if (v === "all") return prev.size === allStatuses.size ? new Set() : new Set(allStatuses);
+    const n = new Set(prev);
+    n.has(v) ? n.delete(v) : n.add(v);
+    return n;
+  });
+  const toggleSource = (v) => setSelSources(prev => {
+    const cur = prev ?? new Set(sources);
+    if (v === "all") return cur.size === sources.length ? new Set() : null;
+    const n = new Set(cur);
+    n.has(v) ? n.delete(v) : n.add(v);
+    return n.size === sources.length ? null : n;
+  });
+  const toggleCat = (v) => setSelCats(prev => {
+    const cur = prev ?? new Set(cats);
+    if (v === "all") return cur.size === cats.length ? new Set() : null;
+    const n = new Set(cur);
+    n.has(v) ? n.delete(v) : n.add(v);
+    return n.size === cats.length ? null : n;
+  });
+
+  const sS = (active, extra={}) => ({
+    display:"inline-flex", alignItems:"center", gap:5,
+    padding:"5px 12px", borderRadius:20, border:"none", cursor:"pointer",
+    fontFamily:C.jp, fontSize:12, fontWeight:700,
+    background: active ? C.accent : C.bg,
+    color:       active ? "#fff"   : C.muted,
+    ...extra,
+  });
+  const cbBoxS = (checked) => ({
+    width:14, height:14, borderRadius:3, flexShrink:0,
+    border:`1.5px solid ${checked ? C.accent : C.border}`,
+    background: checked ? C.accent : "#fff",
+    display:"inline-flex", alignItems:"center", justifyContent:"center",
+    fontSize:9, color:"#fff", cursor:"pointer",
+  });
+  const rowS = { display:"flex", alignItems:"center", justifyContent:"space-between", padding:"4px 2px", borderBottom:`1px solid ${C.border}` };
+  const cntS = { fontSize:11, color:C.muted, background:C.bg, padding:"1px 6px", borderRadius:8 };
+
+  const statusBadgeStyle = (st) => {
+    const m = { sold:["売却済",C.green,C.greenLo], junk:["損切り","#9ca3af","#f3f4f6"],
+                stored:["自宅保管","#7c3aed","#ede9fe"], unlisted:["未出品",C.amber,C.amberLo],
+                unsold:["出品中","#0369a1","#e0f2fe"], returned:["返品",C.red,C.redLo],
+                purchaseReturned:["仕入返品","#6b7280","#f3f4f6"] };
+    const [l,c,bg] = m[st] || ["—",C.muted,C.bg];
+    return { label:l, style:{ fontSize:10, padding:"2px 7px", borderRadius:6, background:bg, color:c, fontFamily:C.jp, fontWeight:700, whiteSpace:"nowrap" } };
+  };
+
+  const gridS = { display:"grid", gridTemplateColumns:"1fr 1fr", gap:10, marginBottom:10 };
+  const panelS = { background:C.card, border:`1px solid ${C.border}`, borderRadius:12, padding:"12px 14px" };
+  const secLbl = { fontSize:11, fontWeight:700, color:C.muted, letterSpacing:"0.05em", textTransform:"uppercase", fontFamily:C.jp, marginBottom:8 };
+
+  return (
+    <Modal title="🔍 絞り込み検索" onClose={onClose} width={760}>
+      {/* ステータス */}
+      <div style={{ ...panelS, marginBottom:10 }}>
+        <div style={secLbl}>ステータス</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+          <button style={sS(selStatus.size===allStatuses.size)} onClick={()=>toggleStatus("all")}>すべて</button>
+          {STATUS_OPTS.map(o => (
+            <button key={o.v} style={sS(selStatus.has(o.v))} onClick={()=>toggleStatus(o.v)}>{o.label}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* 仕入れ先・カテゴリ */}
+      <div style={gridS}>
+        <div style={panelS}>
+          <div style={secLbl}>仕入れ先</div>
+          <div style={{ maxHeight:180, overflowY:"auto" }}>
+            <div style={{ ...rowS, borderBottom:`2px solid ${C.borderHi}`, marginBottom:4 }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13 }}>
+                <span style={cbBoxS(selSources===null)} onClick={()=>toggleSource("all")}>{selSources===null?"✓":""}</span>
+                <strong>すべて</strong>
+              </label>
+            </div>
+            {sources.map(s => (
+              <div key={s} style={rowS}>
+                <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, flex:1 }}>
+                  <span style={cbBoxS(srcSet.has(s))} onClick={()=>toggleSource(s)}>{srcSet.has(s)?"✓":""}</span>
+                  {s}
+                </label>
+                <span style={cntS}>{srcCounts[s]||0}</span>
+              </div>
+            ))}
+            {sources.length===0 && <div style={{ fontSize:12, color:C.muted, fontFamily:C.jp, padding:"4px 0" }}>データなし</div>}
+          </div>
+        </div>
+
+        <div style={panelS}>
+          <div style={secLbl}>カテゴリ</div>
+          <div>
+            <div style={{ ...rowS, borderBottom:`2px solid ${C.borderHi}`, marginBottom:4 }}>
+              <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13 }}>
+                <span style={cbBoxS(selCats===null)} onClick={()=>toggleCat("all")}>{selCats===null?"✓":""}</span>
+                <strong>すべて</strong>
+              </label>
+            </div>
+            {cats.map(c => (
+              <div key={c} style={rowS}>
+                <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, flex:1 }}>
+                  <span style={cbBoxS(catSet.has(c))} onClick={()=>toggleCat(c)}>{catSet.has(c)?"✓":""}</span>
+                  {CAT_LABEL[c]||c}
+                </label>
+                <span style={cntS}>{catCounts[c]||0}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* 日付 */}
+      <div style={{ ...panelS, marginBottom:10 }}>
+        <div style={secLbl}>日付</div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+          <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+            {[["none","指定なし"],["purchase","仕入れ日"],["sale","落札日"],["junk","損切り確定日"]].map(([v,l]) => (
+              <button key={v} style={sS(dateType===v,{padding:"4px 12px"})} onClick={()=>setDateType(v)}>{l}</button>
+            ))}
+          </div>
+          {dateType !== "none" && (
+            <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", marginLeft:4 }}>
+              <div style={{ display:"flex", gap:3 }}>
+                {[["month","月で絞る"],["range","範囲"]].map(([v,l]) => (
+                  <button key={v} style={{ ...sS(dateMode===v,{padding:"4px 11px",fontSize:11}), borderRadius:8 }} onClick={()=>setDateMode(v)}>{l}</button>
+                ))}
+              </div>
+              {dateMode === "month" ? (
+                <input type="month" value={dateMonth} onChange={e=>setDateMonth(e.target.value)}
+                  style={{ ...inpS({ width:150, padding:"5px 10px", fontSize:13 }) }} />
+              ) : (
+                <>
+                  <input type="month" value={dateFrom} onChange={e=>setDateFrom(e.target.value)}
+                    style={{ ...inpS({ width:145, padding:"5px 10px", fontSize:13 }) }} placeholder="開始年月" />
+                  <span style={{ color:C.muted, fontSize:13 }}>〜</span>
+                  <input type="month" value={dateTo} onChange={e=>setDateTo(e.target.value)}
+                    style={{ ...inpS({ width:145, padding:"5px 10px", fontSize:13 }) }} placeholder="終了年月" />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* フリーワード */}
+      <div style={{ ...panelS, marginBottom:14 }}>
+        <div style={secLbl}>フリーワード</div>
+        <input value={keyword} onChange={e=>setKeyword(e.target.value)} placeholder="商品名・S/N・管理番号・仕入れ先…"
+          style={{ ...inpS({ fontSize:13 }) }} />
+      </div>
+
+      {/* 結果 */}
+      <div style={{ borderTop:`2px solid ${C.border}`, paddingTop:14 }}>
+        <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
+          <span style={{ fontFamily:C.jp, fontSize:13, color:C.muted }}>{filtered.length} 件ヒット</span>
+          <div style={{ display:"flex", gap:20 }}>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>売上合計</div>
+              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(totalRevenue)}</div>
+            </div>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>利益合計</div>
+              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:totalProfit>=0?C.green:C.red }}>
+                {(totalProfit>=0?"+":"")+yen(totalProfit)}
+              </div>
+            </div>
+          </div>
+        </div>
+        {filtered.length > 0 ? (
+          <div style={{ overflowX:"auto" }}>
+            <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:C.num, fontSize:12 }}>
+              <thead>
+                <tr style={{ background:C.bg }}>
+                  {["#","商品名","ステータス","仕入れ先","日付","利益"].map((h,i) => (
+                    <th key={h} style={{ padding:"6px 8px", textAlign:i>=5?"right":"left", color:C.muted, borderBottom:`1px solid ${C.border}`, fontFamily:C.jp, fontSize:11, fontWeight:700, whiteSpace:"nowrap" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {calcs.map(({ item, calc }) => {
+                  const st = getItemStatus(item);
+                  const { label, style } = statusBadgeStyle(st);
+                  const dateVal = isSold(item) ? item.saleDate : (item.junkDate || item.purchaseDate);
+                  const profitVal = calc ? calc.profitJPY : null;
+                  return (
+                    <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
+                      <td style={{ padding:"7px 8px", color:C.muted, fontSize:11 }}>{item.managementNumber||"—"}</td>
+                      <td style={{ padding:"7px 8px", color:C.text, fontFamily:C.jp, fontSize:12, maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||"—"}</td>
+                      <td style={{ padding:"7px 8px" }}><span style={style}>{label}</span></td>
+                      <td style={{ padding:"7px 8px", color:C.textSub, fontFamily:C.jp, fontSize:12 }}>{item.source||"—"}</td>
+                      <td style={{ padding:"7px 8px", color:C.muted, fontSize:11, whiteSpace:"nowrap" }}>{dt(dateVal)}</td>
+                      <td style={{ padding:"7px 8px", textAlign:"right", fontWeight:700, color:profitVal==null?C.muted:profitVal>=0?C.green:C.red, whiteSpace:"nowrap" }}>
+                        {profitVal!=null ? (profitVal>=0?"+":"")+yen(profitVal) : "—"}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div style={{ textAlign:"center", padding:"32px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>条件に一致するデータがありません</div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Report Modal（月次損益レポート）
 // ═══════════════════════════════════════════════════════════════
 function ReportModal({ items, onClose }) {
@@ -1705,7 +2007,16 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     }
     return calcFull(i);
   }).filter(Boolean);
-  const junkLoss     = filtered.filter(i=>i.isJunk&&!isSold(i)&&i.junkDate).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+  // junkLoss: junkDateベースで月フィルターを別途適用（filteredはsaleDateで絞るためjunkが除外される）
+  const junkLoss = (() => {
+    let base = items.filter(i => i.isJunk && !isSold(i) && i.junkDate);
+    if (fYearMonth !== "all") {
+      const [fy,fm] = fYearMonth.split("-").map(Number);
+      base = base.filter(i => { const d=new Date(i.junkDate); return d.getFullYear()===fy && d.getMonth()+1===fm; });
+    }
+    if (fCat !== "all") base = base.filter(i => fCat==="bundle" ? !!i.bundleGroupId : (i.category||"")===fCat);
+    return base.reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+  })();
   // 返品損失: fStatus="sold"のとき返品商品がfilteredから除外されるため別途計算
   const returnedLoss = (fStatus==="sold" ? items.filter(i => {
     if (i.status!=="returned" || (i.bundleGroupId&&!i.isBundleLeader)) return false;
@@ -1995,6 +2306,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showLeft, setShowLeft]     = useState(true);
   const [showRight, setShowRight]   = useState(true);
   const [showReport, setShowReport] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
   const [showNewForm, setShowNewForm] = useState(true);
 
   const selectedItem = selectedId ? items.find(i=>i.id===selectedId) : null;
@@ -2042,6 +2354,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         <span style={{ color:C.muted, fontSize:11, fontFamily:C.num, background:C.bg, padding:"2px 7px", borderRadius:5, border:`1px solid ${C.border}` }}>v3</span>
 
         <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
+          <button onClick={()=>setShowSearch(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>🔍 検索</button>
           <button onClick={()=>setShowReport(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📊 レポート</button>
           <label style={btnS("secondary",{fontSize:12,cursor:"pointer",padding:"5px 14px"})}>📥 取込<input type="file" accept=".json" onChange={onImport} style={{display:"none"}}/></label>
           {items.length>0&&<button onClick={onExport} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📤 出力</button>}
@@ -2158,6 +2471,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {returnItem  && <ReturnModal item={returnItem} onConfirm={onReturnConfirm} onClose={()=>setReturnItem(null)}/>}
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
+      {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
     </div>
   );
 }
