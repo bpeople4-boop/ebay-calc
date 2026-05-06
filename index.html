@@ -226,8 +226,8 @@ const getStatusWarnings = (item) => {
 
 const StatusBadge = ({ item }) => {
   if (item.status==="purchaseReturned") return <Badge label="仕入返品"    color="#6b7280" bg="#f3f4f6" />;
-  if (item.status==="stored")        return <Badge label="🏠 自宅保管" color="#7c3aed" bg="#ede9fe" />;
   if (item.isJunk)                      return <Badge label="💀 損切り"   color="#9ca3af" bg="#f3f4f6" />;
+  if (item.status==="stored")        return <Badge label="🏠 自宅保管" color="#7c3aed" bg="#ede9fe" />;
   if (item.status==="sold")      return <Badge label="✅ 売却済み" color={C.green} bg={C.greenLo} />;
   if (item.status==="returned")  return <Badge label="↩️ 返品"     color={C.red}   bg={C.redLo} />;
   if (item.status==="unlisted")  return <Badge label="📝 未出品"   color={C.indigo} bg={C.indigoLo} />;
