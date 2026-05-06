@@ -828,7 +828,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       {(() => {
         const needsFeeCheck = initial.id && (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
         const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
-        const catError = !initial.id && !form.category;
+        const catError = !form.category;
         return (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {feeError && <div style={{ background:C.redLo, border:`1px solid ${C.red}40`, borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:C.red }}>⚠️ 「eBay落札手数料」「プロモート費用」を入力してください（不使用の場合は0）。空欄のまま更新すると概算値が使われます。</div>}
