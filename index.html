@@ -828,7 +828,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       {(() => {
         const needsFeeCheck = initial.id && (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
         const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
-        const catError = !form.category;
+        const catError = !initial.id && !form.category;
         return (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
             {feeError && <div style={{ background:C.redLo, border:`1px solid ${C.red}40`, borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:C.red }}>⚠️ 「eBay落札手数料」「プロモート費用」を入力してください（不使用の場合は0）。空欄のまま更新すると概算値が使われます。</div>}
@@ -1482,7 +1482,7 @@ function ReportModal({ items, onClose }) {
     if (!c) return;
     const d = new Date(item.saleDate);
     const y = d.getFullYear(), m = d.getMonth() + 1;
-    if (isNaN(y)) return;
+    if (isNaN(y) || y < 2026) return;
     const key = `${y}-${String(m).padStart(2,"0")}`;
     if (!monthlyMap[key]) monthlyMap[key] = { year:y, month:m, key, revenue:0, cost:0, profit:0, count:0 };
     monthlyMap[key].revenue += c.totalJPY || 0;
@@ -1495,7 +1495,7 @@ function ReportModal({ items, onClose }) {
     if (!item.isJunk || !item.junkDate || isSold(item)) return;
     const d = new Date(item.junkDate);
     const y = d.getFullYear(), m = d.getMonth() + 1;
-    if (isNaN(y)) return;
+    if (isNaN(y) || y < 2026) return;
     const key = `${y}-${String(m).padStart(2,"0")}`;
     const loss = (+item.cost||0) + (+item.storageShipping||0);
     if (!monthlyMap[key]) monthlyMap[key] = { year:y, month:m, key, revenue:0, cost:0, profit:0, count:0 };
@@ -1592,7 +1592,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [search, setSearch]       = useState("");
   const [fStatus, setFStatus]     = useState("all");
   const [fYearMonth, setFYearMonth] = useState("all");
-  const [fPurchaseYear, setFPurchaseYear] = useState("all");
   const [sortAsc, setSortAsc]     = useState(false);
   const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
   const [fCat,    setFCat]        = useState("all");
@@ -1616,13 +1615,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     items.filter(i => i.saleDate && !i.saleDate.startsWith("1900"))
       .map(i => { const d = new Date(i.saleDate); return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`; })
   )].sort((a,b) => b.localeCompare(a));
-
-  // 仕入れ年セレクト用
-  const purchaseYears = [...new Set(
-    items.filter(i => i.purchaseDate)
-      .map(i => new Date(i.purchaseDate).getFullYear())
-      .filter(y => !isNaN(y))
-  )].sort((a,b) => b-a);
 
   // 今月利益（全アイテム対象・常時表示用）
   const _now = new Date();
@@ -1661,11 +1653,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       if (!i.saleDate || i.saleDate.startsWith("1900")) return false;
       const d = new Date(i.saleDate);
       if (d.getFullYear()!==fy || d.getMonth()+1!==fm) return false;
-    }
-    if (fPurchaseYear !== "all") {
-      if (!i.purchaseDate) return false;
-      const py = new Date(i.purchaseDate).getFullYear();
-      if (py !== +fPurchaseYear) return false;
     }
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
     else if (fCat!=="all" && (i.category||"") !== fCat) return false;
@@ -1911,10 +1898,6 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <option value="watch">⌚ 時計</option>
           <option value="other">🏷️ その他</option>
           <option value="bundle">📦 おまとめ</option>
-        </select>
-        <select style={inpS({ width:105, height:32, fontSize:12, padding:"4px 7px", cursor:"pointer" })} value={fPurchaseYear} onChange={e=>setFPurchaseYear(e.target.value)}>
-          <option value="all">仕入年: 全</option>
-          {purchaseYears.map(y => <option key={y} value={y}>{y}年</option>)}
         </select>
         <div style={{ display:"flex", gap:4, alignItems:"center" }}>
           {[["purchase","仕入れ日"],["sale","落札日"]].map(([k,l])=>(
@@ -2256,7 +2239,7 @@ function App() {
       if (!sel) return i;
       const isLeader = sel.id===selectedItems[0].id;
       if (isLeader) {
-        return { ...i, bundleGroupId:gid, isBundleLeader:true, category:"bundle",
+        return { ...i, bundleGroupId:gid, isBundleLeader:true, category:"bundle", originalCategory:i.category,
                  salePrice:"", saleShipping:"", status:"unsold" };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
@@ -2273,7 +2256,7 @@ function App() {
       if (i.bundleGroupId !== groupId) return i;
       const { bundleGroupId, isBundleLeader, ...rest } = i;
       if (isBundleLeader) {
-        return { ...rest, category: rest.category === "bundle" ? "camera" : rest.category };
+        return { ...rest, category: rest.originalCategory || (rest.category === "bundle" ? "camera" : rest.category), originalCategory: undefined };
       } else {
         return { ...rest, salePrice:"", saleShipping:"", saleDate:"", status:"unsold" };
       }
