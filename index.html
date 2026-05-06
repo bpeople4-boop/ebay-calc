@@ -429,7 +429,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     actualEbayFeeUSD:"", actualPromoFeeUSD:"",
     refundUSD:"", refundExchangeRate:"", refundType:"none",
     returnShippingJPY:"",
-    status:"stored", returnDate:"", returnShipping:"", returnNotes:"",
+    status:"stored", returnDate:"", returnNotes:"",
     notes:"", photos:[],
     ...initial,
     // 出品中・未出品・保管中は実費フィールドをクリア（残留値がプロモ率を無効化するのを防ぐ）
@@ -456,7 +456,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       actualDdpFee:"", ddpSurcharge:"",
       shippingConfirmed:false, ddpConfirmed:false,
       refundUSD:"", refundExchangeRate:"", refundType:"none",
-      returnShippingJPY:"", returnDate:"", returnShipping:"", returnNotes:"",
+      returnShippingJPY:"", returnDate:"", returnNotes:"",
     };
   });
 
@@ -734,7 +734,6 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           {/* 返品フィールド */}
           {form.status === "returned" && (<>
             <DateField label="返品日" value={form.returnDate} onChange={set("returnDate")} col="1/-1" />
-            <Field label="返品送料（¥）" type="number" value={form.returnShipping} onChange={set("returnShipping")} />
             <Field label="返品メモ" value={form.returnNotes} onChange={set("returnNotes")} placeholder="理由など" col="1/-1" />
           </>)}
 
@@ -865,7 +864,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 // Return Modal
 // ═══════════════════════════════════════════════════════════════
 function ReturnModal({ item, onConfirm, onClose }) {
-  const [form, setForm] = useState({ returnDate:today(), returnShipping:"", returnNotes:"" });
+  const [form, setForm] = useState({ returnDate:today(), returnShippingJPY:"", returnNotes:"" });
   const set = k => e => {
     const v = e.target.value;
     setForm(p => {
@@ -883,8 +882,8 @@ function ReturnModal({ item, onConfirm, onClose }) {
         <div style={{ padding:"12px 16px", background:C.bg, borderRadius:9, fontFamily:C.jp, fontSize:14, color:C.textSub }}>{item.productName}</div>
         <DateField label="返品日" value={form.returnDate} onChange={set("returnDate")} />
         <div>
-          <span style={lblS()}>返品送料・費用（¥）</span>
-          <input style={inpS()} type="number" placeholder="0" value={form.returnShipping} onChange={set("returnShipping")} />
+          <span style={lblS()}>返送送料（¥）</span>
+          <input style={inpS()} type="number" placeholder="0" value={form.returnShippingJPY} onChange={set("returnShippingJPY")} />
         </div>
         <div>
           <span style={lblS()}>メモ</span>
@@ -2567,7 +2566,7 @@ function App() {
       // 販売情報リセット
       salePrice:"", saleDate:"", saleShipping:"", status:"stored",
       // 返品情報リセット
-      returnDate:"", returnShipping:"", returnNotes:"",
+      returnDate:"", returnNotes:"",
       refundUSD:"", refundExchangeRate:"", refundType:"none", returnShippingJPY:"",
       // 実費フィールドリセット
       actualEbayFeeUSD:"", actualPromoFeeUSD:"",
