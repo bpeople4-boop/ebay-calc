@@ -2218,8 +2218,8 @@ function App() {
       actualDdpFee:"", ddpSurcharge:"",
       // 確定フラグリセット
       shippingConfirmed:false, ddpConfirmed:false,
-      // 送料は設定デフォルトに戻す
-      intlShipping: item.intlShipping || 6000,
+      // 送料はデフォルト6000にリセット
+      intlShipping: 6000,
       // バンドル・管理
       bundleGroupId:null, isBundleLeader:false, auctRevoId:"",
       relistFromId:item.id,
