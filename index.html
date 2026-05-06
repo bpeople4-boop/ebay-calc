@@ -622,7 +622,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" />
               : <div>
                   <span style={lblS()}>落札送料（$）</span>
                   <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
@@ -1293,7 +1293,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="0.00" />
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" />
               : <div>
                   <span style={lblS()}>落札送料（$）</span>
                   <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
