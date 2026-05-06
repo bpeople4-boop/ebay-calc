@@ -446,6 +446,20 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
 
+  const handleJunkToggle = () => setForm(p => {
+    if (p.isJunk) return { ...p, isJunk: false };
+    // 損切りON → 売却関連フィールドを全クリア
+    return {
+      ...p, isJunk: true,
+      salePrice:"", saleDate:"", saleShipping:"", destination:"other",
+      actualEbayFeeUSD:"", actualPromoFeeUSD:"",
+      actualDdpFee:"", ddpSurcharge:"",
+      shippingConfirmed:false, ddpConfirmed:false,
+      refundUSD:"", refundExchangeRate:"", refundType:"none",
+      returnShippingJPY:"", returnDate:"", returnShipping:"", returnNotes:"",
+    };
+  });
+
   // 実費入力時に手数料率を逆算して自動反映
   const handleActualEbayFee = e => {
     const val = e.target.value;
@@ -573,7 +587,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
         <UrlField label="仕入れURL" value={form.purchaseUrl} onChange={set("purchaseUrl")} placeholder="https://..." col="1/-1" />
         <div style={{ gridColumn:"1/-1" }}>
           <label style={{ display:"flex", alignItems:"center", gap:8, cursor:"pointer", fontFamily:C.jp, fontSize:13, color:C.textSub }}>
-            <input type="checkbox" checked={form.isJunk} onChange={tog("isJunk")} style={{ width:16, height:16, accentColor:C.red }} />
+            <input type="checkbox" checked={form.isJunk} onChange={handleJunkToggle} style={{ width:16, height:16, accentColor:C.red }} />
             💀 損切り（ジャンク）
           </label>
           {form.isJunk && (
@@ -1510,7 +1524,7 @@ function SearchModal({ items, onClose }) {
 
   const getDateVal = (item) => {
     if (dateType === "purchase") return item.purchaseDate;
-    if (dateType === "sale")     return item.saleDate;
+    if (dateType === "sale")     return item.isJunk ? item.junkDate : item.saleDate;
     if (dateType === "junk")     return item.junkDate;
     return null;
   };
@@ -1941,11 +1955,11 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     if (i.status==="purchaseReturned" && fStatus!=="purchaseReturned" && fStatus!=="all") return false;
     if (fStatus==="purchaseReturned" && i.status!=="purchaseReturned") return false;
     if (fStatus==="junk"     && !i.isJunk) return false;
-    if (fStatus==="stored"   && i.status!=="stored")   return false;
-    if (fStatus==="unlisted" && i.status!=="unlisted") return false;
+    if (fStatus==="stored"   && (i.status!=="stored"||i.isJunk))   return false;
+    if (fStatus==="unlisted" && (i.status!=="unlisted"||i.isJunk)) return false;
     if (fStatus==="unsold"   && (i.status!=="unsold"||i.isJunk)) return false;
     if (fStatus==="sold"     && (i.status!=="sold"||i.isJunk)) return false;
-    if (fStatus==="returned" && i.status!=="returned") return false;
+    if (fStatus==="returned" && (i.status!=="returned"||i.isJunk)) return false;
     if (fStatus==="sold" && fYearMonth!=="all") {
       const [fy,fm] = fYearMonth.split("-").map(Number);
       if (!i.saleDate || i.saleDate.startsWith("1900")) return false;
