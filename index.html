@@ -1519,12 +1519,8 @@ function SearchModal({ items, onClose }) {
     if (item.bundleGroupId && !item.isBundleLeader) return false;
     const st = getItemStatus(item);
     if (!selStatus.has(st)) return false;
-    if (!srcSet.has(item.source || "")) {
-      if (selSources !== null) return false;
-    }
-    if (item.category !== "bundle" && !catSet.has(item.category || "")) {
-      if (selCats !== null) return false;
-    }
+    if (selSources !== null && !selSources.has(item.source || "")) return false;
+    if (selCats !== null && item.category !== "bundle" && !selCats.has(item.category || "")) return false;
     if (dateType !== "none") {
       const dv = getDateVal(item);
       if (!dv || dv.startsWith("1900") || dv === "") return false;
@@ -2173,7 +2169,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             fStatus==="all" ? "売却済み" : fStatus==="sold" ? "売却済み" : fStatus==="stored" ? "自宅保管" : fStatus==="unlisted" ? "未出品" : fStatus==="unsold" ? "出品中" : fStatus==="returned" ? "返品" : "損切り",
             fStatus==="all" ? `${soldCalcs.length} / ${filteredTopCount}点` : fStatus==="sold" ? `${soldCalcs.length}件` : `${filteredTopCount}点`,
             null, C.accent
-          ],["総売上",yen(totalRevenue),`${soldCalcs.length}件`,C.accent],["純利益",yen(totalProfit),junkLoss>0?`損切 △${yen(junkLoss)}`:"",totalProfit>=0?C.green:C.red],["平均利益率",pct(avgRate),`未売却 ${unsoldCount}点`,pColor(avgRate)]].map(([l,v,s,col])=>(
+          ],["総売上",yen(totalRevenue),`${soldCalcs.length}件`,C.accent],["純利益",yen(totalProfit),junkLoss>0?`損切 ${yen(-junkLoss)}`:"",totalProfit>=0?C.green:C.red],["平均利益率",pct(avgRate),`未売却 ${unsoldCount}点`,pColor(avgRate)]].map(([l,v,s,col])=>(
           <div key={l} style={{ background:C.card, borderRadius:9, padding:"9px 12px", border:`1px solid ${C.border}`, boxShadow:C.shadow }}>
             <div style={{ color:C.muted, fontSize:10, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, textTransform:"uppercase" }}>{l}</div>
             <div style={{ fontFamily:C.num, fontSize:16, fontWeight:700, color:col, marginTop:3 }}>{v}</div>
@@ -2278,6 +2274,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
                         {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
                       </span>
                       {returnedLoss!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLoss<0?C.red:C.green, whiteSpace:"nowrap" }}>返品 {(returnedLoss>0?"+":"")+yen(returnedLoss)}</span>}
+                      {junkLoss>0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:C.red, whiteSpace:"nowrap" }}>損切り {yen(-junkLoss)}</span>}
                     </div>
                   </td>
                   <td colSpan={2}/>
