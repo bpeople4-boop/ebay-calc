@@ -1905,11 +1905,19 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const [fStatus, setFStatus]     = useState("all");
   const [fYearMonth, setFYearMonth] = useState("all");
   const [sortAsc, setSortAsc]     = useState(false);
-  const [sortKey, setSortKey]     = useState("purchase"); // "purchase" | "sale"
+  const [sortKey, setSortKey]     = useState("purchase");
   const [fCat,    setFCat]        = useState("all");
   const [bundleTooltip, setBundleTooltip] = useState(null);
   const [nameColW, setNameColW] = useState(220);
+  const [rowSize, setRowSize]   = useState("large");
   const scrollRef = useRef(null);
+
+  const SZ = {
+    large:  { thumb:96, tdW:108, pad:"12px 12px", imgPad:"6px 8px",  fs:13 },
+    medium: { thumb:56, tdW:68,  pad:"7px 10px",  imgPad:"3px 5px",  fs:12 },
+    small:  { thumb:0,  tdW:0,   pad:"5px 10px",  imgPad:null,       fs:12 },
+  };
+  const sz = SZ[rowSize];
 
   const startNameColDrag = (e) => {
     e.preventDefault();
@@ -2098,15 +2106,17 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         onMouseEnter={e=>{if(!isSel&&!isChk&&!indent)e.currentTarget.style.background="#f4f5fc";}}
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave2}>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, ...(indent ? { boxShadow:`inset 4px 0 0 ${C.accent}` } : {}) }}>
           {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `#${item.managementNumber||"—"}`}
         </td>
-        <td style={{ padding:"6px 8px", width:108 }} onClick={e=>{if(thumb){e.stopPropagation();setThumbLightbox(0);}}}>
-          <div style={{ width:96, height:96, borderRadius:8, overflow:"hidden", border:`1px solid ${C.border}`, background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", cursor:thumb?"zoom-in":"default" }}>
+        {sz.thumb > 0 && (
+        <td style={{ padding:sz.imgPad, width:sz.tdW }} onClick={e=>{if(thumb){e.stopPropagation();setThumbLightbox(0);}}}>
+          <div style={{ width:sz.thumb, height:sz.thumb, borderRadius:8, overflow:"hidden", border:`1px solid ${C.border}`, background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", cursor:thumb?"zoom-in":"default" }}>
             {thumb ? <img src={thumb} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} /> : <span style={{ color:C.border, fontSize:14 }}>📷</span>}
           </div>
         </td>
-        <td style={{ padding:"12px 12px", maxWidth:0 }}>
+        )}
+        <td style={{ padding:sz.pad, maxWidth:0 }}>
           <div style={{ display:"flex", alignItems:"center", gap:5 }}>
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
@@ -2123,18 +2133,18 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             </div>
           </div>
         </td>
-        <td style={{ padding:"12px 12px", width:88 }}><StatusBadge item={item}/></td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
+        <td style={{ padding:sz.pad, width:88 }}><StatusBadge item={item}/></td>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
           {c?(c.profitJPY>=0?"+":"")+yen(c.profitJPY):"—"}
         </td>
-        <td style={{ padding:"12px 12px", fontFamily:C.num, fontSize:12, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:64 }}>
+        <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:12, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:64 }}>
           {c?(c.profitRate!=null?pct(c.profitRate):"損切り"):"—"}
         </td>
-        <td style={{ padding:"12px 12px", width:88 }} onClick={e=>e.stopPropagation()}>
+        <td style={{ padding:sz.pad, width:88 }} onClick={e=>e.stopPropagation()}>
           <div style={{ display:"flex", gap:1, justifyContent:"flex-end" }}>
             <button onClick={()=>onRowClick(item)} title="編集" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Pencil size={13}/></button>
             {item.status==="unsold"&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
@@ -2236,6 +2246,15 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           </span>
         </div>
         <div style={{ marginLeft:"auto", display:"flex", gap:6 }}>
+          <div style={{ display:"flex", gap:2, alignItems:"center", background:C.bg, borderRadius:8, padding:"2px 4px", border:`1px solid ${C.border}` }}>
+            {[["large","大"],["medium","中"],["small","小"]].map(([v,l])=>(
+              <button key={v} onClick={()=>setRowSize(v)}
+                style={{ padding:"3px 8px", borderRadius:6, border:"none", cursor:"pointer", fontSize:11, fontWeight:700, fontFamily:C.jp,
+                  background: rowSize===v ? C.accent : "transparent",
+                  color:      rowSize===v ? "#fff"   : C.muted,
+                  transition:"all .12s" }}>{l}</button>
+            ))}
+          </div>
           {!selecting
             ? <button onClick={()=>setSelecting(true)} style={btnS("secondary",{fontSize:11,padding:"4px 10px"})}><Link2 size={11}/>まとめ売り</button>
             : <><button onClick={startBundle} style={btnS("primary",{fontSize:11,padding:"4px 10px"})} disabled={selSet.size<2}><Link2 size={11}/>{selSet.size}点でまとめ</button><button onClick={()=>{setSelecting(false);setSelSet(new Set());}} style={btnS("ghost",{fontSize:11,padding:"4px 10px"})}>キャンセル</button></>
@@ -2248,7 +2267,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
         ) : (
           <table style={{ width:"100%", borderCollapse:"collapse", tableLayout:"fixed" }}>
-            <thead><tr><TH w={52}>#</TH><TH w={108}>画像</TH><TH w={nameColW} resizable>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
+            <thead><tr><TH w={52}>#</TH>{sz.thumb>0&&<TH w={sz.tdW}>画像</TH>}<TH w={nameColW} resizable>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
             <tbody>
               {groups.map(g => {
                 if (g.type==="single") return <TR key={g.key} item={g.item}/>;
@@ -2281,7 +2300,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {filtered.length > 0 && (
               <tfoot>
                 <tr style={{ background:C.accentLo, borderTop:`2px solid ${C.border}` }}>
-                  <td colSpan={8} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
+                  <td colSpan={sz.thumb>0?8:7} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
                   <td style={{ padding:"8px 12px", textAlign:"right" }}>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1 }}>
                       <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))) }}>
