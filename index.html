@@ -2027,6 +2027,11 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   }).filter(Boolean);
   // junkLoss: junkDateベースで月フィルターを別途適用（filteredはsaleDateで絞るためjunkが除外される）
   const junkLoss = (() => {
+    // 損切りを含めるのは：損切りフィルター時 / 全件+月指定時 / 売却済み+月指定時のみ
+    const includeJunk = fStatus === "junk"
+      || (fStatus === "all"  && fYearMonth !== "all")
+      || (fStatus === "sold" && fYearMonth !== "all");
+    if (!includeJunk) return 0;
     let base = items.filter(i => i.isJunk && !isSold(i) && i.junkDate);
     if (fYearMonth !== "all") {
       const [fy,fm] = fYearMonth.split("-").map(Number);
