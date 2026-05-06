@@ -1671,6 +1671,16 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     return true;
   });
 
+  // ステータスフィルター時：バンドルリーダーがヒットしたらメンバーも強制含める
+  if (fStatus !== "all") {
+    const matchedLeaderGroupIds = new Set(filtered.filter(i => i.bundleGroupId && i.isBundleLeader).map(i => i.bundleGroupId));
+    if (matchedLeaderGroupIds.size > 0) {
+      const baseIds = new Set(filtered.map(i => i.id));
+      const extras = items.filter(i => i.bundleGroupId && matchedLeaderGroupIds.has(i.bundleGroupId) && !baseIds.has(i.id));
+      filtered = [...filtered, ...extras];
+    }
+  }
+
   // S/N検索でバンドルメンバーがヒットした場合、リーダー・他メンバーも自動で含める
   if (search) {
     const matchedGroupIds = new Set(filtered.filter(i => i.bundleGroupId).map(i => i.bundleGroupId));
