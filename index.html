@@ -632,7 +632,10 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
                 📊 オファー比較
               </button>
             </div>
-            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
+            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
+              const val = e.target.value;
+              setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
+            }} />
           </div>
           <div>
             {form.destination === "us"
@@ -690,7 +693,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : {}),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : { saleShipping: ddpCalc(p.salePrice).toFixed(2) }),
               }));
             }}>
               <option value="other">その他</option>
@@ -1304,7 +1307,10 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                 📊 オファー比較
               </button>
             </div>
-            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={set("salePrice")} />
+            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
+              const val = e.target.value;
+              setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
+            }} />
           </div>
           <div>
             {form.destination === "us"
@@ -1359,7 +1365,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : {}),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : { saleShipping: ddpCalc(p.salePrice).toFixed(2) }),
               }));
             }}>
               <option value="other">その他</option>
