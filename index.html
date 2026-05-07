@@ -2058,7 +2058,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   },0);
   // totalへの加算はsold時のみ（all時はsoldCalcsに既に含まれているため加算不要）
   const returnedLoss = fStatus==="sold" ? returnedLossDisplay : 0;
-  const visibleProfitTotal = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss + returnedLoss;
+  // 検索中は表示中のsoldCalcsのみ合計（junkLoss・returnedLossは検索に無関係な全商品を含むため除外）
+  const visibleProfitTotal = search
+    ? soldCalcs.reduce((s,c)=>s+c.profitJPY,0)
+    : soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss + returnedLoss;
   const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss+returnedLoss;
   // 概算利益（自宅保管・未出品・出品中）：出品価格が入力済みの商品のみ仮計算
   const isUnsoldMode = fStatus==="stored" || fStatus==="unlisted" || fStatus==="unsold";
