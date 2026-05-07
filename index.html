@@ -418,7 +418,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     cost:"", storageShipping:0, isJunk:false, junkDate:today(),
     serialNumber:"", auctRevoId:"",
     ebayUrl:"", ebayTitle:"",
-    destination:"us", saleDate:"", salePrice:"", saleShipping:"",
+    destination:"other", saleDate:"", salePrice:"", saleShipping:"",
     ddpSurcharge:"", ddpMethod:"", actualDdpFee:"",
     shippingConfirmed: false, ddpConfirmed: false,
     exchangeRate: settings.exchangeRate,
@@ -468,6 +468,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.ebayFeeRate;
       return { ...p, actualEbayFeeUSD: val, ebayFeeRate: val !== "" && !isNaN(+val) ? rate : p.ebayFeeRate };
     });
+    if (val.trim()) setStatusWarn("");
   };
   const handleActualPromoFee = e => {
     const val = e.target.value;
@@ -476,6 +477,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.promotionRate;
       return { ...p, actualPromoFeeUSD: val, promotionRate: val !== "" && !isNaN(+val) ? rate : p.promotionRate };
     });
+    if (val !== "") setStatusWarn("");
   };
 
   const [statusWarn, setStatusWarn] = useState("");
@@ -492,9 +494,10 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
       return;
     }
-    // 出品中 → 売却済み: 実績手数料必須
+    // 出品中 → 売却済み: 実績手数料未入力なら警告を出しつつ、ステータスは変更して入力欄を表示
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
-      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから「売却済み」に変更してください");
+      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから保存してください");
+      setForm(p => ({ ...p, status: "sold" }));
       return;
     }
     setStatusWarn("");
@@ -1114,6 +1117,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.ebayFeeRate;
       return { ...p, actualEbayFeeUSD: val, ebayFeeRate: val !== "" && !isNaN(+val) ? rate : p.ebayFeeRate };
     });
+    if (val.trim()) setStatusWarn("");
   };
   const handleActualPromoFee = e => {
     const val = e.target.value;
@@ -1122,6 +1126,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       const rate = base > 0 && val !== "" && !isNaN(+val) ? ((+val / base) * 100).toFixed(2) : p.promotionRate;
       return { ...p, actualPromoFeeUSD: val, promotionRate: val !== "" && !isNaN(+val) ? rate : p.promotionRate };
     });
+    if (val !== "") setStatusWarn("");
   };
 
   const [statusWarn, setStatusWarn] = useState("");
@@ -1140,7 +1145,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
       }
     }
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
-      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから「売却済み」に変更してください");
+      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから保存してください");
+      setForm(p => ({ ...p, status: "sold" }));
       return;
     }
     setStatusWarn("");
