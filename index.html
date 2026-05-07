@@ -2037,8 +2037,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     if (fCat !== "all") base = base.filter(i => fCat==="bundle" ? !!i.bundleGroupId : (i.category||"")===fCat);
     return base.reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
   })();
-  // 返品損失: fStatus="sold"のとき返品商品がfilteredから除外されるため別途計算
-  const returnedLoss = (fStatus==="sold" ? items.filter(i => {
+  // 返品損失:
+  // sold時 → filteredに返品が含まれないため items から別途取得して合算
+  // all時  → filteredに返品が含まれるため filtered から取得（表示用のみ・totalには加算しない）
+  const _returnedBase = fStatus==="sold" ? items.filter(i => {
     if (i.status!=="returned" || (i.bundleGroupId&&!i.isBundleLeader)) return false;
     if (fYearMonth!=="all") {
       const [fy,fm]=fYearMonth.split("-").map(Number);
@@ -2049,12 +2051,21 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
     else if (fCat!=="all"&&(i.category||"")!==fCat) return false;
     return true;
-  }) : []).reduce((s,i) => {
+  }) : fStatus==="all" ? filtered.filter(i => i.status==="returned" && (!i.bundleGroupId||i.isBundleLeader)) : [];
+  const returnedLossDisplay = _returnedBase.reduce((s,i) => {
     const c=calcFull(i);
     return s+(c?c.profitJPY:-(+i.cost||0)-(+i.storageShipping||0)-(+i.returnShippingJPY||0));
   },0);
+  // totalへの加算はsold時のみ（all時はsoldCalcsに既に含まれているため加算不要）
+  const returnedLoss = fStatus==="sold" ? returnedLossDisplay : 0;
   const visibleProfitTotal = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss + returnedLoss;
   const totalProfit  = soldCalcs.reduce((s,c)=>s+c.profitJPY,0)-junkLoss+returnedLoss;
+  // 概算利益（自宅保管・未出品・出品中）：出品価格が入力済みの商品のみ仮計算
+  const isUnsoldMode = fStatus==="stored" || fStatus==="unlisted" || fStatus==="unsold";
+  const estimatedProfit = isUnsoldMode ? filtered.filter(i => (!i.bundleGroupId||i.isBundleLeader) && +i.salePrice>0 && !isSold(i) && !i.isJunk).reduce((s,i) => {
+    if (i.isBundleLeader) { const mems=items.filter(m=>m.bundleGroupId===i.bundleGroupId&&!m.isBundleLeader); const c=calcBundle(i,mems); return s+(c?c.profitJPY:0); }
+    const c=calcFull(i); return s+(c?c.profitJPY:0);
+  },0) : 0;
   const totalRevenue = soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const avgRate      = soldCalcs.length ? soldCalcs.reduce((s,c)=>s+c.profitRate,0)/soldCalcs.length : 0;
   const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk&&i.status!=="purchaseReturned").length;
@@ -2310,14 +2321,22 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {filtered.length > 0 && (
               <tfoot>
                 <tr style={{ background:C.accentLo, borderTop:`2px solid ${C.border}` }}>
-                  <td colSpan={sz.thumb>0?8:7} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>表示中の利益合計</td>
+                  <td colSpan={sz.thumb>0?8:7} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>
+                    {isUnsoldMode ? "概算利益（出品価格入力済）" : "表示中の利益合計"}
+                  </td>
                   <td style={{ padding:"8px 12px", textAlign:"right" }}>
                     <div style={{ display:"flex", flexDirection:"column", alignItems:"flex-end", gap:1 }}>
-                      <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))) }}>
-                        {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
-                      </span>
-                      {returnedLoss!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLoss<0?C.red:C.green, whiteSpace:"nowrap" }}>返品 {(returnedLoss>0?"+":"")+yen(returnedLoss)}</span>}
-                      {junkLoss>0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:C.red, whiteSpace:"nowrap" }}>損切り {yen(-junkLoss)}</span>}
+                      {isUnsoldMode ? (
+                        <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(estimatedProfit, estimatedProfit / Math.max(1, filtered.filter(i=>!i.bundleGroupId||i.isBundleLeader).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0))) }}>
+                          {(estimatedProfit>=0?"+":"")+yen(estimatedProfit)}
+                        </span>
+                      ) : (
+                        <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:pColorSafe(visibleProfitTotal, visibleProfitTotal / Math.max(1, soldCalcs.reduce((s,c)=>s+c.totalJPY,0))) }}>
+                          {(visibleProfitTotal>=0?"+":"")+yen(visibleProfitTotal)}
+                        </span>
+                      )}
+                      {!isUnsoldMode&&!search&&returnedLossDisplay!==0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:returnedLossDisplay<0?C.red:C.green, whiteSpace:"nowrap" }}>返品 {(returnedLossDisplay>0?"+":"")+yen(returnedLossDisplay)}</span>}
+                      {!isUnsoldMode&&!search&&junkLoss>0&&<span style={{ fontFamily:C.jp, fontSize:10, fontWeight:400, color:C.red, whiteSpace:"nowrap" }}>損切り {yen(-junkLoss)}</span>}
                     </div>
                   </td>
                   <td colSpan={2}/>
