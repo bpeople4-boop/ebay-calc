@@ -534,7 +534,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     notes:"", photos:[],
     ...initial,
     // 出品中・未出品・保管中は実費フィールドをクリア（残留値がプロモ率を無効化するのを防ぐ）
-    ...((initial.status !== "sold" && initial.status !== "returned") ? {
+    // ただしeBay同期済みの場合はクリアしない
+    ...((initial.status !== "sold" && initial.status !== "returned" && !initial.ebaySynced) ? {
       actualEbayFeeUSD: "",
       actualPromoFeeUSD: "",
     } : {}),
@@ -544,10 +545,11 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const [showOffer,   setShowOffer]   = useState(false);
   const [offerPrice,  setOfferPrice]  = useState("");
 
-  // 落札日が入力されたら自動で為替レートを取得
+  // 為替レート自動取得（マウント時＋落札日変更時）
   useEffect(() => {
-    if (!form.saleDate || form.exchangeRateLocked) return;
-    fetchHistoricalRate(form.saleDate, r => {
+    if (form.exchangeRateLocked) return;
+    const date = form.saleDate || today();
+    fetchHistoricalRate(date, r => {
       setForm(p => ({ ...p, exchangeRate: r }));
     });
   }, [form.saleDate]);
@@ -768,16 +770,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
           {/* 為替レート */}
           <div style={{ minWidth:0 }}>
-            <span style={lblS()}>為替レート {form.saleDate && <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}</span>
-            <div style={{ display:"flex", gap:6 }}>
-              <input style={inpS({ flex:1 })} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
-              {!form.saleDate && (
-                <button type="button" onClick={()=>fetchExchangeRate(r=>setForm(p=>({...p,exchangeRate:r})),setRateError,setRateLoading)} disabled={rateLoading}
-                  style={{ ...btnS("secondary",{ padding:"0 10px", fontSize:11, flexShrink:0 }), ...(rateLoading?{opacity:.6}:{}) }}>
-                  {rateLoading ? "…" : "🔄"}
-                </button>
-              )}
-            </div>
+            <span style={lblS()}>為替レート {form.saleDate && <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}{!form.saleDate && <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}</span>
+            <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
@@ -1739,8 +1733,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
       ebayUrl:           p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl,
       ebayTitle:         p.title,
       status:            "sold",
-      actualEbayFeeUSD:  p.ebayFee !== "0" ? p.ebayFee : "",
-      actualPromoFeeUSD: p.promoFee !== "0" ? p.promoFee : "",
+      actualEbayFeeUSD:  p.isUS ? (p.ebayFee !== "0" ? p.ebayFee : "") : "0",
+      actualPromoFeeUSD: p.isUS ? (p.promoFee !== "0" ? p.promoFee : "") : "0",
       ebayFeeRate:       p.isUS ? appItem.ebayFeeRate : 0,
       promotionRate:     p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:       order.orderId,
