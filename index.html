@@ -151,19 +151,21 @@ function buildAuthUrl({ clientId, ruName }) {
 }
 
 async function ebayFetchOrders(accessToken) {
-  const res = await fetch(
-    "https://api.ebay.com/sell/fulfillment/v1/order?limit=20",
-    { headers: { "Authorization": `Bearer ${accessToken}` } }
-  );
+  const res = await fetch("/api/ebay-api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url:"https://api.ebay.com/sell/fulfillment/v1/order?limit=20", accessToken }),
+  });
   if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Fulfillment API error: ${res.status}`); }
   return res.json();
 }
 
 async function ebayFetchTransactions(accessToken) {
-  const res = await fetch(
-    "https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D&limit=20",
-    { headers: { "Authorization": `Bearer ${accessToken}`, "X-EBAY-C-MARKETPLACE-ID": "EBAY_US" } }
-  );
+  const res = await fetch("/api/ebay-api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url:"https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D&limit=20", accessToken }),
+  });
   if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Finances API error: ${res.status}`); }
   return res.json();
 }
