@@ -118,13 +118,10 @@ const DEFAULT_EBAY_AUTH = {
 };
 
 async function ebayExchangeCode(code, { clientId, clientSecret, ruName }) {
-  const res = await fetch(EBAY_TOKEN_URL, {
+  const res = await fetch("/api/ebay-token", {
     method: "POST",
-    headers: {
-      "Authorization": "Basic " + btoa(clientId + ":" + clientSecret),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ grant_type:"authorization_code", code, redirect_uri:ruName }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ grantType:"authorization_code", code, clientId, clientSecret, ruName }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error_description || `HTTP ${res.status}`);
@@ -132,13 +129,10 @@ async function ebayExchangeCode(code, { clientId, clientSecret, ruName }) {
 }
 
 async function ebayRefreshAccessToken({ clientId, clientSecret, refreshToken }) {
-  const res = await fetch(EBAY_TOKEN_URL, {
+  const res = await fetch("/api/ebay-token", {
     method: "POST",
-    headers: {
-      "Authorization": "Basic " + btoa(clientId + ":" + clientSecret),
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({ grant_type:"refresh_token", refresh_token:refreshToken, scope:EBAY_SCOPES }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ grantType:"refresh_token", refreshToken, clientId, clientSecret }),
   });
   const data = await res.json();
   if (!res.ok) throw new Error(data.error_description || `HTTP ${res.status}`);
