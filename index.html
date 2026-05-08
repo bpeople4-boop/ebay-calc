@@ -87,6 +87,22 @@ const resizeImage = (file, maxPx=900) => new Promise(resolve => {
   reader.readAsDataURL(file);
 });
 const getYear = s => s && !s.startsWith("1900") ? new Date(s).getFullYear() : null;
+const daysElapsed = (item) => {
+  const start = item.purchaseDate;
+  if (!start || start.startsWith("1900")) return null;
+  const startDate = new Date(start);
+  const isSoldItem = !!(item.saleDate && !item.saleDate.startsWith("1900"));
+  const endDate = isSoldItem ? new Date(item.saleDate) : new Date();
+  const diff = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+  return diff >= 0 ? diff : null;
+};
+const elapsedColor = (days, isSold) => {
+  if (days === null) return C.muted;
+  if (isSold) return C.muted;
+  if (days < 30) return C.green;
+  if (days < 60) return C.amber;
+  return C.red;
+};
 
 // ── Settings defaults ─────────────────────────────────────────
 const DEFAULT_SETTINGS = {
@@ -2023,7 +2039,15 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   });
   singles.forEach(item => groups.push({ type:"single", item, key:item.id, date:item.purchaseDate, saleDate:item.saleDate||"" }));
   const getSortDate = g => sortKey==="sale" ? (g.saleDate||"") : (g.date||"");
-  groups.sort((a,b) => sortAsc ? getSortDate(a).localeCompare(getSortDate(b)) : getSortDate(b).localeCompare(getSortDate(a)));
+  const getElapsed = g => {
+    const item = g.type==="single" ? g.item : g.leader;
+    return daysElapsed(item) ?? -1;
+  };
+  if (sortKey==="elapsed") {
+    groups.sort((a,b) => sortAsc ? getElapsed(a)-getElapsed(b) : getElapsed(b)-getElapsed(a));
+  } else {
+    groups.sort((a,b) => sortAsc ? getSortDate(a).localeCompare(getSortDate(b)) : getSortDate(b).localeCompare(getSortDate(a)));
+  }
 
   const filteredTopCount = filtered.filter(i => !i.bundleGroupId || i.isBundleLeader).length;
   // バンドルはcalcBundle（メンバー原価込み）、単品はcalcFull
@@ -2180,6 +2204,14 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         <td style={{ padding:sz.pad, width:88 }}><StatusBadge item={item}/></td>
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{dt(item.purchaseDate)}</td>
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, width:86, whiteSpace:"nowrap" }}>{item.saleDate ? dt(item.saleDate) : "—"}</td>
+        {(()=>{
+          const days = daysElapsed(item);
+          const isSold = !!(item.saleDate && !item.saleDate.startsWith("1900"));
+          const col = elapsedColor(days, isSold);
+          return <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:col, textAlign:"right", width:52, whiteSpace:"nowrap", fontWeight: !isSold && days>=60 ? 700 : 400 }}>
+            {days !== null ? (isSold ? <span title="仕入〜売却日数">{days}d</span> : <span title="仕入れからの経過日数">{days}d</span>) : "—"}
+          </td>;
+        })()}
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:88 }}>{yen(item.cost)}</td>
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:12, color:C.textSub, textAlign:"right", width:76 }}>{item.salePrice?usd(item.salePrice):"—"}</td>
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:13, fontWeight:700, color:c?pColorSafe(c.profitJPY,c.profitRate):C.muted, textAlign:"right", width:96 }}>
@@ -2275,8 +2307,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <option value="bundle">📦 おまとめ</option>
         </select>
         <div style={{ display:"flex", gap:4, alignItems:"center" }}>
-          {[["purchase","仕入れ日"],["sale","落札日"]].map(([k,l])=>(
-            <button key={k} onClick={()=>{ if(sortKey===k) setSortAsc(v=>!v); else { setSortKey(k); setSortAsc(false); } }}
+          {[["purchase","仕入れ日"],["sale","落札日"],["elapsed","経過順"]].map(([k,l])=>(
+            <button key={k} onClick={()=>{ if(sortKey===k) setSortAsc(v=>!v); else { setSortKey(k); setSortAsc(k==="elapsed"?false:false); } }}
               style={{ ...btnS(sortKey===k?"primary":"secondary",{fontSize:11,padding:"4px 10px"}), gap:3 }}>
               {sortKey===k ? (sortAsc ? "🔼" : "🔽") : "⬜"} {l}
             </button>
@@ -2311,7 +2343,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           <div style={{ textAlign:"center", padding:"60px 20px", color:C.muted, fontFamily:C.jp }}>{items.length===0?"右パネルから商品を追加してください":"条件に合う商品がありません"}</div>
         ) : (
           <table style={{ width:"100%", borderCollapse:"collapse", tableLayout:"fixed" }}>
-            <thead><tr><TH w={52}>#</TH>{sz.thumb>0&&<TH w={sz.tdW}>画像</TH>}<TH w={nameColW} resizable>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
+            <thead><tr><TH w={52}>#</TH>{sz.thumb>0&&<TH w={sz.tdW}>画像</TH>}<TH w={nameColW} resizable>商品名</TH><TH w={88}>状態</TH><TH w={86}>仕入れ日</TH><TH w={86}>落札日</TH><TH w={52} align="right">経過</TH><TH w={88} align="right">原価</TH><TH w={76} align="right">落札$</TH><TH w={96} align="right">利益¥</TH><TH w={64} align="right">利益率</TH><TH w={88} align="right">操作</TH></tr></thead>
             <tbody>
               {groups.map(g => {
                 if (g.type==="single") return <TR key={g.key} item={g.item}/>;
@@ -2322,7 +2354,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
                   <tr key={`${g.key}-hdr`} onClick={()=>onBundleHeaderClick(g.key)} style={{ background: selectedBundleId===g.key ? `${C.accent}30` : `${C.accent}18`, borderBottom:`1px solid ${C.accent}30`, cursor:"pointer", transition:"background .1s" }}
                     onMouseEnter={e=>{if(selectedBundleId!==g.key)e.currentTarget.style.background=`${C.accent}25`;}}
                     onMouseLeave={e=>{if(selectedBundleId!==g.key)e.currentTarget.style.background=`${C.accent}18`;}}>
-                    <td colSpan={11} style={{ padding:"8px 14px", boxShadow:`inset 4px 0 0 ${C.accent}` }}>
+                    <td colSpan={12} style={{ padding:"8px 14px", boxShadow:`inset 4px 0 0 ${C.accent}` }}>
                       <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                         <Link2 size={13} color={C.accent}/>
                         <div>
@@ -2344,7 +2376,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {filtered.length > 0 && (
               <tfoot>
                 <tr style={{ background:C.accentLo, borderTop:`2px solid ${C.border}` }}>
-                  <td colSpan={sz.thumb>0?8:7} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>
+                  <td colSpan={sz.thumb>0?9:8} style={{ padding:"8px 12px", fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, textAlign:"right", letterSpacing:"0.05em" }}>
                     {isUnsoldMode ? "概算利益（出品価格入力済）" : "表示中の利益合計"}
                   </td>
                   <td style={{ padding:"8px 12px", textAlign:"right" }}>
