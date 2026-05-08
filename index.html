@@ -1719,11 +1719,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
   const [orders,   setOrders]   = useState([]);
   const [txMap,    setTxMap]    = useState({});
   const [picking,  setPicking]  = useState(null);
-  const [tab,      setTab]      = useState("pending"); // "pending" | "linked"
-  // 紐づけ済み管理: { orderId -> { order, appItem } }
-  const [linkedMap, setLinkedMap] = useState({});
-  // 紐づけ済みアイテムIDのSet（候補除外用）
-  const [linkedItemIds, setLinkedItemIds] = useState(new Set());
+  const [tab,      setTab]      = useState("pending");
 
   useEffect(() => {
     (async () => {
@@ -1824,25 +1820,27 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
       rateSaleDate:       p.saleDate,
     };
     onApply(patch);
-    // 紐づけ済みMapとアイテムIDSetを更新
-    setLinkedMap(prev => ({ ...prev, [order.orderId]: { order, appItem: patch } }));
-    setLinkedItemIds(prev => new Set([...prev, appItem.id]));
     setPicking(null);
   };
 
-  // 候補: ebaySynced済み・今セッションで紐づけ済みのアイテムを除外
+  // 紐づけ済み判定: items の ebayOrderId と orders の orderId を照合
+  // これにより モーダルを閉じて再度開いても状態が維持される
+  const linkedItemByOrderId = {};
+  items.forEach(i => {
+    if (i.ebaySynced && i.ebayOrderId) linkedItemByOrderId[i.ebayOrderId] = i;
+  });
+
+  const pendingOrders = orders.filter(o => !linkedItemByOrderId[o.orderId]);
+  const linkedOrders  = orders.filter(o =>  linkedItemByOrderId[o.orderId]);
+
+  // 候補: ebaySynced済みを除外
   const candidates = items.filter(i =>
     !i.isJunk &&
     !i.ebaySynced &&
-    !linkedItemIds.has(i.id) &&
     ["unsold","unlisted","stored"].includes(i.status) &&
     (!i.bundleGroupId || i.isBundleLeader)
   );
 
-  const pendingOrders = orders.filter(o => !linkedMap[o.orderId]);
-  const linkedOrders  = orders.filter(o =>  linkedMap[o.orderId]);
-
-  // タブスタイル
   const tabS = (active) => ({
     padding:"8px 20px", border:"none", cursor:"pointer",
     fontFamily:C.jp, fontWeight:700, fontSize:13,
@@ -1854,7 +1852,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
 
   const OrderCard = ({ order, linked }) => {
     const p = parseOrder(order);
-    const linkInfo = linkedMap[order.orderId];
+    const linkedItem = linkedItemByOrderId[order.orderId];
     return (
       <div style={{ border:`1px solid ${linked ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: linked ? C.greenLo : C.card }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -1871,19 +1869,19 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
               {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
             </div>
             <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}</div>
-            {linked && linkInfo && (
+            {linked && linkedItem && (
               <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#fff", borderRadius:6, border:`1px solid ${C.green}30` }}>
-                {linkInfo.appItem.photos?.[0] && (
-                  <img src={linkInfo.appItem.photos[0]} alt="" style={{ width:28, height:28, borderRadius:4, objectFit:"cover", flexShrink:0 }}/>
+                {linkedItem.photos?.[0] && (
+                  <img src={linkedItem.photos[0]} alt="" style={{ width:28, height:28, borderRadius:4, objectFit:"cover", flexShrink:0 }}/>
                 )}
                 <div style={{ minWidth:0 }}>
                   <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:600, color:C.green, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                    → #{linkInfo.appItem.managementNumber} {linkInfo.appItem.productName||"—"}
+                    → #{linkedItem.managementNumber} {linkedItem.productName||"—"}
                   </div>
                   <div style={{ fontFamily:C.num, fontSize:10, color:C.muted }}>
-                    {linkInfo.appItem.rateNotFetched
+                    {linkedItem.rateNotFetched
                       ? "⏳ 設定値使用（取得中）"
-                      : `🔒 為替 ¥${linkInfo.appItem.exchangeRate}`}
+                      : `🔒 為替 ¥${linkedItem.exchangeRate}`}
                   </div>
                 </div>
               </div>
@@ -1914,7 +1912,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
         <div style={{ textAlign:"center", padding:"40px 0", color:C.muted, fontFamily:C.jp }}>最近の注文がありません</div>
       ) : (
         <div>
-          {/* タブ */}
           <div style={{ display:"flex", borderBottom:`2px solid ${C.border}`, marginBottom:16, marginTop:-8 }}>
             <button style={tabS(tab==="pending")} onClick={()=>setTab("pending")}>
               未紐づけ <span style={{ background:tab==="pending"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length}</span>
@@ -1944,7 +1941,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
         </div>
       )}
 
-      {/* 商品選択ピッカー */}
       {picking && (
         <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
           <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:480, maxHeight:"80vh", overflow:"auto" }}>
@@ -1980,9 +1976,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════
-// Search Modal（絞り込み検索）
-// ═══════════════════════════════════════════════════════════════
 function SearchModal({ items, onClose }) {
   const isSold = i => !!(i.saleDate && !i.saleDate.startsWith("1900"));
 
