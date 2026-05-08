@@ -595,6 +595,26 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const handleStatusChange = e => {
     const next = e.target.value;
     const cur  = form.status;
+
+    // ebaySynced商品: sold → returned以外への変更は警告＋落札情報リセット
+    if (form.ebaySynced && cur === "sold" && next !== "returned") {
+      if (!window.confirm("この商品はeBay同期済みです。\n落札情報（落札日・価格・為替・手数料）をリセットして\nステータスを変更しますか？")) return;
+      setStatusWarn("");
+      setForm(p => ({
+        ...p,
+        status: next,
+        // 落札情報リセット
+        saleDate:"", salePrice:"", saleShipping:"",
+        actualEbayFeeUSD:"", actualPromoFeeUSD:"",
+        exchangeRate: p.exchangeRate, // 為替は設定値に戻さずそのまま
+        exchangeRateLocked: false,
+        ebaySynced: false,
+        rateNotFetched: false,
+        ebayOrderId: "",
+      }));
+      return;
+    }
+
     // 自宅保管 → 未出品: オークレボID必須
     if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
       setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
@@ -737,23 +757,37 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
-          <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
+          {form.ebaySynced ? (
+            <Field label="落札日" value={form.saleDate} readOnly col="1/-1" />
+          ) : (
+            <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
+          )}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
               <span style={lblS({ marginBottom:0 })}>落札価格（$）</span>
-              <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
-                style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
-                📊 オファー比較
-              </button>
+              {!form.ebaySynced && (
+                <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
+                  style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
+                  📊 オファー比較
+                </button>
+              )}
             </div>
-            <input style={inpS()} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
-              const val = e.target.value;
-              setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
-            }} />
+            <input
+              style={inpS(form.ebaySynced ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
+              type="text" inputMode="decimal" placeholder="0.00"
+              readOnly={!!form.ebaySynced}
+              value={form.salePrice??""}
+              onChange={form.ebaySynced ? undefined : e => {
+                const val = e.target.value;
+                setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
+              }}
+            />
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" />
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping}
+                  onChange={form.ebaySynced ? undefined : set("saleShipping")}
+                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" />
               : <div>
                   <span style={lblS()}>落札送料（$）</span>
                   <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
@@ -770,8 +804,24 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
           {/* 為替レート */}
           <div style={{ minWidth:0 }}>
-            <span style={lblS()}>為替レート {form.saleDate && <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}{!form.saleDate && <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}</span>
-            <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
+            <span style={lblS()}>為替レート{" "}
+              {form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched &&
+                <span style={{ color:C.green, fontSize:10 }}>🔒 落札日レート取得済み</span>}
+              {form.ebaySynced && form.rateNotFetched &&
+                <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
+              {!form.ebaySynced && form.saleDate &&
+                <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}
+              {!form.ebaySynced && !form.saleDate &&
+                <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}
+            </span>
+            <input
+              style={inpS(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched
+                ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
+              type="text" inputMode="decimal"
+              readOnly={!!(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)}
+              value={form.exchangeRate}
+              onChange={form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")}
+            />
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
@@ -852,17 +902,45 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>実際の手数料（確定後に入力）</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
-                  <span style={lblS()}>eBay落札手数料（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD&&<span style={{ color:C.red, fontWeight:700 }}>※必須</span>}</span>
-                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={handleActualEbayFee} />
-                  {!form.actualEbayFeeUSD && totalUSD > 0 && (
+                  <span style={lblS()}>eBay落札手数料（$）実費{" "}
+                    {form.ebaySynced
+                      ? <span style={{ color:C.green, fontSize:10 }}>🔒 同期済み</span>
+                      : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD&&<span style={{ color:C.red, fontWeight:700 }}>※必須</span>
+                    }
+                  </span>
+                  <input
+                    style={inpS(form.ebaySynced
+                      ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
+                      : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD
+                        ? {borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`} : {})}
+                    type="text" inputMode="decimal" placeholder="空欄で概算を使用"
+                    readOnly={!!form.ebaySynced}
+                    value={form.actualEbayFeeUSD??""}
+                    onChange={form.ebaySynced ? undefined : handleActualEbayFee}
+                  />
+                  {!form.ebaySynced && !form.actualEbayFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>
                   )}
                   {form.actualEbayFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
                 </div>
                 <div>
-                  <span style={lblS()}>プロモート費用（$）実費 {initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
-                  <input style={inpS(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={handleActualPromoFee} />
-                  {!form.actualPromoFeeUSD && totalUSD > 0 && (
+                  <span style={lblS()}>プロモート費用（$）実費{" "}
+                    {form.ebaySynced
+                      ? <span style={{ color:C.green, fontSize:10 }}>🔒 同期済み</span>
+                      : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>
+                    }
+                  </span>
+                  <input
+                    style={inpS(form.ebaySynced
+                      ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
+                      : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)
+                        ? {borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`} : {})}
+                    type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）"
+                    readOnly={!!form.ebaySynced}
+                    value={form.actualPromoFeeUSD??""}
+                    onChange={form.ebaySynced ? undefined : handleActualPromoFee}
+                  />
+                  {!form.ebaySynced && !form.actualPromoFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>
                   )}
                   {form.actualPromoFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
@@ -1717,15 +1795,21 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
     const p = parseOrder(order);
 
     // 修正①: 落札日の為替レートを取得してセット（失敗時は既存レートをそのまま使用）
-    let exchangeRate = appItem.exchangeRate || 158;
+    // 落札日の為替レートを取得。失敗・未反映の場合はsettings値をフォールバックに使う
+    const fallbackRate = Number.isFinite(+appItem.exchangeRate) && +appItem.exchangeRate > 0
+      ? +appItem.exchangeRate : 158;
+    let exchangeRate = fallbackRate;
     if (p.saleDate) {
       try {
         const res = await fetch(`https://api.frankfurter.app/${p.saleDate}?from=USD&to=JPY`);
         const data = await res.json();
-        if (data.rates?.JPY) exchangeRate = Math.round(data.rates.JPY);
+        const fetched = Math.round(data.rates?.JPY ?? 0);
+        if (Number.isFinite(fetched) && fetched > 0) exchangeRate = fetched;
+        // fetched が 0 や NaN のとき（当日・祝日でAPIに未登録）はフォールバックのまま
       } catch(_) {}
     }
 
+    const rateFetched = exchangeRate !== fallbackRate; // APIから実際に取得できたか
     const patch = {
       ...appItem,
       saleDate:           p.saleDate,
@@ -1741,8 +1825,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
       promotionRate:      p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:        order.orderId,
       ebaySynced:         true,
-      exchangeRate:       exchangeRate,      // 落札日の為替をセット
-      exchangeRateLocked: true,             // 自動上書き防止
+      exchangeRate:       exchangeRate,
+      exchangeRateLocked: rateFetched,        // 取得できたときだけロック
+      rateNotFetched:     !rateFetched,       // 未取得フラグ（後で再取得用）
+      rateSaleDate:       p.saleDate,         // 再取得時に使う落札日
     };
     onApply(patch);
     setApplied(prev => new Set([...prev, order.orderId]));
@@ -2958,9 +3044,13 @@ function App() {
           const loaded = JSON.parse(r.value);
           const corrected = loaded.map(i => {
             const hasSaleDate = !!(i.saleDate && i.saleDate !== "" && !i.saleDate.startsWith("1900"));
-            if (hasSaleDate && i.status !== "returned") return { ...i, status: "sold" };
-            if (!hasSaleDate && i.status === "sold") return { ...i, status: "unsold" };
-            return i;
+            // 為替レートが不正値（NaN・0・負数）の場合のみ補正
+            const rate = +i.exchangeRate;
+            const fixedRate = Number.isFinite(rate) && rate > 0 ? rate : 158;
+            const base = { ...i, exchangeRate: fixedRate };
+            if (hasSaleDate && i.status !== "returned") return { ...base, status: "sold" };
+            if (!hasSaleDate && i.status === "sold") return { ...base, status: "unsold" };
+            return base;
           });
           setItems(corrected);
         }
@@ -3000,6 +3090,42 @@ function App() {
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_v2_items", JSON.stringify(items)).catch(()=>{}); },[items,loaded]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_v3_settings", JSON.stringify(settings)).catch(()=>{}); },[settings,loaded]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_oauth_config", JSON.stringify(ebayAuth)).catch(()=>{}); },[ebayAuth,loaded]);
+
+  // 未取得の為替レートを定期的に再取得（1時間ごと）
+  useEffect(() => {
+    const tryFetchRates = async () => {
+      setItems(prev => {
+        // rateNotFetched:true の商品があるか確認
+        const targets = prev.filter(i => i.rateNotFetched && i.rateSaleDate);
+        if (targets.length === 0) return prev;
+        // 非同期で取得して更新
+        (async () => {
+          const updates = await Promise.all(targets.map(async i => {
+            try {
+              const res = await fetch(`https://api.frankfurter.app/${i.rateSaleDate}?from=USD&to=JPY`);
+              const data = await res.json();
+              const fetched = Math.round(data.rates?.JPY ?? 0);
+              if (Number.isFinite(fetched) && fetched > 0) {
+                return { id: i.id, exchangeRate: fetched, exchangeRateLocked: true, rateNotFetched: false };
+              }
+            } catch(_) {}
+            return null;
+          }));
+          const validUpdates = updates.filter(Boolean);
+          if (validUpdates.length > 0) {
+            setItems(p => p.map(i => {
+              const u = validUpdates.find(v => v.id === i.id);
+              return u ? { ...i, ...u } : i;
+            }));
+          }
+        })();
+        return prev; // 即時はそのまま返す
+      });
+    };
+    tryFetchRates(); // 起動時に即実行
+    const timer = setInterval(tryFetchRates, 60 * 60 * 1000); // 1時間ごと
+    return () => clearInterval(timer);
+  }, []); // itemsに依存させず、setItemsのコールバック内でチェック
 
   // eBayトークン自動リフレッシュ（期限5分前）
   useEffect(() => {
