@@ -150,6 +150,24 @@ function buildAuthUrl({ clientId, ruName }) {
   return EBAY_AUTH_URL + "?" + params.toString();
 }
 
+async function ebayFetchOrders(accessToken) {
+  const res = await fetch(
+    "https://api.ebay.com/sell/fulfillment/v1/order?limit=20",
+    { headers: { "Authorization": `Bearer ${accessToken}` } }
+  );
+  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Fulfillment API error: ${res.status}`); }
+  return res.json();
+}
+
+async function ebayFetchTransactions(accessToken) {
+  const res = await fetch(
+    "https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D&limit=20",
+    { headers: { "Authorization": `Bearer ${accessToken}`, "X-EBAY-C-MARKETPLACE-ID": "EBAY_US" } }
+  );
+  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Finances API error: ${res.status}`); }
+  return res.json();
+}
+
 // ── Settings defaults ─────────────────────────────────────────
 const DEFAULT_SETTINGS = {
   exchangeRate: 158,
@@ -1601,6 +1619,204 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 }
 
 // ═══════════════════════════════════════════════════════════════
+// eBay Sync Modal（注文同期）
+// ═══════════════════════════════════════════════════════════════
+function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
+  const [loading,   setLoading]   = useState(true);
+  const [error,     setError]     = useState("");
+  const [orders,    setOrders]    = useState([]);
+  const [txMap,     setTxMap]     = useState({});   // orderId → transaction
+  const [picking,   setPicking]   = useState(null); // order being linked
+  const [applied,   setApplied]   = useState(new Set());
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const [ordersData, txData] = await Promise.all([
+          ebayFetchOrders(ebayAuth.accessToken),
+          ebayFetchTransactions(ebayAuth.accessToken),
+        ]);
+        const map = {};
+        (txData.transactions || []).forEach(tx => {
+          const oid = tx.orderId;
+          if (oid) map[oid] = tx;
+        });
+        setTxMap(map);
+        setOrders(ordersData.orders || []);
+      } catch(e) {
+        setError(e.message);
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, []);
+
+  const countryFlag = code => {
+    if (!code) return "🌍";
+    const flags = { US:"🇺🇸", GB:"🇬🇧", DE:"🇩🇪", FR:"🇫🇷", AU:"🇦🇺", CA:"🇨🇦", JP:"🇯🇵", IT:"🇮🇹", ES:"🇪🇸", NL:"🇳🇱" };
+    return flags[code] || "🌍";
+  };
+
+  const parseOrder = (order) => {
+    const tx       = txMap[order.orderId];
+    const line     = order.lineItems?.[0] || {};
+    const currency = order.pricingSummary?.total?.currency || "USD";
+    const isUSD    = currency === "USD";
+    const country  = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipToLocation?.countryCode || "other";
+    const isUS     = country === "US";
+    const itemId   = line.legacyItemId || "";
+    const saleDate = (order.creationDate || "").slice(0, 10);
+
+    let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
+
+    if (isUSD) {
+      // US向け：落札価格はgross、手数料はFinances API実額
+      salePrice    = line.lineItemCost?.value || "";
+      saleShipping = order.pricingSummary?.deliveryCost?.value || "0";
+      if (tx) {
+        const fees = tx.orderLineItems?.[0]?.marketplaceFees || [];
+        const ebayF = fees.find(f => f.feeType === "FINAL_VALUE_FEE");
+        const promoF = fees.find(f => f.feeType === "AD_FEE");
+        ebayFee  = ebayF  ? Math.abs(+ebayF.amount?.value  || 0).toFixed(2) : "";
+        promoFee = promoF ? Math.abs(+promoF.amount?.value || 0).toFixed(2) : "";
+      }
+    } else {
+      // 非US：Finances APIのUSD換算net額を使用、手数料0
+      salePrice    = tx?.amount?.value || "";
+      saleShipping = "0";
+      ebayFee      = "0";
+      promoFee     = "0";
+    }
+
+    return {
+      orderId: order.orderId, title: line.title || "—",
+      salePrice, saleShipping, ebayFee, promoFee,
+      currency, isUSD, country, isUS, itemId, saleDate,
+      displayAmount: `${order.pricingSummary?.total?.currency} ${order.pricingSummary?.total?.value || ""}`,
+      netUSD: tx?.amount?.value || "",
+    };
+  };
+
+  const handleLink = (order, appItem) => {
+    const p = parseOrder(order);
+    const patch = {
+      ...appItem,
+      saleDate:          p.saleDate,
+      salePrice:         p.salePrice,
+      saleShipping:      p.saleShipping,
+      destination:       p.isUS ? "us" : "other",
+      ebayUrl:           p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl,
+      ebayTitle:         p.title,
+      status:            "sold",
+      actualEbayFeeUSD:  p.ebayFee,
+      actualPromoFeeUSD: p.promoFee,
+      ebayFeeRate:       p.isUSD ? appItem.ebayFeeRate : 0,
+      promotionRate:     p.isUSD ? appItem.promotionRate : 0,
+    };
+    onApply(patch);
+    setApplied(prev => new Set([...prev, order.orderId]));
+    setPicking(null);
+  };
+
+  // 紐付け対象候補（未売却・出品中・自宅保管・未出品）
+  const candidates = items.filter(i =>
+    !i.isJunk && !applied.has(i.id) &&
+    ["unsold","unlisted","stored"].includes(i.status) &&
+    (!i.bundleGroupId || i.isBundleLeader)
+  );
+
+  return (
+    <Modal title="🔄 eBay 注文同期" onClose={onClose} width={640}>
+      {loading ? (
+        <div style={{ textAlign:"center", padding:"40px 0", fontFamily:C.jp, color:C.muted }}>
+          <div style={{ fontSize:32, marginBottom:12 }}>🔄</div>
+          注文データを取得中…
+        </div>
+      ) : error ? (
+        <div style={{ padding:"20px", background:C.redLo, borderRadius:10, color:C.red, fontFamily:C.jp, fontSize:13 }}>
+          ❌ {error}
+          <div style={{ marginTop:8, fontSize:11, color:C.muted }}>トークンが期限切れの場合は再接続してください</div>
+        </div>
+      ) : orders.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"40px 0", color:C.muted, fontFamily:C.jp }}>最近の注文がありません</div>
+      ) : (
+        <div>
+          <div style={{ fontFamily:C.jp, fontSize:12, color:C.muted, marginBottom:12 }}>{orders.length}件の注文を取得しました</div>
+          <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            {orders.map(order => {
+              const p = parseOrder(order);
+              const isApplied = applied.has(order.orderId);
+              return (
+                <div key={order.orderId} style={{ border:`1px solid ${isApplied ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: isApplied ? C.greenLo : C.card }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                        {p.title}
+                      </div>
+                      <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+                        <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>
+                          {p.isUSD ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
+                        </span>
+                        <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
+                        <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
+                        {!p.isUSD && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
+                      </div>
+                      <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}</div>
+                    </div>
+                    <div>
+                      {isApplied ? (
+                        <span style={{ fontSize:12, color:C.green, fontFamily:C.jp, fontWeight:700 }}>✅ 適用済み</span>
+                      ) : (
+                        <button style={btnS("primary",{fontSize:11,padding:"5px 12px"})}
+                          onClick={()=>setPicking(order)}>紐付け</button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* 商品選択ピッカー */}
+      {picking && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:480, maxHeight:"80vh", overflow:"auto" }}>
+            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>どの商品ですか？</span>
+              <button onClick={()=>setPicking(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted }}><X size={16}/></button>
+            </div>
+            <div style={{ padding:"8px 12px", background:C.accentLo, borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ fontFamily:C.jp, fontSize:12, color:C.accent, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                🔗 {parseOrder(picking).title}
+              </div>
+            </div>
+            <div style={{ padding:12 }}>
+              {candidates.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"20px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐付け候補がありません</div>
+              ) : candidates.map(item => (
+                <div key={item.id} onClick={()=>handleLink(picking, item)}
+                  style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:8, cursor:"pointer", border:`1px solid ${C.border}`, marginBottom:6, transition:"background .1s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=C.accentLo}
+                  onMouseLeave={e=>e.currentTarget.style.background=""}>
+                  {item.photos?.[0] && <img src={item.photos[0]} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:"cover", flexShrink:0 }}/>}
+                  <div style={{ minWidth:0 }}>
+                    <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||"—"}</div>
+                    <div style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber} · {yen(item.cost)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
 // Search Modal（絞り込み検索）
 // ═══════════════════════════════════════════════════════════════
 function SearchModal({ items, onClose }) {
@@ -2514,6 +2730,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showRight, setShowRight]   = useState(true);
   const [showReport, setShowReport] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [showSync,   setShowSync]   = useState(false);
   const [showNewForm, setShowNewForm] = useState(true);
 
   const selectedItem = selectedId ? items.find(i=>i.id===selectedId) : null;
@@ -2563,6 +2780,9 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         <div style={{ marginLeft:"auto", display:"flex", gap:8 }}>
           <button onClick={()=>setShowSearch(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>🔍 検索</button>
           <button onClick={()=>setShowReport(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📊 レポート</button>
+          {ebayAuth?.accessToken && ebayAuth?.tokenExpiry > Date.now() && (
+            <button onClick={()=>setShowSync(true)} style={btnS("secondary",{fontSize:12,padding:"5px 14px",color:C.green,borderColor:`${C.green}40`})}>🔄 同期</button>
+          )}
           <label style={btnS("secondary",{fontSize:12,cursor:"pointer",padding:"5px 14px"})}>📥 取込<input type="file" accept=".json" onChange={onImport} style={{display:"none"}}/></label>
           {items.length>0&&<button onClick={onExport} style={btnS("secondary",{fontSize:12,padding:"5px 14px"})}>📤 出力</button>}
           <button onClick={openNewForm} style={btnS("primary",{fontSize:13,padding:"5px 16px"})}><Plus size={13}/> 新規追加</button>
@@ -2679,6 +2899,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); }}/>}
     </div>
   );
 }
