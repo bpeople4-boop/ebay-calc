@@ -1713,7 +1713,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 // ═══════════════════════════════════════════════════════════════
 // eBay Sync Modal（注文同期）
 // ═══════════════════════════════════════════════════════════════
-function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
+function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
@@ -1787,8 +1787,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
-    const fallbackRate = Number.isFinite(+appItem.exchangeRate) && +appItem.exchangeRate > 0
-      ? +appItem.exchangeRate : 158;
+    // 取得失敗時は settings の設定値を使用（appItem の既存値ではなく）
+    const fallbackRate = (settings?.exchangeRate && Number.isFinite(+settings.exchangeRate) && +settings.exchangeRate > 0)
+      ? +settings.exchangeRate : 158;
     let exchangeRate = fallbackRate;
     if (p.saleDate) {
       try {
@@ -3057,7 +3058,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id) setFormKey(k=>k+1); }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id) setFormKey(k=>k+1); }}/>}
     </div>
   );
 }
