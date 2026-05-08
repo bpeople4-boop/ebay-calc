@@ -104,6 +104,58 @@ const elapsedColor = (days, isSold) => {
   return C.red;
 };
 
+// ── eBay OAuth ─────────────────────────────────────────────────
+const EBAY_SCOPES = [
+  "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
+  "https://api.ebay.com/oauth/api_scope/sell.finances",
+].join(" ");
+const EBAY_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
+const EBAY_AUTH_URL  = "https://auth.ebay.com/oauth2/authorize";
+const DEFAULT_EBAY_AUTH = {
+  clientId: "", clientSecret: "",
+  ruName: "Kanami_Yamamoto-KanamiYa-Canamy-fphmhx",
+  accessToken: "", refreshToken: "", tokenExpiry: 0,
+};
+
+async function ebayExchangeCode(code, { clientId, clientSecret, ruName }) {
+  const res = await fetch(EBAY_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + btoa(clientId + ":" + clientSecret),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ grant_type:"authorization_code", code, redirect_uri:ruName }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || `HTTP ${res.status}`);
+  return data;
+}
+
+async function ebayRefreshAccessToken({ clientId, clientSecret, refreshToken }) {
+  const res = await fetch(EBAY_TOKEN_URL, {
+    method: "POST",
+    headers: {
+      "Authorization": "Basic " + btoa(clientId + ":" + clientSecret),
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ grant_type:"refresh_token", refresh_token:refreshToken, scope:EBAY_SCOPES }),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error_description || `HTTP ${res.status}`);
+  return data;
+}
+
+function buildAuthUrl({ clientId, ruName }) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: "code",
+    redirect_uri: ruName,
+    scope: EBAY_SCOPES,
+    state: "ebay_oauth_" + Date.now(),
+  });
+  return EBAY_AUTH_URL + "?" + params.toString();
+}
+
 // ── Settings defaults ─────────────────────────────────────────
 const DEFAULT_SETTINGS = {
   exchangeRate: 158,
@@ -985,7 +1037,7 @@ function SplitModal({ item, onConfirm, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 // MiniCalc（デスクトップ右パネル上部）
 // ═══════════════════════════════════════════════════════════════
-function MiniCalc({ settings, onSettingsChange }) {
+function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
   const [mode, setMode]       = useState("forward");
   const [v, setV]             = useState("");
   const [showCfg, setShowCfg] = useState(false);
@@ -1072,6 +1124,53 @@ function MiniCalc({ settings, onSettingsChange }) {
                 <input style={inpS({ fontSize:12, padding:"5px 8px", background:"#fff" })} type="text" inputMode="decimal" value={catS[k]} onChange={e=>updateCatSetting(k, e.target.value)} />
               </div>
             ))}
+          </div>
+
+          {/* eBay API設定 */}
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
+            <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:10 }}>🔌 eBay API 連携</div>
+            {ebayAuth?.accessToken && ebayAuth?.tokenExpiry > Date.now() ? (
+              <div>
+                <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 12px", background:C.greenLo, border:`1px solid ${C.green}30`, borderRadius:8, marginBottom:8 }}>
+                  <span style={{ color:C.green, fontSize:13 }}>✅</span>
+                  <span style={{ fontFamily:C.jp, fontSize:12, color:C.green, fontWeight:700 }}>接続済み</span>
+                  <span style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginLeft:"auto" }}>
+                    期限: {new Date(ebayAuth.tokenExpiry).toLocaleDateString("ja-JP")}
+                  </span>
+                </div>
+                <button style={btnS("danger",{fontSize:11,padding:"4px 10px",width:"100%",justifyContent:"center"})}
+                  onClick={()=>onEbayAuthChange({...DEFAULT_EBAY_AUTH, clientId:ebayAuth.clientId, clientSecret:ebayAuth.clientSecret, ruName:ebayAuth.ruName})}>
+                  🔓 切断する
+                </button>
+              </div>
+            ) : (
+              <div>
+                {(!ebayAuth?.accessToken && ebayAuth?.refreshToken) && (
+                  <div style={{ padding:"7px 10px", background:C.amberLo, border:`1px solid ${C.amber}30`, borderRadius:7, marginBottom:8, fontFamily:C.jp, fontSize:11, color:C.amber }}>
+                    ⚠️ トークンが期限切れです。再接続してください
+                  </div>
+                )}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr", gap:6, marginBottom:8 }}>
+                  {[["clientId","App ID（Client ID）","KanamiYa-CanamyCa-PRD-..."],["clientSecret","Cert ID（Client Secret）","PRD-..."],["ruName","RuName","Kanami_Yamamoto-..."]].map(([k,l,ph])=>(
+                    <div key={k}>
+                      <span style={lblS()}>{l}</span>
+                      <input style={inpS({ fontSize:11, padding:"5px 8px", background:"#fff", fontFamily:C.num })}
+                        type={k==="clientSecret"?"password":"text"}
+                        placeholder={ph}
+                        value={ebayAuth?.[k]||""}
+                        onChange={e=>onEbayAuthChange({...ebayAuth,[k]:e.target.value})}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <button
+                  disabled={!ebayAuth?.clientId || !ebayAuth?.clientSecret || !ebayAuth?.ruName}
+                  style={btnS("primary",{fontSize:12,padding:"7px 12px",width:"100%",justifyContent:"center",opacity:(!ebayAuth?.clientId||!ebayAuth?.clientSecret||!ebayAuth?.ruName)?0.4:1})}
+                  onClick={()=>{ window.location.href = buildAuthUrl({ clientId:ebayAuth.clientId, ruName:ebayAuth.ruName }); }}>
+                  🔑 eBayにログインして接続
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -2409,7 +2508,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
 // ═══════════════════════════════════════════════════════════════
 // Desktop App Layout
 // ═══════════════════════════════════════════════════════════════
-function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onBundleAddMember, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange }) {
+function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onBundleAddMember, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedBundleGroupId, setSelectedBundleGroupId] = useState(null);
   const [formKey, setFormKey]       = useState(0);
@@ -2516,7 +2615,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
               onMouseLeave={e=>e.currentTarget.style.color=C.muted}>✕</button>
           </div>
           <div style={{ padding:"0 18px 16px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
-            <MiniCalc settings={settings} onSettingsChange={onSettingsChange} />
+            <MiniCalc settings={settings} onSettingsChange={onSettingsChange} ebayAuth={ebayAuth} onEbayAuthChange={onEbayAuthChange} />
             {selectedBundleGroupId && bundleLeader && !updated ? (
               <>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
@@ -2599,17 +2698,19 @@ function App() {
   const [settings,    setSettings]    = useState(DEFAULT_SETTINGS);
   const [returnItem,  setReturnItem]  = useState(null);
   const [splitItem,   setSplitItem]   = useState(null);
+  const [ebayAuth,    setEbayAuth]    = useState(DEFAULT_EBAY_AUTH);
+  const [oauthMsg,    setOauthMsg]    = useState("");
 
   useEffect(() => {
     (async()=>{
       try { const r=await window.storage.get("ebay_v3_settings"); if(r?.value) setSettings(prev=>({...DEFAULT_SETTINGS,...JSON.parse(r.value)})); } catch(_){}
+      try { const r=await window.storage.get("ebay_oauth_config"); if(r?.value) setEbayAuth({...DEFAULT_EBAY_AUTH,...JSON.parse(r.value)}); } catch(_){}
       try {
         const r=await window.storage.get("ebay_v2_items");
         if(r?.value) {
           const loaded = JSON.parse(r.value);
           const corrected = loaded.map(i => {
             const hasSaleDate = !!(i.saleDate && i.saleDate !== "" && !i.saleDate.startsWith("1900"));
-            // 落札日あり → sold、なし → 既存statusを優先しつつ"sold"なら"unsold"に補正
             if (hasSaleDate && i.status !== "returned") return { ...i, status: "sold" };
             if (!hasSaleDate && i.status === "sold") return { ...i, status: "unsold" };
             return i;
@@ -2617,11 +2718,59 @@ function App() {
           setItems(corrected);
         }
       } catch(_){}
+
+      // OAuthコールバック処理
+      const params = new URLSearchParams(window.location.search);
+      const code = params.get("code");
+      if (code) {
+        history.replaceState({}, "", window.location.pathname);
+        try {
+          const authR = await window.storage.get("ebay_oauth_config");
+          const auth = authR?.value ? {...DEFAULT_EBAY_AUTH,...JSON.parse(authR.value)} : DEFAULT_EBAY_AUTH;
+          if (auth.clientId && auth.clientSecret && auth.ruName) {
+            setOauthMsg("🔄 eBayトークンを取得中…");
+            const data = await ebayExchangeCode(code, auth);
+            const newAuth = {
+              ...auth,
+              accessToken: data.access_token,
+              refreshToken: data.refresh_token || auth.refreshToken,
+              tokenExpiry: Date.now() + (data.expires_in || 7200) * 1000,
+            };
+            setEbayAuth(newAuth);
+            await window.storage.set("ebay_oauth_config", JSON.stringify(newAuth));
+            setOauthMsg("✅ eBay接続成功！");
+            setTimeout(() => setOauthMsg(""), 4000);
+          }
+        } catch(e) {
+          setOauthMsg("❌ 接続エラー: " + e.message);
+          setTimeout(() => setOauthMsg(""), 8000);
+        }
+      }
+
       setLoaded(true);
     })();
   },[]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_v2_items", JSON.stringify(items)).catch(()=>{}); },[items,loaded]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_v3_settings", JSON.stringify(settings)).catch(()=>{}); },[settings,loaded]);
+  useEffect(() => { if(!loaded) return; window.storage.set("ebay_oauth_config", JSON.stringify(ebayAuth)).catch(()=>{}); },[ebayAuth,loaded]);
+
+  // eBayトークン自動リフレッシュ（期限5分前）
+  useEffect(() => {
+    if (!ebayAuth.refreshToken || !ebayAuth.clientId || !ebayAuth.clientSecret) return;
+    const msUntilRefresh = ebayAuth.tokenExpiry - Date.now() - 5 * 60 * 1000;
+    if (msUntilRefresh <= 0) return;
+    const timer = setTimeout(async () => {
+      try {
+        const data = await ebayRefreshAccessToken(ebayAuth);
+        setEbayAuth(prev => ({
+          ...prev,
+          accessToken: data.access_token,
+          tokenExpiry: Date.now() + (data.expires_in || 7200) * 1000,
+        }));
+      } catch(e) { console.warn("Token refresh failed:", e); }
+    }, msUntilRefresh);
+    return () => clearTimeout(timer);
+  },[ebayAuth.tokenExpiry]);
 
   const handleSave = (form) => {
     if (form.id) { setItems(p => p.map(i => i.id===form.id ? form : i)); }
@@ -2751,6 +2900,16 @@ function App() {
   return (
     <div style={{ fontFamily:C.jp, background:C.bg }}>
       <style>{globalStyle}</style>
+      {oauthMsg && (
+        <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", zIndex:999,
+          background: oauthMsg.startsWith("✅") ? C.greenLo : oauthMsg.startsWith("❌") ? C.redLo : C.accentLo,
+          border: `1px solid ${oauthMsg.startsWith("✅") ? C.green : oauthMsg.startsWith("❌") ? C.red : C.accent}40`,
+          borderRadius:10, padding:"10px 20px", fontFamily:C.jp, fontSize:13, fontWeight:700,
+          color: oauthMsg.startsWith("✅") ? C.green : oauthMsg.startsWith("❌") ? C.red : C.accent,
+          boxShadow:C.shadowMd, whiteSpace:"nowrap" }}>
+          {oauthMsg}
+        </div>
+      )}
       <DesktopApp
         items={items} onSave={handleSave} onDelete={handleDelete}
         onReturn={handleReturnOpen} onReturnConfirm={handleReturnConfirm}
@@ -2762,6 +2921,7 @@ function App() {
         returnItem={returnItem}   setReturnItem={setReturnItem}
         splitItem={splitItem}     setSplitItem={setSplitItem}
         settings={settings}       onSettingsChange={setSettings}
+        ebayAuth={ebayAuth}       onEbayAuthChange={setEbayAuth}
       />
     </div>
   );
