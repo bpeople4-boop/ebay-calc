@@ -281,9 +281,9 @@ const C = {
   num:'"Inter","Segoe UI","Helvetica Neue","Arial",sans-serif',
   jp:'"Noto Sans JP","Hiragino Sans","Yu Gothic UI","Meiryo",sans-serif',
 };
-const pColor = r => r > 0.1 ? C.green : r > 0 ? C.amber : C.red;
+const pColor = r => (!r || !isFinite(r)) ? C.muted : r > 0.1 ? C.green : r > 0 ? C.amber : C.red;
 const pColorSafe = (jpy, rate) => jpy > 0 ? C.green : jpy === 0 ? C.amber : C.red;
-const pBg    = r => r > 0.1 ? C.greenLo : r > 0 ? C.amberLo : C.redLo;
+const pBg    = r => (!r || !isFinite(r)) ? C.bg : r > 0.1 ? C.greenLo : r > 0 ? C.amberLo : C.redLo;
 
 const CURSOR_EW = `url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0Ij48cGF0aCBkPSJNOCA3bC01IDUgNSA1TTE2IDdsNSA1LTUgNSIgc3Ryb2tlPSIjMjIyIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBmaWxsPSJub25lIi8+PGxpbmUgeDE9IjQiIHkxPSIxMiIgeDI9IjIwIiB5Mj0iMTIiIHN0cm9rZT0iIzIyMiIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz48L3N2Zz4K") 12 12, col-resize`;
 
@@ -1252,8 +1252,6 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     allMembers.map(i => ({ id:i.id, name:i.productName||"—", cost:String(i.cost||0), storageShipping:String(i.storageShipping||0), managementNumber:i.managementNumber, purchaseUrl:i.purchaseUrl||"", serialNumber:i.serialNumber||"" }))
   );
   const [showAddPicker, setShowAddPicker] = useState(false);
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateError,   setRateError]   = useState("");
   const [showOffer,   setShowOffer]   = useState(false);
   const [offerPrice,  setOfferPrice]  = useState("");
 
@@ -1488,14 +1486,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>為替レート</span>
-            <div style={{ display:"flex", gap:6 }}>
-              <input style={inpS({ flex:1 })} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
-              <button type="button" onClick={()=>fetchExchangeRate(r=>setForm(p=>({...p,exchangeRate:r})),setRateError,setRateLoading)} disabled={rateLoading}
-                style={{ ...btnS("secondary",{ padding:"0 10px", fontSize:11, flexShrink:0 }), ...(rateLoading?{opacity:.6}:{}) }}>
-                {rateLoading?"…":"🔄"}
-              </button>
-            </div>
-            {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4 }}>{rateError}</div>}
+            <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
           <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
@@ -1722,32 +1713,46 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
     };
   };
 
-  const handleLink = (order, appItem) => {
+  const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
+
+    // 修正①: 落札日の為替レートを取得してセット（失敗時は既存レートをそのまま使用）
+    let exchangeRate = appItem.exchangeRate || 158;
+    if (p.saleDate) {
+      try {
+        const res = await fetch(`https://api.frankfurter.app/${p.saleDate}?from=USD&to=JPY`);
+        const data = await res.json();
+        if (data.rates?.JPY) exchangeRate = Math.round(data.rates.JPY);
+      } catch(_) {}
+    }
+
     const patch = {
       ...appItem,
-      saleDate:          p.saleDate,
-      salePrice:         p.salePrice,
-      saleShipping:      p.saleShipping,
-      destination:       p.isUS ? "us" : "other",
-      ebayUrl:           p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl,
-      ebayTitle:         p.title,
-      status:            "sold",
-      actualEbayFeeUSD:  p.isUS ? (p.ebayFee !== "0" ? p.ebayFee : "") : "0",
-      actualPromoFeeUSD: p.isUS ? (p.promoFee !== "0" ? p.promoFee : "") : "0",
-      ebayFeeRate:       p.isUS ? appItem.ebayFeeRate : 0,
-      promotionRate:     p.isUS ? appItem.promotionRate : 0,
-      ebayOrderId:       order.orderId,
-      ebaySynced:        true,
+      saleDate:           p.saleDate,
+      salePrice:          p.salePrice,
+      saleShipping:       p.saleShipping,
+      destination:        p.isUS ? "us" : "other",
+      ebayUrl:            p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl,
+      ebayTitle:          p.title,
+      status:             "sold",
+      actualEbayFeeUSD:   p.isUS ? (p.ebayFee !== "0" ? p.ebayFee : "") : "0",
+      actualPromoFeeUSD:  p.isUS ? (p.promoFee !== "0" ? p.promoFee : "") : "0",
+      ebayFeeRate:        p.isUS ? appItem.ebayFeeRate : 0,
+      promotionRate:      p.isUS ? appItem.promotionRate : 0,
+      ebayOrderId:        order.orderId,
+      ebaySynced:         true,
+      exchangeRate:       exchangeRate,      // 落札日の為替をセット
+      exchangeRateLocked: true,             // 自動上書き防止
     };
     onApply(patch);
     setApplied(prev => new Set([...prev, order.orderId]));
     setPicking(null);
   };
 
-  // 紐付け対象候補（未売却・出品中・自宅保管・未出品）
+  // 紐付け対象候補（未売却・出品中・自宅保管・未出品 / 同期済みを除外）
   const candidates = items.filter(i =>
     !i.isJunk && !applied.has(i.id) &&
+    !i.ebaySynced &&                           // 修正②: 同期済みを除外
     ["unsold","unlisted","stored"].includes(i.status) &&
     (!i.bundleGroupId || i.isBundleLeader)
   );
@@ -2449,7 +2454,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     const c=calcFull(i); return s+(c?c.profitJPY:0);
   },0) : 0;
   const totalRevenue = soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
-  const avgRate      = soldCalcs.length ? soldCalcs.reduce((s,c)=>s+c.profitRate,0)/soldCalcs.length : 0;
+  const validRateCalcs = soldCalcs.filter(c => c.profitRate != null && isFinite(c.profitRate));
+  const avgRate      = validRateCalcs.length ? validRateCalcs.reduce((s,c)=>s+c.profitRate,0)/validRateCalcs.length : 0;
   const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk&&i.status!=="purchaseReturned").length;
   // 総原価：バンドルはリーダー＋メンバー合算、単品はそのまま（重複カウント防止）
   const totalCostAll = filtered.filter(i => !i.bundleGroupId || i.isBundleLeader).reduce((s, i) => {
