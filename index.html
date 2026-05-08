@@ -190,6 +190,14 @@ const DEFAULT_SETTINGS = {
 const getCatSettings = (cat, settings) => cat === "watch" ? settings.watch : settings.camera;
 
 // ── Exchange rate fetch ───────────────────────────────────────
+async function fetchHistoricalRate(date, onSuccess) {
+  try {
+    const res = await fetch(`https://api.frankfurter.app/${date}?from=USD&to=JPY`);
+    const data = await res.json();
+    if (data.rates?.JPY) onSuccess(Math.round(data.rates.JPY));
+  } catch(_) {}
+}
+
 async function fetchExchangeRate(onSuccess, onError, onLoading) {
   onLoading(true);
   try {
@@ -535,6 +543,14 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const [rateError,   setRateError]   = useState("");
   const [showOffer,   setShowOffer]   = useState(false);
   const [offerPrice,  setOfferPrice]  = useState("");
+
+  // 落札日が入力されたら自動で為替レートを取得
+  useEffect(() => {
+    if (!form.saleDate || form.exchangeRateLocked) return;
+    fetchHistoricalRate(form.saleDate, r => {
+      setForm(p => ({ ...p, exchangeRate: r }));
+    });
+  }, [form.saleDate]);
 
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
   const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
@@ -2915,7 +2931,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id) setFormKey(k=>k+1); }}/>}
     </div>
   );
 }
