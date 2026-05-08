@@ -171,7 +171,7 @@ async function ebayFetchTransactions(accessToken) {
 }
 
 async function ebayFetchTransactionByOrder(accessToken, orderId) {
-  const url = `https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D,orderId%3A%7B${orderId}%7D&limit=5`;
+  const url = `https://apiz.ebay.com/sell/finances/v1/transaction?filter=orderId%3A%7B${orderId}%7D&limit=5`;
   const res = await fetch("/api/ebay-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -587,9 +587,9 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
       return;
     }
-    // 出品中 → 売却済み: 実績手数料未入力なら警告を出しつつ、ステータスは変更して入力欄を表示
+    // 出品中 → 売却済み: 実績手数料未入力でも保存可能（警告のみ）
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
-      setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから保存してください");
+      setStatusWarn("ℹ️ 実績手数料は後から入力できます（空欄時は概算値を使用）");
       setForm(p => ({ ...p, status: "sold" }));
       return;
     }
@@ -939,15 +939,15 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       {/* ── 保存ボタン ── */}
       {(() => {
         const needsFeeCheck = initial.id && (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
-        const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
+        const feeWarn = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
         const catError = !form.category;
         return (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-            {feeError && <div style={{ background:C.redLo, border:`1px solid ${C.red}40`, borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:C.red }}>⚠️ 「eBay落札手数料」「プロモート費用」を入力してください（不使用の場合は0）。空欄のまま更新すると概算値が使われます。</div>}
+            {feeWarn && <div style={{ background:C.amberLo, border:`1px solid ${C.amber}40`, borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:C.amber }}>⚠️ 実績手数料未入力。空欄のまま保存すると概算値が使われます。</div>}
             {catError && <div style={{ background:"#fffbe6", border:"1px solid #f5a623", borderRadius:8, padding:"8px 12px", fontFamily:C.jp, fontSize:12, color:"#b07800" }}>⚠️ カテゴリが選択されていません。選択してから保存してください。</div>}
             <div style={{ display:"flex", gap:10 }}>
-              <button onClick={()=>{ if(catError) return; const needsCheck=initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0; if(needsCheck&&(!form.actualEbayFeeUSD||form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)){return;} onSave({ ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" }); }}
-                style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15, opacity:(catError||(initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(!form.actualEbayFeeUSD||form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)))?0.4:1 })}>
+              <button onClick={()=>{ if(catError) return; onSave({ ...form, ddpSurcharge:form.destination==="us"?autoDdp:"0" }); }}
+                style={btnS("primary",{ flex:1, justifyContent:"center", padding:13, fontSize:15, opacity:catError?0.4:1 })}>
                 {initial.id?"更新する":"追加する"}
               </button>
               <button onClick={onCancel} style={btnS("ghost",{ padding:"13px 20px" })}>キャンセル</button>
@@ -1723,10 +1723,12 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
       ebayUrl:           p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl,
       ebayTitle:         p.title,
       status:            "sold",
-      actualEbayFeeUSD:  p.ebayFee,
-      actualPromoFeeUSD: p.promoFee,
+      actualEbayFeeUSD:  p.ebayFee !== "0" ? p.ebayFee : "",
+      actualPromoFeeUSD: p.promoFee !== "0" ? p.promoFee : "",
       ebayFeeRate:       p.isUSD ? appItem.ebayFeeRate : 0,
       promotionRate:     p.isUSD ? appItem.promotionRate : 0,
+      ebayOrderId:       order.orderId,
+      ebaySynced:        true,
     };
     onApply(patch);
     setApplied(prev => new Set([...prev, order.orderId]));
