@@ -170,6 +170,17 @@ async function ebayFetchTransactions(accessToken) {
   return res.json();
 }
 
+async function ebayFetchTransactionByOrder(accessToken, orderId) {
+  const url = `https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D,orderId%3A%7B${orderId}%7D&limit=5`;
+  const res = await fetch("/api/ebay-api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url, accessToken }),
+  });
+  if (!res.ok) return { transactions: [] };
+  return res.json();
+}
+
 // ── Settings defaults ─────────────────────────────────────────
 const DEFAULT_SETTINGS = {
   exchangeRate: 158,
@@ -1635,17 +1646,18 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
     (async () => {
       try {
         setLoading(true);
-        const [ordersData, txData] = await Promise.all([
-          ebayFetchOrders(ebayAuth.accessToken),
-          ebayFetchTransactions(ebayAuth.accessToken),
-        ]);
-        const map = {};
-        (txData.transactions || []).forEach(tx => {
-          const oid = tx.orderId;
-          if (oid) map[oid] = tx;
-        });
-        setTxMap(map);
+        const ordersData = await ebayFetchOrders(ebayAuth.accessToken);
         setOrders(ordersData.orders || []);
+        // Finances APIは注文ごとに後から取得
+        const map = {};
+        await Promise.allSettled((ordersData.orders || []).map(async order => {
+          try {
+            const txData = await ebayFetchTransactionByOrder(ebayAuth.accessToken, order.orderId);
+            const tx = (txData.transactions || []).find(t => t.orderId === order.orderId);
+            if (tx) map[order.orderId] = tx;
+          } catch(_) {}
+        }));
+        setTxMap({...map});
       } catch(e) {
         setError(e.message);
       } finally {
