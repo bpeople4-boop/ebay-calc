@@ -1700,7 +1700,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
 
     let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
 
-    if (isUSD) {
+    if (isUS) {
       // US向け：落札価格はgross、手数料はFinances API実額
       salePrice    = line.lineItemCost?.value || "";
       saleShipping = order.pricingSummary?.deliveryCost?.value || "0";
@@ -1741,8 +1741,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
       status:            "sold",
       actualEbayFeeUSD:  p.ebayFee !== "0" ? p.ebayFee : "",
       actualPromoFeeUSD: p.promoFee !== "0" ? p.promoFee : "",
-      ebayFeeRate:       p.isUSD ? appItem.ebayFeeRate : 0,
-      promotionRate:     p.isUSD ? appItem.promotionRate : 0,
+      ebayFeeRate:       p.isUS ? appItem.ebayFeeRate : 0,
+      promotionRate:     p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:       order.orderId,
       ebaySynced:        true,
     };
@@ -1788,11 +1788,11 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply }) {
                       </div>
                       <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
                         <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>
-                          {p.isUSD ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
+                          {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
                         </span>
                         <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
                         <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
-                        {!p.isUSD && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
+                        {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
                       </div>
                       <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}</div>
                     </div>
