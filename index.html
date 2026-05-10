@@ -1155,8 +1155,6 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
   const [v, setV]             = useState("");
   const [showCfg, setShowCfg] = useState(false);
   const [cat, setCat]         = useState("camera");
-  const [rateLoading, setRateLoading] = useState(false);
-  const [rateError,   setRateError]   = useState("");
 
   const catS = settings[cat] || settings.camera;
   const cfg = { exchangeRate: settings.exchangeRate, ebayPct: catS.ebayPct, promoPct: catS.promoPct, shippingJPY: catS.shippingJPY, targetPct: catS.targetPct };
@@ -1221,10 +1219,7 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
             <span style={lblS()}>為替（¥/$）共通</span>
             <div style={{ display:"flex", gap:6 }}>
               <input style={inpS({ fontSize:12, padding:"5px 8px", background:"#fff", flex:1 })} type="text" inputMode="decimal" value={settings.exchangeRate} onChange={e=>updateRate(e.target.value)} />
-              <button onClick={()=>fetchExchangeRate(r=>updateRate(r),setRateError,setRateLoading)} disabled={rateLoading}
-                style={btnS("secondary",{ padding:"0 8px", fontSize:10, flexShrink:0 })}>{rateLoading?"…":"🔄"}</button>
             </div>
-            {rateError && <div style={{ color:C.red, fontSize:10, marginTop:3 }}>{rateError}</div>}
           </div>
           {/* カテゴリ別設定 */}
           <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:8 }}>
@@ -1717,6 +1712,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
+  const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
   const [picking,  setPicking]  = useState(null);
   const [tab,      setTab]      = useState("pending");
@@ -1821,13 +1817,34 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       rateSaleDate:       p.saleDate,
     };
     onApply(patch);
+    setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
     setPicking(null);
+  };
+
+  const handleUnlink = (appItem) => {
+    if (!appItem) return;
+    if (!window.confirm("紐づけを解除しますか？\n売却情報がリセットされます。")) return;
+    const patch = {
+      ...appItem,
+      ebaySynced: false,
+      ebayOrderId: "",
+      saleDate: "",
+      salePrice: "",
+      saleShipping: "",
+      actualEbayFeeUSD: "",
+      actualPromoFeeUSD: "",
+      exchangeRateLocked: false,
+      rateNotFetched: false,
+      status: "unsold",
+    };
+    onApply(patch);
+    setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
   };
 
   // 紐づけ済み判定: items の ebayOrderId と orders の orderId を照合
   // これにより モーダルを閉じて再度開いても状態が維持される
   const linkedItemByOrderId = {};
-  items.forEach(i => {
+  localItems.forEach(i => {
     if (i.ebaySynced && i.ebayOrderId) linkedItemByOrderId[i.ebayOrderId] = i;
   });
 
@@ -1835,7 +1852,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const linkedOrders  = orders.filter(o =>  linkedItemByOrderId[o.orderId]);
 
   // 候補: ebaySynced済みを除外
-  const candidates = items.filter(i =>
+  const candidates = localItems.filter(i =>
     !i.isJunk &&
     !i.ebaySynced &&
     ["unsold","unlisted","stored"].includes(i.status) &&
@@ -1851,7 +1868,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     transition:"all .15s",
   });
 
-  const OrderCard = ({ order, linked }) => {
+  const OrderCard = ({ order, linked, onApply }) => {
     const p = parseOrder(order);
     const linkedItem = linkedItemByOrderId[order.orderId];
     return (
@@ -1888,6 +1905,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
               </div>
             )}
           </div>
+          {linked && linkedItem && (
+            <button style={btnS("danger",{fontSize:11,padding:"5px 12px",flexShrink:0})}
+              onClick={()=>onApply(linkedItem)}>解除</button>
+          )}
           {!linked && (
             <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
               onClick={()=>setPicking(order)}>紐づけ</button>
@@ -1926,7 +1947,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {pendingOrders.length === 0
                 ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐づけの注文はありません</div>
-                : pendingOrders.map(order => <OrderCard key={order.orderId} order={order} linked={false}/>)
+                : pendingOrders.map(order => <OrderCard key={order.orderId} order={order} linked={false} onApply={handleUnlink}/>)
               }
             </div>
           )}
@@ -1935,7 +1956,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {linkedOrders.length === 0
                 ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>まだ紐づけした注文はありません</div>
-                : linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true}/>)
+                : linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)
               }
             </div>
           )}
