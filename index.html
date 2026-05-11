@@ -1807,8 +1807,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     if (err) throw new Error("Trading API XML parse error");
     const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
     const items = Array.from(activeList?.getElementsByTagName("*") || [])
-      .filter(n => n.localName === "Item");
-    console.log("GetMyeBaySelling first item outerHTML:", items[0]?.outerHTML || "");
+      .filter(n => n.localName === "Item" && xmlText(n, "SellerProfiles.SellerShippingProfile.ShippingProfileName").includes("US"));
     return items.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
