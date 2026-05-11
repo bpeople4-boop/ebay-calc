@@ -1818,6 +1818,18 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
     });
+    console.log("GetMyeBaySelling filtered out items:", items.filter(item => {
+      const listingDetails = xmlChildren(item, "ListingDetails")[0];
+      return !(xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item));
+    }).map(item => {
+      const listingDetails = xmlChildren(item, "ListingDetails")[0];
+      const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
+      const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
+      return {
+        viewItemURL: xmlText(listingDetails, "ViewItemURL"),
+        currencyID: (buyItNowNode || currentNode)?.getAttribute("currencyID") || "",
+      };
+    }));
     return filteredItems.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
