@@ -108,6 +108,7 @@ const elapsedColor = (days, isSold) => {
 const EBAY_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
   "https://api.ebay.com/oauth/api_scope/sell.finances",
+  "https://api.ebay.com/oauth/api_scope/sell.inventory.readonly",
 ].join(" ");
 const EBAY_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const EBAY_AUTH_URL  = "https://auth.ebay.com/oauth2/authorize";
@@ -156,8 +157,9 @@ async function ebayFetchOrders(accessToken) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url:"https://api.ebay.com/sell/fulfillment/v1/order?limit=20", accessToken }),
   });
-  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Fulfillment API error: ${res.status}`); }
-  return res.json();
+  const payload = await res.json().catch(()=>({}));
+  if (!res.ok) { const e = payload.data || payload; throw new Error(e?.errors?.[0]?.message || `Fulfillment API error: ${res.status}`); }
+  return payload.data || payload;
 }
 
 async function ebayFetchTransactions(accessToken) {
@@ -166,8 +168,9 @@ async function ebayFetchTransactions(accessToken) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url:"https://api.ebay.com/sell/finances/v1/transaction?filter=transactionType%3A%7BSALE%7D&limit=20", accessToken }),
   });
-  if (!res.ok) { const e = await res.json().catch(()=>{}); throw new Error(e?.errors?.[0]?.message || `Finances API error: ${res.status}`); }
-  return res.json();
+  const payload = await res.json().catch(()=>({}));
+  if (!res.ok) { const e = payload.data || payload; throw new Error(e?.errors?.[0]?.message || `Finances API error: ${res.status}`); }
+  return payload.data || payload;
 }
 
 async function ebayFetchTransactionByOrder(accessToken, orderId) {
@@ -178,7 +181,43 @@ async function ebayFetchTransactionByOrder(accessToken, orderId) {
     body: JSON.stringify({ url, accessToken }),
   });
   if (!res.ok) return { transactions: [] };
-  return res.json();
+  const payload = await res.json().catch(()=>({}));
+  return payload.data || payload;
+}
+
+async function ebayFetchActiveListings(accessToken) {
+  const xml = `<?xml version="1.0" encoding="utf-8"?>
+<GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
+  <RequesterCredentials>
+    <eBayAuthToken>${accessToken}</eBayAuthToken>
+  </RequesterCredentials>
+  <ActiveList>
+    <Include>true</Include>
+    <Pagination>
+      <EntriesPerPage>100</EntriesPerPage>
+      <PageNumber>1</PageNumber>
+    </Pagination>
+  </ActiveList>
+</GetMyeBaySellingRequest>`;
+  const res = await fetch("/api/ebay-api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url:"https://api.ebay.com/ws/api.dll",
+      accessToken,
+      method:"POST",
+      headers: {
+        "X-EBAY-API-CALL-NAME": "GetMyeBaySelling",
+        "X-EBAY-API-SITEID": "0",
+        "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
+        "Content-Type": "text/xml",
+      },
+      body: xml,
+    }),
+  });
+  const payload = await res.json().catch(()=>({}));
+  if (!res.ok) throw new Error(`Trading API error: ${res.status}`);
+  return payload.data || "";
 }
 
 // ── Settings defaults ─────────────────────────────────────────
@@ -1712,17 +1751,28 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
+  const [activeListings, setActiveListings] = useState([]);
+  const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
   const [picking,  setPicking]  = useState(null);
-  const [tab,      setTab]      = useState("pending");
+  const [listingPicking, setListingPicking] = useState(null);
+  const [listingPickItemId, setListingPickItemId] = useState("");
+  const [tab,      setTab]      = useState("active");
 
   useEffect(() => {
     (async () => {
       try {
         setLoading(true);
-        const ordersData = await ebayFetchOrders(ebayAuth.accessToken);
+        const [ordersData, listingsXml] = await Promise.all([
+          ebayFetchOrders(ebayAuth.accessToken),
+          ebayFetchActiveListings(ebayAuth.accessToken).catch(e => {
+            setListingError(e.message);
+            return "";
+          }),
+        ]);
         setOrders(ordersData.orders || []);
+        if (listingsXml) setActiveListings(parseActiveListingsXml(listingsXml));
         const map = {};
         await Promise.allSettled((ordersData.orders || []).map(async order => {
           try {
@@ -1739,6 +1789,40 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       }
     })();
   }, []);
+
+  const xmlChildren = (node, name) =>
+    Array.from(node?.childNodes || []).filter(n => n.nodeType === 1 && n.localName === name);
+  const xmlText = (node, path) => {
+    let cur = node;
+    for (const part of path.split(".")) cur = xmlChildren(cur, part)[0];
+    return cur?.textContent?.trim() || "";
+  };
+  const xmlNum = (v, fallback = "0") => {
+    const n = parseFloat(String(v || "").replace(/,/g, ""));
+    return Number.isFinite(n) ? String(n) : fallback;
+  };
+  const parseActiveListingsXml = (xml) => {
+    const doc = new DOMParser().parseFromString(xml, "text/xml");
+    const err = doc.getElementsByTagName("parsererror")[0];
+    if (err) throw new Error("Trading API XML parse error");
+    const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
+    const items = Array.from(activeList?.getElementsByTagName("*") || []).filter(n => n.localName === "Item");
+    return items.map(item => {
+      const listingDetails = xmlChildren(item, "ListingDetails")[0];
+      const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
+      const shippingOptions = xmlChildren(shippingDetails, "ShippingServiceOptions")[0];
+      const buyItNow = xmlText(item, "BuyItNowPrice");
+      const current = xmlText(item, "SellingStatus.CurrentPrice") || xmlText(item, "CurrentPrice");
+      return {
+        itemId: xmlText(item, "ItemID"),
+        title: xmlText(item, "Title"),
+        salePrice: xmlNum(buyItNow || current, ""),
+        saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
+        ebayUrl: xmlText(listingDetails, "ViewItemURL"),
+        listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
+      };
+    }).filter(i => i.itemId || i.title);
+  };
 
   const countryFlag = code => {
     if (!code) return "🌍";
@@ -1858,6 +1942,48 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     ["unsold","unlisted","stored"].includes(i.status) &&
     (!i.bundleGroupId || i.isBundleLeader)
   );
+  const listingCandidates = localItems.filter(i =>
+    !i.isJunk &&
+    !i.ebaySynced &&
+    i.status === "unsold" &&
+    (!i.bundleGroupId || i.isBundleLeader)
+  );
+
+  const findListingLinkedMatch = (parsedOrder) =>
+    localItems.find(i =>
+      i.ebayListingLinked &&
+      !i.ebaySynced &&
+      (
+        (parsedOrder.title && i.ebayTitle && parsedOrder.title.trim() === i.ebayTitle.trim()) ||
+        (parsedOrder.itemId && i.ebayUrl && i.ebayUrl.includes(parsedOrder.itemId))
+      )
+    );
+
+  const handleListingPickOpen = (listing) => {
+    setListingPicking(listing);
+    const matched = listingCandidates.find(i =>
+      (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
+      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
+    );
+    setListingPickItemId(matched?.id || listingCandidates[0]?.id || "");
+  };
+
+  const handleListingLink = () => {
+    const appItem = listingCandidates.find(i => i.id === listingPickItemId);
+    if (!listingPicking || !appItem) return;
+    const patch = {
+      ...appItem,
+      ebayUrl: listingPicking.ebayUrl || appItem.ebayUrl,
+      ebayTitle: listingPicking.title || appItem.ebayTitle,
+      salePrice: listingPicking.salePrice || appItem.salePrice,
+      saleShipping: listingPicking.saleShipping || "0",
+      ebayListingLinked: true,
+    };
+    onApply(patch);
+    setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+    setListingPicking(null);
+    setListingPickItemId("");
+  };
 
   const tabS = (active) => ({
     padding:"8px 20px", border:"none", cursor:"pointer",
@@ -1871,6 +1997,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const OrderCard = ({ order, linked, onApply }) => {
     const p = parseOrder(order);
     const linkedItem = linkedItemByOrderId[order.orderId];
+    const listingLinkedItem = !linked ? findListingLinkedMatch(p) : null;
     return (
       <div style={{ border:`1px solid ${linked ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: linked ? C.greenLo : C.card }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -1885,6 +2012,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
               <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
               {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
+              {listingLinkedItem && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</span>}
             </div>
             <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}</div>
             {linked && linkedItem && (
@@ -1918,6 +2046,33 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
+  const ListingCard = ({ listing }) => {
+    const alreadyLinked = localItems.find(i => i.ebayListingLinked && (
+      (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
+      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
+    ));
+    return (
+      <div style={{ border:`1px solid ${alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:alreadyLinked ? C.indigoLo : C.card }}>
+        <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+          <div style={{ flex:1, minWidth:0 }}>
+            <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+              {listing.title || "Untitled"}
+            </div>
+            <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
+              <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listing.salePrice || "0"}</span>
+              <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>送料 ${listing.saleShipping || "0"}</span>
+              <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{listing.listingDate || "日付なし"}</span>
+              {alreadyLinked && <span style={{ fontSize:10, color:C.indigo, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>#{alreadyLinked.managementNumber} 紐付け済み</span>}
+            </div>
+            <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{listing.itemId}</div>
+          </div>
+          <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
+            onClick={()=>handleListingPickOpen(listing)}>紐付け</button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <Modal title="🔄 eBay 注文同期" onClose={onClose} width={640}>
       {loading ? (
@@ -1930,18 +2085,31 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
           ❌ {error}
           <div style={{ marginTop:8, fontSize:11, color:C.muted }}>トークンが期限切れの場合は再接続してください</div>
         </div>
-      ) : orders.length === 0 ? (
-        <div style={{ textAlign:"center", padding:"40px 0", color:C.muted, fontFamily:C.jp }}>最近の注文がありません</div>
       ) : (
         <div>
           <div style={{ display:"flex", borderBottom:`2px solid ${C.border}`, marginBottom:16, marginTop:-8 }}>
-            <button style={tabS(tab==="pending")} onClick={()=>setTab("pending")}>
+            <button style={tabS(tab==="active")} onClick={()=>setTab("active")}>
+              出品中紐付け <span style={{ background:tab==="active"?C.indigoLo:C.bg, color:C.indigo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{activeListings.length}</span>
+            </button>
+            <button style={{...tabS(tab==="pending"), fontSize:0}} onClick={()=>setTab("pending")}>
+              <span style={{ fontSize:13 }}>売却紐付け（未紐付け）</span>
               未紐づけ <span style={{ background:tab==="pending"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length}</span>
             </button>
-            <button style={tabS(tab==="linked")} onClick={()=>setTab("linked")}>
+            <button style={{...tabS(tab==="linked"), fontSize:0}} onClick={()=>setTab("linked")}>
+              <span style={{ fontSize:13 }}>売却紐付け（紐付け済み）</span>
               紐づけ済み <span style={{ background:tab==="linked"?C.greenLo:C.bg, color:C.green, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedOrders.length}</span>
             </button>
           </div>
+
+          {tab === "active" && (
+            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
+              {activeListings.length === 0
+                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品中の商品がありません</div>
+                : activeListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
+              }
+            </div>
+          )}
 
           {tab === "pending" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
@@ -1990,6 +2158,38 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
                   </div>
                 </div>
               ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {listingPicking && (
+        <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
+          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:480 }}>
+            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+              <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>出品中商品を紐付け</span>
+              <button onClick={()=>setListingPicking(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted }}><X size={16}/></button>
+            </div>
+            <div style={{ padding:"10px 12px", background:C.indigoLo, borderBottom:`1px solid ${C.border}` }}>
+              <div style={{ fontFamily:C.jp, fontSize:12, color:C.indigo, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{listingPicking.title}</div>
+              <div style={{ fontFamily:C.num, fontSize:11, color:C.muted, marginTop:3 }}>#{listingPicking.itemId} / ${listingPicking.salePrice || "0"}</div>
+            </div>
+            <div style={{ padding:16 }}>
+              {listingCandidates.length === 0 ? (
+                <div style={{ textAlign:"center", padding:"20px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐付け可能な出品中商品がありません</div>
+              ) : (
+                <>
+                  <select value={listingPickItemId} onChange={e=>setListingPickItemId(e.target.value)} style={inpS({ width:"100%", marginBottom:12 })}>
+                    {listingCandidates.map(item => (
+                      <option key={item.id} value={item.id}>#{item.managementNumber} {item.productName || item.ebayTitle || "Untitled"}</option>
+                    ))}
+                  </select>
+                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
+                    <button onClick={()=>setListingPicking(null)} style={btnS("ghost",{fontSize:12,padding:"8px 14px"})}>キャンセル</button>
+                    <button onClick={handleListingLink} style={btnS("primary",{fontSize:12,padding:"8px 16px"})}>確定</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>

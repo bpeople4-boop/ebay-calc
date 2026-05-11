@@ -5,7 +5,7 @@ export default async function handler(req, res) {
   
   const creds = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
   const body = grantType === "refresh_token"
-    ? new URLSearchParams({ grant_type:"refresh_token", refresh_token:refreshToken, scope:"https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.finances" })
+    ? new URLSearchParams({ grant_type:"refresh_token", refresh_token:refreshToken, scope:"https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly https://api.ebay.com/oauth/api_scope/sell.finances https://api.ebay.com/oauth/api_scope/sell.inventory.readonly" })
     : new URLSearchParams({ grant_type:"authorization_code", code, redirect_uri:ruName });
 
   const response = await fetch("https://api.ebay.com/identity/v1/oauth2/token", {

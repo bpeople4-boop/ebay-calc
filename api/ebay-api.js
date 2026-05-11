@@ -1,15 +1,20 @@
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
   
-  const { url, accessToken } = req.body;
+  const { url, accessToken, method = "GET", headers = {}, body } = req.body;
   
   const response = await fetch(url, {
+    method,
     headers: {
       "Authorization": `Bearer ${accessToken}`,
       "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+      ...headers,
     },
+    ...(body ? { body } : {}),
   });
   
-  const data = await response.json();
-  res.status(response.status).json(data);
+  const contentType = response.headers.get("content-type") || "";
+  const isXml = contentType.includes("text/xml") || contentType.includes("application/xml");
+  const data = isXml ? await response.text() : await response.json();
+  res.status(response.status).json({ data, contentType });
 }
