@@ -1857,6 +1857,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         salePrice: xmlNum(priceNode?.textContent || "", ""),
         saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
         promotionRate: getPromotionRate(item),
+        galleryUrl: xmlText(item, "GalleryURL"),
         ebayUrl: xmlText(listingDetails, "ViewItemURL"),
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
       };
@@ -2129,6 +2130,18 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
+  const selectedListingItem = listingCandidates.find(i => i.id === listingPickItemId);
+  const PreviewBox = ({ src, label }) => (
+    <div style={{ flex:1, minWidth:0 }}>
+      <div style={{ aspectRatio:"1/1", border:`1px solid ${C.border}`, borderRadius:8, background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", marginBottom:8 }}>
+        {src
+          ? <img src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
+          : <span style={{ fontFamily:C.jp, fontSize:12, color:C.muted }}>画像なし</span>}
+      </div>
+      <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted }}>{label}</div>
+    </div>
+  );
+
   return (
     <Modal title="🔄 eBay 注文同期" onClose={onClose} width={640}>
       {loading ? (
@@ -2236,20 +2249,27 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
 
       {listingPicking && (
         <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:480 }}>
+          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:560 }}>
             <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>出品中商品を紐付け</span>
               <button onClick={()=>setListingPicking(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted }}><X size={16}/></button>
-            </div>
-            <div style={{ padding:"10px 12px", background:C.indigoLo, borderBottom:`1px solid ${C.border}` }}>
-              <div style={{ fontFamily:C.jp, fontSize:12, color:C.indigo, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{listingPicking.title}</div>
-              <div style={{ fontFamily:C.num, fontSize:11, color:C.muted, marginTop:3 }}>#{listingPicking.itemId} / ${listingPicking.salePrice || "0"}</div>
             </div>
             <div style={{ padding:16 }}>
               {listingCandidates.length === 0 ? (
                 <div style={{ textAlign:"center", padding:"20px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐付け可能な出品中商品がありません</div>
               ) : (
                 <>
+                  <div style={{ display:"flex", gap:14, marginBottom:14 }}>
+                    <PreviewBox src={listingPicking.galleryUrl} label="eBay" />
+                    <PreviewBox src={selectedListingItem?.photos?.[0]} label="アプリ商品" />
+                  </div>
+                  <div style={{ marginBottom:12, padding:"10px 12px", background:C.indigoLo, borderRadius:8 }}>
+                    <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{listingPicking.title || "Untitled"}</div>
+                    <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginTop:6 }}>
+                      <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listingPicking.salePrice || "0"}</span>
+                      <span style={{ fontFamily:C.num, fontSize:12, color:C.muted }}>送料 ${listingPicking.saleShipping || "0"}</span>
+                    </div>
+                  </div>
                   <select value={listingPickItemId} onChange={e=>setListingPickItemId(e.target.value)} style={inpS({ width:"100%", marginBottom:12 })}>
                     {listingCandidates.map(item => (
                       <option key={item.id} value={item.id}>#{item.managementNumber} {item.productName || item.ebayTitle || "Untitled"}</option>
