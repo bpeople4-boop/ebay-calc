@@ -461,14 +461,17 @@ function PhotoUpload({ photos=[], onChange }) {
 }
 
 // ── Field / DateField / CardSection ───────────────────────────
-function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub, badge, inputStyle }) {
+function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub, bg, badge, badgeColor }) {
   const isNum = type === "number";
   const locked = readOnly || disabled;
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
-      <span style={lblS()}>{label}{badge}</span>
+      <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>
+        {label}
+        {badge && <span style={{ fontSize:11, color:badgeColor||"#3b82f6", lineHeight:1 }}>{badge}</span>}
+      </span>
       <input
-        style={inpS({ ...(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {}), ...(inputStyle || {}) })}
+        style={inpS(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : bg ? { background:bg } : {})}
         type={isNum ? "text" : type}
         inputMode={isNum ? "decimal" : undefined}
         placeholder={placeholder}
@@ -517,13 +520,16 @@ function CopyField({ label, value, onChange, placeholder, col, readOnly, disable
   );
 }
 
-function UrlField({ label, value, onChange, placeholder, col, badge, inputStyle }) {
+function UrlField({ label, value, onChange, placeholder, col, bg, badge, badgeColor }) {
   const handleOpen = () => { if (value) window.open(value, "_blank", "noopener"); };
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
-      <span style={lblS()}>{label}{badge}</span>
+      <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>
+        {label}
+        {badge && <span style={{ fontSize:11, color:badgeColor||"#3b82f6", lineHeight:1 }}>{badge}</span>}
+      </span>
       <div style={{ position:"relative" }}>
-        <input style={inpS({ paddingRight:36, ...(inputStyle || {}) })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
+        <input style={inpS({ paddingRight:36, ...(bg ? { background:bg } : {}) })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
         <button type="button" onClick={handleOpen} title="URLを開く"
           style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:value?C.accent:C.border, padding:"3px 5px", borderRadius:5, fontSize:13, lineHeight:1 }}>
           🔗
@@ -713,13 +719,11 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate || 12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate || 2) / 100;
-  const ebayLinkedActive = !!(form.ebayListingLinked && !form.ebaySynced);
-  const ebaySyncedActive = !!form.ebaySynced;
-  const ebayInfoActive = ebayLinkedActive || ebaySyncedActive;
-  const ebayInfoColor = ebaySyncedActive ? "#22c55e" : "#3b82f6";
-  const ebayInfoBg = ebaySyncedActive ? "#f0fdf4" : ebayLinkedActive ? "#eff6ff" : undefined;
-  const ebayPromoActive = ebayLinkedActive;
-  const ebayPromoBg = ebayPromoActive ? "#eff6ff" : undefined;
+  const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
+  const isSynced = !!form.ebaySynced;
+  const linkBg = isLinked ? "#eff6ff" : isSynced ? "#f0fdf4" : undefined;
+  const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
+  const linkColor = isLinked ? "#3b82f6" : isSynced ? "#15803d" : undefined;
   const ProfitBar = ({ label, calc, highlight }) => (
     <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
       {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
@@ -793,8 +797,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
-        <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>eBayタイトル {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" inputStyle={{ background:ebayInfoBg }} />
-        <UrlField label={<span style={{display:"flex",alignItems:"center",gap:4}}>eBay URL {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" inputStyle={{ background:ebayInfoBg }} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -821,7 +825,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           )}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-              <span style={{...lblS({ marginBottom:0 }), display:"flex", alignItems:"center", gap:4}}>落札価格（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>
+              <span style={{...lblS({marginBottom:0}), display:"flex", alignItems:"center", gap:4}}>落札価格（$）{linkBadge && <span style={{fontSize:11,color:linkColor}}>{linkBadge}</span>}</span>
               {!form.ebaySynced && (
                 <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
                   style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
@@ -830,7 +834,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               )}
             </div>
             <input
-              style={inpS({ ...(form.ebaySynced ? { color:C.muted, borderStyle:"dashed" } : {}), background:ebayInfoBg })}
+              style={inpS({ ...(form.ebaySynced ? { color:C.muted, borderStyle:"dashed" } : {}), ...(linkBg && !form.ebaySynced ? { background:linkBg } : {}) })}
               type="text" inputMode="decimal" placeholder="0.00"
               readOnly={!!form.ebaySynced}
               value={form.salePrice??""}
@@ -842,12 +846,12 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>落札送料（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} type="number" value={form.saleShipping}
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping}
                   onChange={form.ebaySynced ? undefined : set("saleShipping")}
-                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" inputStyle={{ background:ebayInfoBg }} />
+                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
               : <div>
-                  <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>
-                  <input style={inpS({ background:ebayInfoBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                  <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）{linkBadge && <span style={{fontSize:11,color:linkColor}}>{linkBadge}</span>}</span>
+                  <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
                   <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
                 </div>
             }
@@ -882,7 +886,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>プロモーション（%） {ebayPromoActive && <span style={{fontSize:10,color:"#3b82f6"}}>●</span>}</span>} type="number" value={form.promotionRate} onChange={set("promotionRate")} inputStyle={{ background:ebayPromoBg }} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#eff6ff" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#3b82f6" />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -1454,13 +1458,11 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate||12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
-  const ebayLinkedActive = !!(form.ebayListingLinked && !form.ebaySynced);
-  const ebaySyncedActive = !!form.ebaySynced;
-  const ebayInfoActive = ebayLinkedActive || ebaySyncedActive;
-  const ebayInfoColor = ebaySyncedActive ? "#22c55e" : "#3b82f6";
-  const ebayInfoBg = ebaySyncedActive ? "#f0fdf4" : ebayLinkedActive ? "#eff6ff" : undefined;
-  const ebayPromoActive = ebayLinkedActive;
-  const ebayPromoBg = ebayPromoActive ? "#eff6ff" : undefined;
+  const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
+  const isSynced = !!form.ebaySynced;
+  const linkBg = isLinked ? "#eff6ff" : isSynced ? "#f0fdf4" : undefined;
+  const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
+  const linkColor = isLinked ? "#3b82f6" : isSynced ? "#15803d" : undefined;
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
   const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
@@ -1573,8 +1575,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報">
-        <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>eBayタイトル {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" inputStyle={{ background:ebayInfoBg }} />
-        <UrlField label={<span style={{display:"flex",alignItems:"center",gap:4}}>eBay URL {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" inputStyle={{ background:ebayInfoBg }} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -1596,23 +1598,23 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-              <span style={{...lblS({ marginBottom:0 }), display:"flex", alignItems:"center", gap:4}}>落札価格（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>
+              <span style={{...lblS({marginBottom:0}), display:"flex", alignItems:"center", gap:4}}>落札価格（$）{linkBadge && <span style={{fontSize:11,color:linkColor}}>{linkBadge}</span>}</span>
               <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
                 style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
                 📊 オファー比較
               </button>
             </div>
-            <input style={inpS({ background:ebayInfoBg })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
+            <input style={inpS({ background:linkBg })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
               const val = e.target.value;
               setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
             }} />
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>落札送料（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>} type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" inputStyle={{ background:ebayInfoBg }} />
+              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" bg={linkBg} badge={linkBadge} badgeColor={linkColor} />
               : <div>
-                  <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$） {ebayInfoActive && <span style={{fontSize:10,color:ebayInfoColor}}>●</span>}</span>
-                  <input style={inpS({ background:ebayInfoBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                  <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）{linkBadge && <span style={{fontSize:11,color:linkColor}}>{linkBadge}</span>}</span>
+                  <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
                   <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
                 </div>
             }
@@ -1630,7 +1632,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label={<span style={{display:"flex",alignItems:"center",gap:4}}>プロモーション（%） {ebayPromoActive && <span style={{fontSize:10,color:"#3b82f6"}}>●</span>}</span>} type="number" value={form.promotionRate} onChange={set("promotionRate")} inputStyle={{ background:ebayPromoBg }} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#eff6ff" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#3b82f6" />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -2055,7 +2057,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      ...(listing.promotionRate !== "" && Number.isFinite(+listing.promotionRate) && +listing.promotionRate < 5 ? { promotionRate: listing.promotionRate } : {}),
+      ...(listing.promotionRate !== "" && +listing.promotionRate < 5 ? { promotionRate: listing.promotionRate } : {}),
       ebayListingLinked: true,
     };
     onApply(patch);
