@@ -1772,7 +1772,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [listingPicking, setListingPicking] = useState(null);
   const [listingPickItemId, setListingPickItemId] = useState("");
   const [tab,      setTab]      = useState("active");
-  const [activeListingTab, setActiveListingTab] = useState("unlinked");
 
   useEffect(() => {
     (async () => {
@@ -1853,7 +1852,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         salePrice: xmlNum(priceNode?.textContent || "", ""),
         saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
         promotionRate: getPromotionRate(item),
-        galleryUrl: xmlText(item, "GalleryURL"),
+        galleryUrl: item.getElementsByTagName("GalleryURL")[0]?.textContent?.trim() || "",
         ebayUrl: xmlText(listingDetails, "ViewItemURL"),
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
       };
@@ -1990,8 +1989,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
       (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
     ));
-  const unlinkedActiveListings = activeListings.filter(listing => !findListingLinkedItem(listing));
-  const linkedActiveListings = activeListings.filter(listing => !!findListingLinkedItem(listing));
 
   const findListingLinkedMatch = (parsedOrder) =>
     localItems.find(i =>
@@ -2032,12 +2029,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
-  };
-
-  const handleListingUpdate = (listing) => {
-    const appItem = findListingLinkedItem(listing);
-    if (!appItem) return;
-    applyListingPatch(listing, appItem);
   };
 
   const tabS = (active) => ({
@@ -2101,7 +2092,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
-  const ListingCard = ({ listing, linked=false }) => {
+  const ListingCard = ({ listing }) => {
     const alreadyLinked = findListingLinkedItem(listing);
     return (
       <div style={{ border:`1px solid ${alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:alreadyLinked ? C.indigoLo : C.card }}>
@@ -2120,7 +2111,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{listing.itemId}</div>
           </div>
           <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
-            onClick={()=>linked ? handleListingUpdate(listing) : handleListingPickOpen(listing)}>{linked ? "更新" : "紐付け"}</button>
+            onClick={()=>handleListingPickOpen(listing)}>紐付け</button>
         </div>
       </div>
     );
@@ -2169,25 +2160,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
           {tab === "active" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
-              <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:8 }}>
-                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>
-                  未紐付け <span style={{ background:activeListingTab==="unlinked"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{unlinkedActiveListings.length}</span>
-                </button>
-                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>
-                  紐付け済み <span style={{ background:activeListingTab==="linked"?C.indigoLo:C.bg, color:C.indigo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedActiveListings.length}</span>
-                </button>
-              </div>
-              {activeListingTab === "unlinked" && (unlinkedActiveListings.length === 0
-                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐付けの出品中商品がありません</div>
-                : unlinkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
-              )}
-              {activeListingTab === "linked" && (
-                <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-                  {linkedActiveListings.length === 0
-                    ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐付け済みの出品中商品がありません</div>
-                    : linkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing} linked />)}
-                </div>
-              )}
+              {activeListings.length === 0
+                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品中の商品がありません</div>
+                : activeListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
+              }
             </div>
           )}
 
