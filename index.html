@@ -1821,10 +1821,26 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
     const items = Array.from(activeList?.getElementsByTagName("*") || [])
       .filter(n => n.localName === "Item");
+    console.log("GetMyeBaySelling first item all tags:", Array.from(items[0]?.getElementsByTagName("*") || []).map(n => ({
+      tag: n.localName,
+      text: n.textContent?.trim() || "",
+      attrs: Array.from(n.attributes || []).reduce((a, attr) => ({ ...a, [attr.name]: attr.value }), {}),
+    })));
     const getUsdPriceNode = (item) => {
       const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
       const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
       return [buyItNowNode, currentNode].find(node => node?.getAttribute("currencyID") === "USD");
+    };
+    const getPromotionRate = (item) => {
+      const nodes = Array.from(item.getElementsByTagName("*"));
+      const rateNode = nodes.find(node => {
+        const name = (node.localName || "").toLowerCase();
+        const parentName = (node.parentElement?.localName || "").toLowerCase();
+        const text = node.textContent?.trim() || "";
+        const isRateName = name.includes("adrate") || name.includes("promotionrate") || name.includes("promotedlistingrate") || (name === "rate" && parentName.includes("promoted"));
+        return isRateName && text !== "" && Number.isFinite(parseFloat(text));
+      });
+      return rateNode ? xmlNum(rateNode.textContent, "") : "";
     };
     const filteredItems = items.filter(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
@@ -1840,6 +1856,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         title: xmlText(item, "Title"),
         salePrice: xmlNum(priceNode?.textContent || "", ""),
         saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
+        promotionRate: getPromotionRate(item),
         ebayUrl: xmlText(listingDetails, "ViewItemURL"),
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
       };
@@ -1971,6 +1988,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     (!i.bundleGroupId || i.isBundleLeader)
   );
 
+  const findListingLinkedItem = (listing) =>
+    localItems.find(i => i.ebayListingLinked && (
+      (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
+      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
+    ));
+  const unlinkedActiveListings = activeListings.filter(listing => !findListingLinkedItem(listing));
+  const linkedActiveListings = activeListings.filter(listing => !!findListingLinkedItem(listing));
+
   const findListingLinkedMatch = (parsedOrder) =>
     localItems.find(i =>
       i.ebayListingLinked &&
@@ -1999,6 +2024,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       ebayTitle: listingPicking.title || appItem.ebayTitle,
       salePrice: listingPicking.salePrice || appItem.salePrice,
       saleShipping: listingPicking.saleShipping || "0",
+      ...(listingPicking.promotionRate !== "" ? { promotionRate: listingPicking.promotionRate } : {}),
       ebayListingLinked: true,
     };
     onApply(patch);
@@ -2068,11 +2094,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
-  const ListingCard = ({ listing }) => {
-    const alreadyLinked = localItems.find(i => i.ebayListingLinked && (
-      (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
-      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
-    ));
+  const ListingCard = ({ listing, linked=false }) => {
+    const alreadyLinked = findListingLinkedItem(listing);
     return (
       <div style={{ border:`1px solid ${alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:alreadyLinked ? C.indigoLo : C.card }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -2083,13 +2106,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
               <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listing.salePrice || "0"}</span>
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>送料 ${listing.saleShipping || "0"}</span>
+              {listing.promotionRate !== "" && <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>Promo {listing.promotionRate}%</span>}
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{listing.listingDate || "日付なし"}</span>
               {alreadyLinked && <span style={{ fontSize:10, color:C.indigo, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>#{alreadyLinked.managementNumber} 紐付け済み</span>}
             </div>
             <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{listing.itemId}</div>
           </div>
           <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
-            onClick={()=>handleListingPickOpen(listing)}>紐付け</button>
+            onClick={()=>handleListingPickOpen(listing)}>{linked ? "更新" : "紐付け"}</button>
         </div>
       </div>
     );
@@ -2126,10 +2150,16 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
           {tab === "active" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
-              {activeListings.length === 0
-                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品中の商品がありません</div>
-                : activeListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
+              {unlinkedActiveListings.length === 0
+                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐付けの出品中商品がありません</div>
+                : unlinkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
               }
+              {linkedActiveListings.length > 0 && (
+                <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.border}`, display:"flex", flexDirection:"column", gap:8 }}>
+                  <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.indigo }}>紐付け済み</div>
+                  {linkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing} linked />)}
+                </div>
+              )}
             </div>
           )}
 
