@@ -193,6 +193,7 @@ async function ebayFetchActiveListings(accessToken) {
   </RequesterCredentials>
   <ActiveList>
     <Include>true</Include>
+    <Sort>StartTimeDescending</Sort>
     <Pagination>
       <EntriesPerPage>100</EntriesPerPage>
       <PageNumber>1</PageNumber>
@@ -1808,30 +1809,24 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
     const items = Array.from(activeList?.getElementsByTagName("*") || [])
       .filter(n => n.localName === "Item");
-    const getUsdPriceNode = (item) => {
-      const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
-      const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
-      return [buyItNowNode, currentNode].find(node => node?.getAttribute("currencyID") === "USD");
-    };
-    const seenItemIds = new Set();
-    const uniqueItems = items.filter(item => {
-      const itemId = xmlText(item, "ItemID");
+    console.log("GetMyeBaySelling item URL/currency:", items.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
-      if (!xmlText(listingDetails, "ViewItemURL").includes("www.ebay.com")) return false;
-      if (!getUsdPriceNode(item)) return false;
-      if (seenItemIds.has(itemId)) return false;
-      seenItemIds.add(itemId);
-      return true;
-    });
-    return uniqueItems.map(item => {
+      const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
+      return {
+        viewItemURL: xmlText(listingDetails, "ViewItemURL"),
+        buyItNowCurrencyID: buyItNowNode?.getAttribute("currencyID") || "",
+      };
+    }));
+    return items.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
       const shippingOptions = xmlChildren(shippingDetails, "ShippingServiceOptions")[0];
-      const priceNode = getUsdPriceNode(item);
+      const buyItNow = xmlText(item, "BuyItNowPrice");
+      const current = xmlText(item, "SellingStatus.CurrentPrice") || xmlText(item, "CurrentPrice");
       return {
         itemId: xmlText(item, "ItemID"),
         title: xmlText(item, "Title"),
-        salePrice: xmlNum(priceNode?.textContent || "", ""),
+        salePrice: xmlNum(buyItNow || current, ""),
         saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
         ebayUrl: xmlText(listingDetails, "ViewItemURL"),
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
