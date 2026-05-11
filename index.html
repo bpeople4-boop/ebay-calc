@@ -186,7 +186,8 @@ async function ebayFetchTransactionByOrder(accessToken, orderId) {
 }
 
 async function ebayFetchActiveListings(accessToken) {
-  const xml = `<?xml version="1.0" encoding="utf-8"?>
+  const fetchPage = async (pageNumber) => {
+    const xml = `<?xml version="1.0" encoding="utf-8"?>
 <GetMyeBaySellingRequest xmlns="urn:ebay:apis:eBLBaseComponents">
   <RequesterCredentials>
     <eBayAuthToken>${accessToken}</eBayAuthToken>
@@ -196,29 +197,40 @@ async function ebayFetchActiveListings(accessToken) {
     <Sort>StartTimeDescending</Sort>
     <Pagination>
       <EntriesPerPage>100</EntriesPerPage>
-      <PageNumber>1</PageNumber>
+      <PageNumber>${pageNumber}</PageNumber>
     </Pagination>
   </ActiveList>
 </GetMyeBaySellingRequest>`;
-  const res = await fetch("/api/ebay-api", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      url:"https://api.ebay.com/ws/api.dll",
-      accessToken,
-      method:"POST",
-      headers: {
-        "X-EBAY-API-CALL-NAME": "GetMyeBaySelling",
-        "X-EBAY-API-SITEID": "0",
-        "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
-        "Content-Type": "text/xml",
-      },
-      body: xml,
-    }),
-  });
-  const payload = await res.json().catch(()=>({}));
-  if (!res.ok) throw new Error(`Trading API error: ${res.status}`);
-  return payload.data || "";
+    const res = await fetch("/api/ebay-api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url:"https://api.ebay.com/ws/api.dll",
+        accessToken,
+        method:"POST",
+        headers: {
+          "X-EBAY-API-CALL-NAME": "GetMyeBaySelling",
+          "X-EBAY-API-SITEID": "0",
+          "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
+          "Content-Type": "text/xml",
+        },
+        body: xml,
+      }),
+    });
+    const payload = await res.json().catch(()=>({}));
+    if (!res.ok) throw new Error(`Trading API error: ${res.status}`);
+    return payload.data || "";
+  };
+  const firstPageXml = await fetchPage(1);
+  const doc = new DOMParser().parseFromString(firstPageXml, "text/xml");
+  const totalPagesText = Array.from(doc.getElementsByTagName("*"))
+    .find(n => n.localName === "TotalNumberOfPages")?.textContent || "1";
+  const totalPages = Math.max(1, parseInt(totalPagesText, 10) || 1);
+  if (totalPages === 1) return [firstPageXml];
+  const rest = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
+  );
+  return [firstPageXml, ...rest];
 }
 
 // ── Settings defaults ─────────────────────────────────────────
@@ -1765,15 +1777,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     (async () => {
       try {
         setLoading(true);
-        const [ordersData, listingsXml] = await Promise.all([
+        const [ordersData, listingXmlPages] = await Promise.all([
           ebayFetchOrders(ebayAuth.accessToken),
           ebayFetchActiveListings(ebayAuth.accessToken).catch(e => {
             setListingError(e.message);
-            return "";
+            return [];
           }),
         ]);
         setOrders(ordersData.orders || []);
-        if (listingsXml) setActiveListings(parseActiveListingsXml(listingsXml));
+        if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
         const map = {};
         await Promise.allSettled((ordersData.orders || []).map(async order => {
           try {
@@ -1818,18 +1830,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
     });
-    console.log("GetMyeBaySelling filtered out items:", items.filter(item => {
-      const listingDetails = xmlChildren(item, "ListingDetails")[0];
-      return !(xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item));
-    }).map(item => {
-      const listingDetails = xmlChildren(item, "ListingDetails")[0];
-      const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
-      const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
-      return {
-        viewItemURL: xmlText(listingDetails, "ViewItemURL"),
-        currencyID: (buyItNowNode || currentNode)?.getAttribute("currencyID") || "",
-      };
-    }));
     return filteredItems.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
