@@ -462,14 +462,14 @@ function PhotoUpload({ photos=[], onChange }) {
 }
 
 // ── Field / DateField / CardSection ───────────────────────────
-function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub }) {
+function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub, badge, inputStyle }) {
   const isNum = type === "number";
   const locked = readOnly || disabled;
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
-      <span style={lblS()}>{label}</span>
+      <span style={lblS()}>{label}{badge}</span>
       <input
-        style={inpS(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
+        style={inpS({ ...(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {}), ...(inputStyle || {}) })}
         type={isNum ? "text" : type}
         inputMode={isNum ? "decimal" : undefined}
         placeholder={placeholder}
@@ -518,13 +518,13 @@ function CopyField({ label, value, onChange, placeholder, col, readOnly, disable
   );
 }
 
-function UrlField({ label, value, onChange, placeholder, col }) {
+function UrlField({ label, value, onChange, placeholder, col, badge, inputStyle }) {
   const handleOpen = () => { if (value) window.open(value, "_blank", "noopener"); };
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
-      <span style={lblS()}>{label}</span>
+      <span style={lblS()}>{label}{badge}</span>
       <div style={{ position:"relative" }}>
-        <input style={inpS({ paddingRight:36 })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
+        <input style={inpS({ paddingRight:36, ...(inputStyle || {}) })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
         <button type="button" onClick={handleOpen} title="URLを開く"
           style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:value?C.accent:C.border, padding:"3px 5px", borderRadius:5, fontSize:13, lineHeight:1 }}>
           🔗
@@ -714,6 +714,10 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate || 12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate || 2) / 100;
+  const listingLinkedInputS = form.ebayListingLinked ? { background:"#f0fdf4", borderColor:`${C.green}55` } : {};
+  const ListingLinkedBadge = () => form.ebayListingLinked
+    ? <span style={{ color:C.green, background:C.greenLo, border:`1px solid ${C.green}40`, borderRadius:4, padding:"1px 5px", fontSize:10, fontWeight:700, marginLeft:6 }}>出品紐付け</span>
+    : null;
 
   const ProfitBar = ({ label, calc, highlight }) => (
     <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
@@ -788,8 +792,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" badge={<ListingLinkedBadge/>} inputStyle={listingLinkedInputS} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" badge={<ListingLinkedBadge/>} inputStyle={listingLinkedInputS} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -816,7 +820,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           )}
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
-              <span style={lblS({ marginBottom:0 })}>落札価格（$）</span>
+              <span style={lblS({ marginBottom:0 })}>落札価格（$）<ListingLinkedBadge/></span>
               {!form.ebaySynced && (
                 <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
                   style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
@@ -825,7 +829,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               )}
             </div>
             <input
-              style={inpS(form.ebaySynced ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
+              style={inpS({ ...(form.ebaySynced ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {}), ...listingLinkedInputS })}
               type="text" inputMode="decimal" placeholder="0.00"
               readOnly={!!form.ebaySynced}
               value={form.salePrice??""}
@@ -839,10 +843,10 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {form.destination === "us"
               ? <Field label="落札送料（$）" type="number" value={form.saleShipping}
                   onChange={form.ebaySynced ? undefined : set("saleShipping")}
-                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" />
+                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" badge={<ListingLinkedBadge/>} inputStyle={listingLinkedInputS} />
               : <div>
-                  <span style={lblS()}>落札送料（$）</span>
-                  <input style={inpS({ background:"#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                  <span style={lblS()}>落札送料（$）<ListingLinkedBadge/></span>
+                  <input style={inpS({ background: form.ebayListingLinked ? "#f0fdf4" : "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
                   <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
                 </div>
             }
@@ -877,7 +881,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} badge={<ListingLinkedBadge/>} inputStyle={listingLinkedInputS} />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -1772,6 +1776,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [listingPicking, setListingPicking] = useState(null);
   const [listingPickItemId, setListingPickItemId] = useState("");
   const [tab,      setTab]      = useState("active");
+  const [activeListingTab, setActiveListingTab] = useState("unlinked");
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -1989,6 +1995,13 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
       (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
     ));
+  const unlinkedActiveListings = activeListings.filter(listing => !findListingLinkedItem(listing));
+  const linkedListingItems = localItems.filter(i => i.ebayListingLinked && (!i.bundleGroupId || i.isBundleLeader));
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3500);
+  };
 
   const findListingLinkedMatch = (parsedOrder) =>
     localItems.find(i =>
@@ -2012,6 +2025,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const handleListingLink = () => {
     const appItem = listingCandidates.find(i => i.id === listingPickItemId);
     if (!listingPicking || !appItem) return;
+    if (appItem.ebayListingLinked) {
+      showToast("この商品はすでに別の出品と紐付け済みです。解除してから変更してください");
+      return;
+    }
     applyListingPatch(listingPicking, appItem);
     setListingPicking(null);
     setListingPickItemId("");
@@ -2026,6 +2043,22 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       saleShipping: listing.saleShipping || "0",
       ...(listing.promotionRate !== "" ? { promotionRate: listing.promotionRate } : {}),
       ebayListingLinked: true,
+    };
+    onApply(patch);
+    setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+  };
+
+  const handleListingUnlink = (appItem) => {
+    if (!appItem) return;
+    if (!window.confirm("出品紐付けを解除しますか？")) return;
+    const patch = {
+      ...appItem,
+      ebayListingLinked: false,
+      ebayUrl: "",
+      ebayTitle: "",
+      salePrice: "",
+      saleShipping: "",
+      promotionRate: "",
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
@@ -2117,6 +2150,23 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
+  const LinkedListingItemCard = ({ item }) => (
+    <div style={{ border:`1px solid ${C.green}40`, borderLeft:`4px solid ${C.green}`, borderRadius:10, padding:"12px 14px", background:C.greenLo }}>
+      <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+        {item.photos?.[0] && <img src={item.photos[0]} alt="" style={{ width:44, height:44, borderRadius:6, objectFit:"cover", flexShrink:0 }}/>}
+        <div style={{ flex:1, minWidth:0 }}>
+          <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
+            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
+            {item.ebayTitle && <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted, maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.ebayTitle}</span>}
+            {item.salePrice && <span style={{ fontFamily:C.num, fontSize:11, color:C.accent, fontWeight:700 }}>${item.salePrice}</span>}
+          </div>
+        </div>
+        <button style={btnS("danger",{fontSize:11,padding:"5px 12px",flexShrink:0})} onClick={()=>handleListingUnlink(item)}>解除</button>
+      </div>
+    </div>
+  );
+
   const selectedListingItem = listingCandidates.find(i => i.id === listingPickItemId);
   const PreviewBox = ({ src, label }) => (
     <div style={{ flex:1, minWidth:0 }}>
@@ -2131,6 +2181,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
 
   return (
     <Modal title="🔄 eBay 注文同期" onClose={onClose} width={640}>
+      {toast && <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", zIndex:500, background:C.redLo, color:C.red, border:`1px solid ${C.red}30`, borderRadius:10, padding:"10px 16px", fontFamily:C.jp, fontSize:13, fontWeight:700, boxShadow:C.shadowMd }}>{toast}</div>}
       {loading ? (
         <div style={{ textAlign:"center", padding:"40px 0", fontFamily:C.jp, color:C.muted }}>
           <div style={{ fontSize:32, marginBottom:12 }}>🔄</div>
@@ -2145,39 +2196,45 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         <div>
           <div style={{ display:"flex", borderBottom:`2px solid ${C.border}`, marginBottom:16, marginTop:-8 }}>
             <button style={tabS(tab==="active")} onClick={()=>setTab("active")}>
-              出品中紐付け <span style={{ background:tab==="active"?C.indigoLo:C.bg, color:C.indigo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{activeListings.length}</span>
+              出品紐付け <span style={{ background:tab==="active"?C.indigoLo:C.bg, color:C.indigo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{activeListings.length}</span>
             </button>
-            <button style={{...tabS(tab==="pending"), fontSize:0}} onClick={()=>setTab("pending")}>
-              <span style={{ fontSize:13 }}>売却紐付け（未紐付け）</span>
-              未紐づけ <span style={{ background:tab==="pending"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length}</span>
-            </button>
-            <button style={{...tabS(tab==="linked"), fontSize:0}} onClick={()=>setTab("linked")}>
-              <span style={{ fontSize:13 }}>売却紐付け（紐付け済み）</span>
-              紐づけ済み <span style={{ background:tab==="linked"?C.greenLo:C.bg, color:C.green, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedOrders.length}</span>
+            <button style={tabS(tab==="sold")} onClick={()=>setTab("sold")}>
+              売却紐付け <span style={{ background:tab==="sold"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length + linkedOrders.length}</span>
             </button>
           </div>
 
           {tab === "active" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
               {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
-              {activeListings.length === 0
-                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品中の商品がありません</div>
-                : activeListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
-              }
+              <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
+                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>
+                  未紐付け <span style={{ background:activeListingTab==="unlinked"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{unlinkedActiveListings.length}</span>
+                </button>
+                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>
+                  紐付け済み <span style={{ background:activeListingTab==="linked"?C.greenLo:C.bg, color:C.green, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedListingItems.length}</span>
+                </button>
+              </div>
+              {activeListingTab === "unlinked" && (
+                unlinkedActiveListings.length === 0
+                  ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐付けの出品はありません</div>
+                  : unlinkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
+              )}
+              {activeListingTab === "linked" && (
+                linkedListingItems.length === 0
+                  ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品紐付け済みの商品はありません</div>
+                  : linkedListingItems.map(item => <LinkedListingItemCard key={item.id} item={item}/>)
+              )}
             </div>
           )}
 
-          {tab === "pending" && (
+          {tab === "sold" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, marginTop:2 }}>未紐付け <span style={{ color:C.accent, background:C.accentLo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length}</span></div>
               {pendingOrders.length === 0
                 ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐づけの注文はありません</div>
                 : pendingOrders.map(order => <OrderCard key={order.orderId} order={order} linked={false} onApply={handleUnlink}/>)
               }
-            </div>
-          )}
-
-          {tab === "linked" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+              <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, marginTop:10 }}>紐付け済み <span style={{ color:C.green, background:C.greenLo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedOrders.length}</span></div>
               {linkedOrders.length === 0
                 ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>まだ紐づけした注文はありません</div>
                 : linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)
