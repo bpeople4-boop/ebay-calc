@@ -1808,9 +1808,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
     const items = Array.from(activeList?.getElementsByTagName("*") || [])
       .filter(n => n.localName === "Item");
+    const getUsdPriceNode = (item) => {
+      const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
+      const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
+      return [buyItNowNode, currentNode].find(node => node?.getAttribute("currencyID") === "USD");
+    };
     const seenItemIds = new Set();
     const uniqueItems = items.filter(item => {
       const itemId = xmlText(item, "ItemID");
+      if (!getUsdPriceNode(item)) return false;
       if (seenItemIds.has(itemId)) return false;
       seenItemIds.add(itemId);
       return true;
@@ -1819,12 +1825,11 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
       const shippingOptions = xmlChildren(shippingDetails, "ShippingServiceOptions")[0];
-      const buyItNow = xmlText(item, "BuyItNowPrice");
-      const current = xmlText(item, "SellingStatus.CurrentPrice") || xmlText(item, "CurrentPrice");
+      const priceNode = getUsdPriceNode(item);
       return {
         itemId: xmlText(item, "ItemID"),
         title: xmlText(item, "Title"),
-        salePrice: xmlNum(buyItNow || current, ""),
+        salePrice: xmlNum(priceNode?.textContent || "", ""),
         saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
         ebayUrl: xmlText(listingDetails, "ViewItemURL"),
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
