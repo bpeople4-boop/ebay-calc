@@ -3414,7 +3414,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); setUpdated(false); setSaved(false); }}/>}
     </div>
   );
 }
