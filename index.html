@@ -461,12 +461,12 @@ function PhotoUpload({ photos=[], onChange }) {
 }
 
 // ── Field / DateField / CardSection ───────────────────────────
-function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub, bg }) {
+function Field({ label, type="text", placeholder, col, readOnly, disabled, value, onChange, sub, bg, badge, badgeColor }) {
   const isNum = type === "number";
   const locked = readOnly || disabled;
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
-      <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>{label}</span>
+      <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>{label}{badge && <span style={{ color:badgeColor }}>{badge}</span>}</span>
       <input
         style={inpS(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : bg ? { background:bg } : {})}
         type={isNum ? "text" : type}
@@ -716,6 +716,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
   const isSynced = !!form.ebaySynced;
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
+  const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
+  const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
   const ProfitBar = ({ label, calc, highlight }) => (
     <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
       {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
@@ -878,7 +880,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#15803d" />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -1453,6 +1455,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
   const isSynced = !!form.ebaySynced;
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
+  const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
+  const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
   const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
@@ -1622,7 +1626,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#15803d" />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
