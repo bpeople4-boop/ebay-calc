@@ -715,7 +715,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const estPromoUSD = totalUSD * (+form.promotionRate || 2) / 100;
   const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
   const isSynced = !!form.ebaySynced;
-  const linkBg = isLinked ? "#eff6ff" : isSynced ? "#f0fdf4" : undefined;
+  const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
   const ProfitBar = ({ label, calc, highlight }) => (
     <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
       {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
@@ -1452,7 +1452,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
   const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
   const isSynced = !!form.ebaySynced;
-  const linkBg = isLinked ? "#eff6ff" : isSynced ? "#f0fdf4" : undefined;
+  const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
   const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
