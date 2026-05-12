@@ -3411,7 +3411,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id || (selectedBundleGroupId && selectedBundleGroupId===item.bundleGroupId)){ setFormKey(k=>k+1); setUpdated(false); setSaved(false); } }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id){ setSelectedId(null); setFormKey(k=>k+1); setTimeout(()=>setSelectedId(item.id), 0); } }}/>}
     </div>
   );
 }
@@ -3621,7 +3621,7 @@ function App() {
         return { ...i, ...leaderData, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}) };
       } else {
         // メンバーの原価・転送送料を更新、ステータスと落札日を同期
-        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping, serialNumber: mc.serialNumber } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate };
+        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping, serialNumber: mc.serialNumber } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate, ebaySynced: leaderData.ebaySynced || i.ebaySynced };
       }
     }));
   };
