@@ -649,7 +649,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     const cur  = form.status;
 
     // ebaySynced商品: sold → returned以外への変更は警告＋落札情報リセット
-    if (form.ebaySynced && cur === "sold" && next !== "returned") {
+    if (initial.ebaySynced && cur === "sold" && next !== "returned") {
       if (!window.confirm("この商品はeBay同期済みです。\n落札情報（落札日・価格・為替・手数料）をリセットして\nステータスを変更しますか？")) return;
       setStatusWarn("");
       setForm(p => ({
@@ -714,8 +714,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate || 12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate || 2) / 100;
-  const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
-  const isSynced = !!form.ebaySynced;
+  const isLinked = !!form.ebayListingLinked && !initial.ebaySynced;
+  const isSynced = !!initial.ebaySynced;
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
   const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
@@ -792,8 +792,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -813,7 +813,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
-          {form.ebaySynced ? (
+          {initial.ebaySynced ? (
             <Field label="落札日" value={form.saleDate} readOnly col="1/-1" />
           ) : (
             <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
@@ -821,7 +821,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
               <span style={{...lblS({marginBottom:0}), display:"flex", alignItems:"center", gap:4}}>落札価格（$）</span>
-              {!form.ebaySynced && (
+              {!initial.ebaySynced && (
                 <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
                   style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
                   📊 オファー比較
@@ -829,11 +829,11 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               )}
             </div>
             <input
-              style={inpS({ ...(form.ebaySynced ? { color:C.muted, borderStyle:"dashed", background:"#f3f4f6" } : {}), ...(linkBg && !form.ebaySynced ? { background:linkBg } : {}) })}
+              style={inpS({ ...(initial.ebaySynced ? { color:C.muted, borderStyle:"dashed", background:"#f3f4f6" } : {}), ...(linkBg && !initial.ebaySynced ? { background:linkBg } : {}) })}
               type="text" inputMode="decimal" placeholder="0.00"
-              readOnly={!!form.ebaySynced}
+              readOnly={!!initial.ebaySynced}
               value={form.salePrice??""}
-              onChange={form.ebaySynced ? undefined : e => {
+              onChange={initial.ebaySynced ? undefined : e => {
                 const val = e.target.value;
                 setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
               }}
@@ -842,8 +842,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           <div>
             {form.destination === "us"
               ? <Field label="落札送料（$）" type="number" value={form.saleShipping}
-                  onChange={form.ebaySynced ? undefined : set("saleShipping")}
-                  readOnly={!!form.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
+                  onChange={initial.ebaySynced ? undefined : set("saleShipping")}
+                  readOnly={!!initial.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
               : <div>
                   <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）</span>
                   <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
@@ -861,22 +861,22 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           {/* 為替レート */}
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>為替レート{" "}
-              {form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched &&
+              {initial.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched &&
                 <span style={{ color:C.green, fontSize:10 }}>🔒 落札日レート取得済み</span>}
-              {form.ebaySynced && form.rateNotFetched &&
+              {initial.ebaySynced && form.rateNotFetched &&
                 <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
-              {!form.ebaySynced && form.saleDate &&
+              {!initial.ebaySynced && form.saleDate &&
                 <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}
-              {!form.ebaySynced && !form.saleDate &&
+              {!initial.ebaySynced && !form.saleDate &&
                 <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}
             </span>
             <input
-              style={inpS(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched
+              style={inpS(initial.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched
                 ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : {})}
               type="text" inputMode="decimal"
-              readOnly={!!(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)}
+              readOnly={!!(initial.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)}
               value={form.exchangeRate}
-              onChange={form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")}
+              onChange={initial.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")}
             />
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
@@ -959,44 +959,44 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
                   <span style={lblS()}>eBay落札手数料（$）実費{" "}
-                    {form.ebaySynced
+                    {initial.ebaySynced
                       ? <span style={{ color:C.green, fontSize:10 }}>🔒 同期済み</span>
                       : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD&&<span style={{ color:C.red, fontWeight:700 }}>※必須</span>
                     }
                   </span>
                   <input
-                    style={inpS(form.ebaySynced
+                    style={inpS(initial.ebaySynced
                       ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
                       : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&!form.actualEbayFeeUSD
                         ? {borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`} : {})}
                     type="text" inputMode="decimal" placeholder="空欄で概算を使用"
-                    readOnly={!!form.ebaySynced}
+                    readOnly={!!initial.ebaySynced}
                     value={form.actualEbayFeeUSD??""}
-                    onChange={form.ebaySynced ? undefined : handleActualEbayFee}
+                    onChange={initial.ebaySynced ? undefined : handleActualEbayFee}
                   />
-                  {!form.ebaySynced && !form.actualEbayFeeUSD && totalUSD > 0 && (
+                  {!initial.ebaySynced && !form.actualEbayFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>
                   )}
                   {form.actualEbayFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
                 </div>
                 <div>
                   <span style={lblS()}>プロモート費用（$）実費{" "}
-                    {form.ebaySynced
+                    {initial.ebaySynced
                       ? <span style={{ color:C.green, fontSize:10 }}>🔒 同期済み</span>
                       : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>
                     }
                   </span>
                   <input
-                    style={inpS(form.ebaySynced
+                    style={inpS(initial.ebaySynced
                       ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
                       : initial.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)
                         ? {borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`} : {})}
                     type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）"
-                    readOnly={!!form.ebaySynced}
+                    readOnly={!!initial.ebaySynced}
                     value={form.actualPromoFeeUSD??""}
-                    onChange={form.ebaySynced ? undefined : handleActualPromoFee}
+                    onChange={initial.ebaySynced ? undefined : handleActualPromoFee}
                   />
-                  {!form.ebaySynced && !form.actualPromoFeeUSD && totalUSD > 0 && (
+                  {!initial.ebaySynced && !form.actualPromoFeeUSD && totalUSD > 0 && (
                     <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>現在の概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>
                   )}
                   {form.actualPromoFeeUSD && <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>✅ 実費入力済み</div>}
@@ -1453,8 +1453,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate||12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
-  const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
-  const isSynced = !!form.ebaySynced;
+  const isLinked = !!form.ebayListingLinked && !initial.ebaySynced;
+  const isSynced = !!initial.ebaySynced;
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
   const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
@@ -1570,8 +1570,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報">
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -3271,7 +3271,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
     else { setUpdated(true); setSaved(false); }
   };
   const openNewForm = () => { setSyncedItem(null); setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
-  const openEdit = (item) => { setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setFormKey(k=>k+1); setShowRight(true); };
+  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
   const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
 
   // まとめ売り作成 → 即バンドル化＋右パネルで編集
