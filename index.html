@@ -468,7 +468,7 @@ function Field({ label, type="text", placeholder, col, readOnly, disabled, value
     <div style={{ gridColumn:col, minWidth:0 }}>
       <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>{label}{badge && <span style={{ color:badgeColor }}>{badge}</span>}</span>
       <input
-        style={inpS(locked ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" } : bg ? { background:bg } : {})}
+        style={inpS(locked ? { background:bg || "#f0f1f7", color:C.muted, borderStyle:"dashed" } : bg ? { background:bg } : {})}
         type={isNum ? "text" : type}
         inputMode={isNum ? "decimal" : undefined}
         placeholder={placeholder}
@@ -517,13 +517,14 @@ function CopyField({ label, value, onChange, placeholder, col, readOnly, disable
   );
 }
 
-function UrlField({ label, value, onChange, placeholder, col, bg }) {
+function UrlField({ label, value, onChange, placeholder, col, bg, readOnly, disabled }) {
+  const locked = readOnly || disabled;
   const handleOpen = () => { if (value) window.open(value, "_blank", "noopener"); };
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
       <span style={lblS({ display:"flex", alignItems:"center", gap:4, marginBottom:5 })}>{label}</span>
       <div style={{ position:"relative" }}>
-        <input style={inpS({ paddingRight:36, ...(bg ? { background:bg } : {}) })} type="text" placeholder={placeholder} value={value??""} onChange={onChange} />
+        <input style={inpS({ paddingRight:36, ...(locked ? { background:bg || "#f0f1f7", color:C.muted, borderStyle:"dashed" } : bg ? { background:bg } : {}) })} type="text" placeholder={placeholder} readOnly={locked} value={value??""} onChange={locked ? undefined : onChange} />
         <button type="button" onClick={handleOpen} title="URLを開く"
           style={{ position:"absolute", right:6, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:value?"pointer":"default", color:value?C.accent:C.border, padding:"3px 5px", borderRadius:5, fontSize:13, lineHeight:1 }}>
           🔗
@@ -791,8 +792,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報" disabled={form.isJunk || isBundleMember}>
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" bg={linkBg} />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 35mm SLR Film Camera Black [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
@@ -1569,8 +1570,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報">
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
