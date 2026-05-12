@@ -1885,7 +1885,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     const line     = order.lineItems?.[0] || {};
     const currency = order.pricingSummary?.total?.currency || "USD";
     const isUSD    = currency === "USD";
-    const country  = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipTo?.countryCode || "other";
+    const shipToCountry = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipTo?.countryCode || "";
+    const marketplaceId = order.lineItems?.[0]?.listingMarketplaceId || "";
+    const country  = shipToCountry || (marketplaceId === "EBAY_US" ? "US" : "other");
     const isUS     = country === "US";
     const itemId   = line.legacyItemId || "";
     const saleDate = (order.creationDate || "").slice(0, 10);
