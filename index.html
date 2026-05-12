@@ -826,7 +826,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               )}
             </div>
             <input
-              style={inpS({ ...(form.ebaySynced ? { color:C.muted, borderStyle:"dashed" } : {}), ...(linkBg && !form.ebaySynced ? { background:linkBg } : {}) })}
+              style={inpS({ ...(form.ebaySynced ? { color:C.muted, borderStyle:"dashed", background:"#f3f4f6" } : {}), ...(linkBg && !form.ebaySynced ? { background:linkBg } : {}) })}
               type="text" inputMode="decimal" placeholder="0.00"
               readOnly={!!form.ebaySynced}
               value={form.salePrice??""}
@@ -878,7 +878,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#eff6ff" : undefined} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -1622,7 +1622,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#eff6ff" : undefined} />
+          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} />
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
