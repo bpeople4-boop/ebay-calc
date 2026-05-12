@@ -3271,7 +3271,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
     else { setUpdated(true); setSaved(false); }
   };
   const openNewForm = () => { setSyncedItem(null); setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
-  const openEdit = (item) => { setSyncedItem(null); setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
+  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
   const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
 
   // まとめ売り作成 → 即バンドル化＋右パネルで編集
@@ -3414,7 +3414,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); if(selectedId===item.id){ setFormKey(k=>k+1); } else if(item.bundleGroupId && selectedBundleGroupId===item.bundleGroupId){ setFormKey(k=>k+1); } }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); }}/>}
     </div>
   );
 }
