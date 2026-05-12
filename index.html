@@ -3244,13 +3244,11 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showSearch, setShowSearch] = useState(false);
   const [showSync,   setShowSync]   = useState(false);
   const [showNewForm, setShowNewForm] = useState(true);
-  const [selectedOverrideItem, setSelectedOverrideItem] = useState(null);
 
-  const selectedItemBase = selectedId ? items.find(i=>i.id===selectedId) : null;
-  const selectedItem = selectedOverrideItem?.id === selectedId ? selectedOverrideItem : selectedItemBase;
+  const selectedItem = selectedId ? items.find(i=>i.id===selectedId) : null;
 
   // Bundle editing
-  const bundleGroupItems = selectedBundleGroupId ? items.filter(i=>i.bundleGroupId===selectedBundleGroupId).map(i => selectedOverrideItem?.id === i.id ? selectedOverrideItem : i) : [];
+  const bundleGroupItems = selectedBundleGroupId ? items.filter(i=>i.bundleGroupId===selectedBundleGroupId) : [];
   const bundleLeader = bundleGroupItems.find(i=>i.isBundleLeader) || bundleGroupItems[0];
   const bundleMembers = bundleGroupItems.filter(i=>i!==bundleLeader);
 
@@ -3265,14 +3263,13 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   };
 
   const handleSaveAndReset = (form) => {
-    setSelectedOverrideItem(null);
     onSave(form);
     if (!form.id) { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k => k + 1); setSaved(true); setUpdated(false); }
     else { setUpdated(true); setSaved(false); }
   };
-  const openNewForm = () => { setSelectedOverrideItem(null); setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
-  const openEdit = (item) => { setSelectedOverrideItem(null); setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
-  const openBundleEdit = (groupId) => { setSelectedOverrideItem(null); setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
+  const openNewForm = () => { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
+  const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
+  const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
 
   // まとめ売り作成 → 即バンドル化＋右パネルで編集
   const handleBundleSale = (selectedItems) => {
@@ -3414,7 +3411,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id || (selectedBundleGroupId && selectedBundleGroupId===item.bundleGroupId)){ setSelectedOverrideItem(item); setFormKey(k=>k+1); setUpdated(false); setSaved(false); } }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); if(selectedId===item.id || (selectedBundleGroupId && selectedBundleGroupId===item.bundleGroupId)){ setFormKey(k=>k+1); setUpdated(false); setSaved(false); } }}/>}
     </div>
   );
 }
