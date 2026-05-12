@@ -1590,7 +1590,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           </div>
         </div>
         <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:16, alignItems:"start" }}>
-          <DateField label="落札日" value={form.saleDate} onChange={set("saleDate")} col="1/-1" />
+          <DateField label="落札日" value={form.saleDate} onChange={form.ebaySynced ? undefined : set("saleDate")} col="1/-1" readOnly={!!form.ebaySynced} />
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
               <span style={{...lblS({marginBottom:0}), display:"flex", alignItems:"center", gap:4}}>落札価格（$）</span>
@@ -1599,7 +1599,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                 📊 オファー比較
               </button>
             </div>
-            <input style={inpS({ background:linkBg })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} onChange={e => {
+            <input style={inpS({ background: form.ebaySynced ? "#f3f4f6" : linkBg, ...(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed" } : {}) })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : e => {
               const val = e.target.value;
               setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
             }} />
@@ -1624,7 +1624,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>為替レート</span>
-            <input style={inpS()} type="text" inputMode="decimal" value={form.exchangeRate} onChange={set("exchangeRate")} />
+            <input style={inpS(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : {})} type="text" inputMode="decimal" value={form.exchangeRate} readOnly={!!(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)} onChange={form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
           <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#15803d" />
@@ -1694,12 +1694,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
                   <span style={lblS()}>eBay手数料（$）実費</span>
-                  <input style={inpS()} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} onChange={handleActualEbayFee} />
+                  <input style={inpS(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : {})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : handleActualEbayFee} />
                   {!form.actualEbayFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>}
                 </div>
                 <div>
                   <span style={lblS()}>プロモート費用（$）実費 {leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)&&<span style={{ color:C.red, fontWeight:700 }}>※必須（不使用は0）</span>}</span>
-                  <input style={inpS(leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} onChange={handleActualPromoFee} />
+                  <input style={inpS(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : leader.id&&(form.status==="sold"||form.status==="returned")&&+form.salePrice>0&&(form.actualPromoFeeUSD===""||form.actualPromoFeeUSD==null)?{borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`}:{})} type="text" inputMode="decimal" placeholder="空欄で概算を使用（0でも可）" value={form.actualPromoFeeUSD??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : handleActualPromoFee} />
                   {!form.actualPromoFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estPromoUSD.toFixed(2)}</span>（{form.promotionRate}%）</div>}
                 </div>
               </div>
