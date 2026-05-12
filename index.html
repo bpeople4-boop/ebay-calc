@@ -1453,8 +1453,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const totalUSD = +form.salePrice + (+form.saleShipping||0) + (form.destination==="us" ? +autoDdp : 0);
   const estEbayUSD = totalUSD * (+form.ebayFeeRate||12) / 100;
   const estPromoUSD = totalUSD * (+form.promotionRate||2) / 100;
-  const isLinked = !!form.ebayListingLinked && !initial.ebaySynced;
-  const isSynced = !!initial.ebaySynced;
+  const isLinked = !!form.ebayListingLinked && !form.ebaySynced;
+  const isSynced = !!form.ebaySynced;
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
   const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
@@ -1570,8 +1570,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
       {/* ── eBay出品情報 ── */}
       <CardSection title="eBay出品情報">
-        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
-        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!initial.ebaySynced} />
+        <Field label="eBayタイトル" value={form.ebayTitle} onChange={set("ebayTitle")} placeholder="Canon AE-1 + FD 50mm Lens SET [Near MINT]" col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
+        <UrlField label="eBay URL" value={form.ebayUrl} onChange={set("ebayUrl")} placeholder="https://www.ebay.com/itm/..." col="1/-1" bg={linkBg} readOnly={!!form.ebaySynced} />
       </CardSection>
 
       {/* ── 落札情報 ── */}
