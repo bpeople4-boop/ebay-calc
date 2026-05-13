@@ -841,9 +841,16 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label="落札送料（$）" type="number" value={form.saleShipping}
-                  onChange={initial.ebaySynced ? undefined : set("saleShipping")}
-                  readOnly={!!initial.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
+              ? <>
+                  <Field label="落札送料（$）" type="number" value={form.saleShipping}
+                    onChange={initial.ebaySynced ? undefined : set("saleShipping")}
+                    readOnly={!!initial.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
+                  {!initial.ebaySynced && +form.saleShipping !== ddpCalc(+form.salePrice || 0) && (
+                    <div style={{ color:"#1d4ed8", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"4px 10px", fontSize:11, fontFamily:"inherit", marginTop:4 }}>
+                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0)} です（現在 ${+form.saleShipping || 0}）
+                    </div>
+                  )}
+                </>
               : <div>
                   <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）</span>
                   <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
@@ -1606,7 +1613,14 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           </div>
           <div>
             {form.destination === "us"
-              ? <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
+              ? <>
+                  <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
+                  {+form.saleShipping !== ddpCalc(+form.salePrice || 0) && (
+                    <div style={{ color:"#1d4ed8", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"4px 10px", fontSize:11, fontFamily:"inherit", marginTop:4 }}>
+                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0)} です（現在 ${+form.saleShipping || 0}）
+                    </div>
+                  )}
+                </>
               : <div>
                   <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）</span>
                   <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
