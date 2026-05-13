@@ -3550,38 +3550,32 @@ function App() {
   // 未取得の為替レートを定期的に再取得（1時間ごと）
   useEffect(() => {
     const tryFetchRates = async () => {
-      setItems(prev => {
-        // rateNotFetched:true の商品があるか確認
-        const targets = prev.filter(i => i.rateNotFetched && (i.rateSaleDate || i.saleDate));
-        if (targets.length === 0) return prev;
-        // 非同期で取得して更新
-        (async () => {
-          const updates = await Promise.all(targets.map(async i => {
-            try {
-              const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate || i.saleDate}`);
-              const data = await res.json();
-              const fetched = Math.round(data.rates?.JPY ?? 0);
-              if (Number.isFinite(fetched) && fetched > 0) {
-                return { id: i.id, exchangeRate: fetched, exchangeRateLocked: true, rateNotFetched: false };
-              }
-            } catch(_) {}
-            return null;
-          }));
-          const validUpdates = updates.filter(Boolean);
-          if (validUpdates.length > 0) {
-            setItems(p => p.map(i => {
-              const u = validUpdates.find(v => v.id === i.id);
-              return u ? { ...i, ...u } : i;
-            }));
+      const snapshot = items;
+      const targets = snapshot.filter(i => i.rateNotFetched && (i.rateSaleDate || i.saleDate));
+      if (targets.length === 0) return;
+      const updates = await Promise.all(targets.map(async i => {
+        try {
+          const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate || i.saleDate}`);
+          const data = await res.json();
+          const fetched = Math.round(data.rates?.JPY ?? 0);
+          if (Number.isFinite(fetched) && fetched > 0) {
+            return { id: i.id, exchangeRate: fetched, exchangeRateLocked: true, rateNotFetched: false };
           }
-        })();
-        return prev; // 即時はそのまま返す
-      });
+        } catch(_) {}
+        return null;
+      }));
+      const validUpdates = updates.filter(Boolean);
+      if (validUpdates.length > 0) {
+        setItems(p => p.map(i => {
+          const u = validUpdates.find(v => v.id === i.id);
+          return u ? { ...i, ...u } : i;
+        }));
+      }
     };
-    tryFetchRates(); // 起動時に即実行
-    const timer = setInterval(tryFetchRates, 60 * 60 * 1000); // 1時間ごと
+    tryFetchRates();
+    const timer = setInterval(tryFetchRates, 60 * 60 * 1000);
     return () => clearInterval(timer);
-  }, []); // itemsに依存させず、setItemsのコールバック内でチェック
+  }, [items]);
 
   // eBayトークン自動リフレッシュ（期限5分前）
   useEffect(() => {
