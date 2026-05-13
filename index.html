@@ -1395,6 +1395,15 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const [showOffer,   setShowOffer]   = useState(false);
   const [offerPrice,  setOfferPrice]  = useState("");
 
+  // 為替レート自動取得（マウント時＋落札日変更時）
+  useEffect(() => {
+    if (form.exchangeRateLocked) return;
+    const date = form.saleDate || today();
+    fetchHistoricalRate(date, r => {
+      setForm(p => ({ ...p, exchangeRate: r }));
+    });
+  }, [form.saleDate]);
+
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
 
   // 実費入力時に手数料率を逆算して自動反映
