@@ -244,7 +244,7 @@ const getCatSettings = (cat, settings) => cat === "watch" ? settings.watch : set
 // ── Exchange rate fetch ───────────────────────────────────────
 async function fetchHistoricalRate(date, onSuccess) {
   try {
-    const res = await fetch(`https://api.frankfurter.app/${date}?from=USD&to=JPY`);
+    const res = await fetch(`/api/exchange-rate?date=${date}`);
     const data = await res.json();
     if (data.rates?.JPY) onSuccess(Math.round(data.rates.JPY));
   } catch(_) {}
@@ -253,7 +253,7 @@ async function fetchHistoricalRate(date, onSuccess) {
 async function fetchExchangeRate(onSuccess, onError, onLoading) {
   onLoading(true);
   try {
-    const res  = await fetch("https://api.frankfurter.app/latest?from=USD&to=JPY");
+    const res  = await fetch("/api/exchange-rate");
     const data = await res.json();
     onSuccess(Math.round(data.rates.JPY));
   } catch(e) {
@@ -1945,7 +1945,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     let exchangeRate = fallbackRate;
     if (p.saleDate) {
       try {
-        const res = await fetch(`https://api.frankfurter.app/${p.saleDate}?from=USD&to=JPY`);
+        const res = await fetch(`/api/exchange-rate?date=${p.saleDate}`);
         const data = await res.json();
         const fetched = Math.round(data.rates?.JPY ?? 0);
         if (Number.isFinite(fetched) && fetched > 0) exchangeRate = fetched;
@@ -3530,7 +3530,7 @@ function App() {
         (async () => {
           const updates = await Promise.all(targets.map(async i => {
             try {
-              const res = await fetch(`https://api.frankfurter.app/${i.rateSaleDate}?from=USD&to=JPY`);
+              const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate}`);
               const data = await res.json();
               const fetched = Math.round(data.rates?.JPY ?? 0);
               if (Number.isFinite(fetched) && fetched > 0) {
