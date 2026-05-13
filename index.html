@@ -1982,6 +1982,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+    // バンドルメンバーにも解除を反映
+    if (appItem.bundleGroupId && appItem.isBundleLeader) {
+      const members = localItems.filter(i => i.bundleGroupId === appItem.bundleGroupId && !i.isBundleLeader);
+      members.forEach(member => {
+        const memberPatch = { ...member, status: "unsold", saleDate: "", ebaySynced: false };
+        onApply(memberPatch);
+        setLocalItems(prev => prev.map(i => i.id === memberPatch.id ? memberPatch : i));
+      });
+    }
   };
 
   // 紐づけ済み判定: items の ebayOrderId と orders の orderId を照合
