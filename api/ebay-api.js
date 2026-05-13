@@ -13,8 +13,17 @@ export default async function handler(req, res) {
     });
     const contentType = response.headers.get("content-type") || "";
     const isXml = contentType.includes("text/xml") || contentType.includes("application/xml");
-    const data = isXml ? await response.text() : await response.json();
-    res.status(response.status).json({ data, contentType });
+    const rawText = await response.text();
+    let data;
+    if (!rawText) {
+      data = { _empty: true, _status: response.status };
+    } else if (isXml) {
+      data = rawText;
+    } else {
+      try { data = JSON.parse(rawText); }
+      catch(e) { data = { _rawText: rawText, _parseError: e.message }; }
+    }
+    res.status(response.status).json({ data, contentType, _httpStatus: response.status });
   } catch(e) {
     res.status(500).json({ error: e.message, stack: e.stack });
   }
