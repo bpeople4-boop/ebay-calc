@@ -1646,7 +1646,16 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           )}
 
           <div style={{ minWidth:0 }}>
-            <span style={lblS()}>為替レート</span>
+            <span style={lblS()}>為替レート{" "}
+              {form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched &&
+                <span style={{ color:C.green, fontSize:10 }}> 落札日レート取得済み</span>}
+              {form.ebaySynced && form.rateNotFetched &&
+                <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
+              {!form.ebaySynced && form.saleDate &&
+                <span style={{ color:C.green, fontSize:10 }}> 売却後確定</span>}
+              {!form.ebaySynced && !form.saleDate &&
+                <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}
+            </span>
             <input style={inpS(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : {})} type="text" inputMode="decimal" value={form.exchangeRate} readOnly={!!(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)} onChange={form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
@@ -1984,6 +1993,16 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+    // バンドルメンバーにも売却済みを反映
+    if (appItem.bundleGroupId && appItem.isBundleLeader) {
+      const members = localItems.filter(i =>
+        i.bundleGroupId === appItem.bundleGroupId && !i.isBundleLeader);
+      members.forEach(member => {
+        const memberPatch = { ...member, status: "sold", saleDate: p.saleDate, ebaySynced: false };
+        onApply(memberPatch);
+        setLocalItems(prev => prev.map(i => i.id === memberPatch.id ? memberPatch : i));
+      });
+    }
     setPicking(null);
   };
 
