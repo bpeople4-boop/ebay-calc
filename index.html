@@ -534,16 +534,16 @@ function UrlField({ label, value, onChange, placeholder, col, bg, readOnly, disa
   );
 }
 
-function DateField({ label, value, onChange, col, badge, inputStyle }) {
+function DateField({ label, value, onChange, col, badge, inputStyle, readOnly }) {
   const ref = useRef(null);
-  const openPicker = () => { if (ref.current) { ref.current.showPicker ? ref.current.showPicker() : ref.current.click(); } };
+  const openPicker = () => { if (readOnly) return; if (ref.current) { ref.current.showPicker ? ref.current.showPicker() : ref.current.click(); } };
   return (
     <div style={{ gridColumn:col, minWidth:0 }}>
       <span style={lblS()}>{label}{badge}</span>
       <div style={{ position:"relative" }}>
-        <div onClick={openPicker} style={{ ...inpS({ cursor:"pointer", display:"flex", alignItems:"center", justifyContent:"space-between", userSelect:"none", ...(inputStyle || {}) }) }}>
-          <span style={{ color: value ? C.text : C.muted }}>{value ? dt(value) : "日付を選択"}</span>
-          <span style={{ color:C.muted, fontSize:16, lineHeight:1 }}>📅</span>
+        <div onClick={openPicker} style={{ ...inpS({ cursor: readOnly ? "not-allowed" : "pointer", display:"flex", alignItems:"center", justifyContent:"space-between", userSelect:"none", ...(readOnly ? { background:"#f3f4f6", color:"#6b7280", borderStyle:"dashed" } : {}), ...(inputStyle || {}) }) }}>
+          <span style={{ color: value ? (readOnly ? "#6b7280" : C.text) : C.muted }}>{value ? dt(value) : "日付を選択"}</span>
+          <span style={{ color:C.muted, fontSize:16, lineHeight:1 }}></span>
         </div>
         <input ref={ref} type="date" value={value||""} onChange={onChange} style={{ position:"absolute", opacity:0, width:0, height:0, top:0, left:0, pointerEvents:"none" }} />
       </div>
