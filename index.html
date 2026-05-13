@@ -873,7 +873,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               {initial.ebaySynced && form.rateNotFetched &&
                 <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
               {!initial.ebaySynced && form.saleDate &&
-                <span style={{ color:C.green, fontSize:10 }}>🔒 売却後確定</span>}
+                <span style={{ color:C.green, fontSize:10 }}> 落札日レート取得済み</span>}
               {!initial.ebaySynced && !form.saleDate &&
                 <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}
             </span>
@@ -1652,7 +1652,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               {form.ebaySynced && form.rateNotFetched &&
                 <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
               {!form.ebaySynced && form.saleDate &&
-                <span style={{ color:C.green, fontSize:10 }}> 売却後確定</span>}
+                <span style={{ color:C.green, fontSize:10 }}> 落札日レート取得済み</span>}
               {!form.ebaySynced && !form.saleDate &&
                 <span style={{ color:C.muted, fontSize:10 }}>（本日レート自動取得）</span>}
             </span>
@@ -3552,13 +3552,13 @@ function App() {
     const tryFetchRates = async () => {
       setItems(prev => {
         // rateNotFetched:true の商品があるか確認
-        const targets = prev.filter(i => i.rateNotFetched && i.rateSaleDate);
+        const targets = prev.filter(i => i.rateNotFetched && (i.rateSaleDate || i.saleDate));
         if (targets.length === 0) return prev;
         // 非同期で取得して更新
         (async () => {
           const updates = await Promise.all(targets.map(async i => {
             try {
-              const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate}`);
+              const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate || i.saleDate}`);
               const data = await res.json();
               const fetched = Math.round(data.rates?.JPY ?? 0);
               if (Number.isFinite(fetched) && fetched > 0) {
