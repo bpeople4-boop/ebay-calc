@@ -1431,6 +1431,23 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     const next = e.target.value;
     const cur  = form.status;
     const isMember = !!(form.bundleGroupId && !form.isBundleLeader);
+    // ebaySynced商品: sold → returned以外への変更は警告＋落札情報リセット
+    if (form.ebaySynced && cur === "sold" && next !== "returned") {
+      if (!window.confirm("この商品はeBay同期済みです。\n落札情報（落札日・価格・為替・手数料）をリセットして\nステータスを変更しますか？")) return;
+      setStatusWarn("");
+      setForm(p => ({
+        ...p,
+        status: next,
+        saleDate:"", salePrice:"", saleShipping:"",
+        actualEbayFeeUSD:"", actualPromoFeeUSD:"",
+        exchangeRateLocked: false,
+        ebaySynced: false,
+        rateNotFetched: false,
+        ebayOrderId: "",
+      }));
+      return;
+    }
+
     if (!isMember) {
       if (cur === "stored" && next === "unlisted" && !form.auctRevoId?.trim()) {
         setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
