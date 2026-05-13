@@ -1805,8 +1805,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         await Promise.allSettled((ordersData.orders || []).map(async order => {
           try {
             const txData = await ebayFetchTransactionByOrder(ebayAuth.accessToken, order.orderId);
-            const tx = (txData.transactions || []).find(t => t.orderId === order.orderId);
-            if (tx) map[order.orderId] = tx;
+            const txs = txData.transactions || [];
+            const saleTx = txs.find(t => t.orderId === order.orderId && t.transactionType === "SALE");
+            const promoTx = txs.find(t =>
+              t.transactionType === "NON_SALE_CHARGE" &&
+              t.feeType === "AD_FEE" &&
+              (t.references || []).some(r => r.referenceType === "ORDER_ID" && r.referenceId === order.orderId)
+            );
+            if (saleTx) map[order.orderId] = { ...saleTx, _promoTx: promoTx || null };
           } catch(_) {}
         }));
         setTxMap({...map});
@@ -1898,9 +1904,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       if (tx) {
         const fees = tx.orderLineItems?.[0]?.marketplaceFees || [];
         const ebayF = fees.find(f => f.feeType === "FINAL_VALUE_FEE");
-        const promoF = fees.find(f => f.feeType === "AD_FEE");
         ebayFee  = ebayF  ? Math.abs(+ebayF.amount?.value  || 0).toFixed(2) : "";
-        promoFee = promoF ? Math.abs(+promoF.amount?.value || 0).toFixed(2) : "";
+        const promoTx = tx._promoTx;
+        promoFee = promoTx ? Math.abs(+promoTx.amount?.value || 0).toFixed(2) : "";
       }
     } else {
       salePrice    = tx?.amount?.value || "";
