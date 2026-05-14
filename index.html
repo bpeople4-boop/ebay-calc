@@ -2045,13 +2045,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 // ═══════════════════════════════════════════════════════════════
 // eBay Sync Modal（注文同期）
 // ═══════════════════════════════════════════════════════════════
-function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
+function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap, onAdRateMapChange }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
   const [orderImages, setOrderImages] = useState({});
   const [activeListings, setActiveListings] = useState([]);
-  const [adRateMap, setAdRateMap] = useState({ itemMap: {}, defaultRate: null });
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
@@ -2079,7 +2078,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         );
         setOrders(filteredOrders);
         if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
-        setAdRateMap(fetchedAdRateMap || { itemMap: {}, defaultRate: null });
+        onAdRateMapChange(fetchedAdRateMap || { itemMap: {}, defaultRate: null });
         const map = {};
         await Promise.allSettled(filteredOrders.map(async order => {
           try {
@@ -3617,6 +3616,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showSync,   setShowSync]   = useState(false);
   const [showNewForm, setShowNewForm] = useState(true);
   const [activeListings, setActiveListings] = useState([]);
+  const [adRateMap, setAdRateMap] = useState({ itemMap: {}, defaultRate: null });
 
   const selectedItem = (syncedItem && syncedItem.id === selectedId)
     ? syncedItem
@@ -3835,7 +3835,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
-      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); }}/>}
+      {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} adRateMap={adRateMap} onAdRateMapChange={setAdRateMap} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); }}/>}
     </div>
   );
 }
