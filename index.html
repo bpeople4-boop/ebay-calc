@@ -1930,6 +1930,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
+  const [orderImages, setOrderImages] = useState({});
   const [activeListings, setActiveListings] = useState([]);
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
@@ -2070,7 +2071,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       ebayFee      = "0";
       promoFee     = "0";
     }
-    const imageUrl = itemId ? `https://i.ebayimg.com/thumbs/images/g/~~/s-l300.jpg`.replace("~~", itemId) : "";
+    const imageUrl = (itemId && orderImages[itemId]) ? orderImages[itemId] : "";
     return {
       orderId: order.orderId, title: line.title || "—",
       salePrice, saleShipping, ebayFee, promoFee,
@@ -2080,6 +2081,28 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       imageUrl,
     };
   };
+
+  useEffect(() => {
+    const itemIds = [...new Set(orders.map(order => order.lineItems?.[0]?.legacyItemId || "").filter(Boolean))];
+    if (!itemIds.length || !ebayAuth.accessToken) {
+      setOrderImages({});
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const results = await Promise.all(itemIds.map(async itemId => {
+        try {
+          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}&accessToken=${encodeURIComponent(ebayAuth.accessToken)}`);
+          const data = await res.json();
+          return [itemId, data.imageUrl || ""];
+        } catch(_) {
+          return [itemId, ""];
+        }
+      }));
+      if (!cancelled) setOrderImages(Object.fromEntries(results));
+    })();
+    return () => { cancelled = true; };
+  }, [orders, ebayAuth.accessToken]);
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
