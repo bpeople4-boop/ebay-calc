@@ -233,6 +233,62 @@ async function ebayFetchActiveListings(accessToken) {
   return [firstPageXml, ...rest];
 }
 
+const xmlChildren = (node, name) =>
+  Array.from(node?.childNodes || []).filter(n => n.nodeType === 1 && n.localName === name);
+const xmlText = (node, path) => {
+  let cur = node;
+  for (const part of path.split(".")) cur = xmlChildren(cur, part)[0];
+  return cur?.textContent?.trim() || "";
+};
+const xmlNum = (v, fallback = "0") => {
+  const n = parseFloat(String(v || "").replace(/,/g, ""));
+  return Number.isFinite(n) ? String(n) : fallback;
+};
+const parseActiveListingsXml = (xml) => {
+  const doc = new DOMParser().parseFromString(xml, "text/xml");
+  const err = doc.getElementsByTagName("parsererror")[0];
+  if (err) throw new Error("Trading API XML parse error");
+  const activeList = Array.from(doc.getElementsByTagName("*")).find(n => n.localName === "ActiveList");
+  const items = Array.from(activeList?.getElementsByTagName("*") || [])
+    .filter(n => n.localName === "Item");
+  const getUsdPriceNode = (item) => {
+    const buyItNowNode = xmlChildren(item, "BuyItNowPrice")[0];
+    const currentNode = xmlChildren(xmlChildren(item, "SellingStatus")[0], "CurrentPrice")[0] || xmlChildren(item, "CurrentPrice")[0];
+    return [buyItNowNode, currentNode].find(node => node?.getAttribute("currencyID") === "USD");
+  };
+  const getPromotionRate = (item) => {
+    const nodes = Array.from(item.getElementsByTagName("*"));
+    const rateNode = nodes.find(node => {
+      const name = (node.localName || "").toLowerCase();
+      const parentName = (node.parentElement?.localName || "").toLowerCase();
+      const text = node.textContent?.trim() || "";
+      const isRateName = name.includes("adrate") || name.includes("promotionrate") || name.includes("promotedlistingrate") || (name === "rate" && parentName.includes("promoted"));
+      return isRateName && text !== "" && Number.isFinite(parseFloat(text));
+    });
+    return rateNode ? xmlNum(rateNode.textContent, "") : "";
+  };
+  const filteredItems = items.filter(item => {
+    const listingDetails = xmlChildren(item, "ListingDetails")[0];
+    return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
+  });
+  return filteredItems.map(item => {
+    const listingDetails = xmlChildren(item, "ListingDetails")[0];
+    const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
+    const shippingOptions = xmlChildren(shippingDetails, "ShippingServiceOptions")[0];
+    const priceNode = getUsdPriceNode(item);
+    return {
+      itemId: xmlText(item, "ItemID"),
+      title: xmlText(item, "Title"),
+      salePrice: xmlNum(priceNode?.textContent || "", ""),
+      saleShipping: xmlNum(xmlText(shippingOptions, "ShippingServiceCost"), "0"),
+      promotionRate: getPromotionRate(item),
+      galleryUrl: item.getElementsByTagName("GalleryURL")[0]?.textContent?.trim() || "",
+      ebayUrl: xmlText(listingDetails, "ViewItemURL"),
+      listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
+    };
+  }).filter(i => i.itemId || i.title);
+};
+
 // ── Settings defaults ─────────────────────────────────────────
 const DEFAULT_SETTINGS = {
   exchangeRate: 158,
@@ -580,7 +636,7 @@ function CardSection({ title, children, disabled }) {
 // ═══════════════════════════════════════════════════════════════
 // ItemForm（商品登録・編集）
 // ═══════════════════════════════════════════════════════════════
-function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
+function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListingRefresh }) {
   const isBundleMember = !!(initial.bundleGroupId && !initial.isBundleLeader);
   const catS = getCatSettings(initial.category || "", settings);
   const [form, setForm] = useState({
@@ -763,6 +819,10 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
   const linkBg = isLinked ? "#f0fdf4" : isSynced ? "#f3f4f6" : undefined;
   const linkBadge = isLinked ? "●" : isSynced ? "●" : undefined;
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
+  const handleListingRefresh = () => {
+    const patch = onListingRefresh?.(form);
+    if (patch) setForm(p => ({ ...p, ...patch }));
+  };
   const ProfitBar = ({ label, calc, highlight }) => (
     <div style={{ ...cardS({ marginBottom:8, padding:14 }), borderColor:`${pColor(calc.profitRate)}40`, background: highlight ? `${pColor(calc.profitRate)}08` : pBg(calc.profitRate) }}>
       {label && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, marginBottom:10, letterSpacing:"0.06em" }}>{label}</div>}
@@ -932,7 +992,13 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
             {rateError && <div style={{ color:C.red, fontSize:11, marginTop:4, fontFamily:C.jp }}>{rateError}</div>}
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#15803d" />
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>プロモーション（%）</span>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
+            </div>
+          </div>
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -1410,7 +1476,7 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
 // ═══════════════════════════════════════════════════════════════
 // BundleEditForm（まとめ売り編集フォーム）
 // ═══════════════════════════════════════════════════════════════
-function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, settings, allItems, onAddMember }) {
+function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, settings, allItems, onAddMember, onListingRefresh }) {
   const allMembers = [leader, ...members];
   const combinedName = allMembers.map(i => i.productName || "—").join(" + ");
 
@@ -1580,6 +1646,10 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
   const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
+  const handleListingRefresh = () => {
+    const patch = onListingRefresh?.({ ...leader, ...form });
+    if (patch) setForm(p => ({ ...p, ...patch }));
+  };
 
   const handleSave = () => {
     if (feeError) return;
@@ -1762,7 +1832,13 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             <input style={inpS(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : {})} type="text" inputMode="decimal" value={form.exchangeRate} readOnly={!!(form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched)} onChange={form.ebaySynced && form.exchangeRateLocked && !form.rateNotFetched ? undefined : set("exchangeRate")} />
           </div>
           <Field label="eBay手数料率（%）" type="number" value={form.ebayFeeRate} onChange={set("ebayFeeRate")} />
-          <Field label="プロモーション（%）" type="number" value={form.promotionRate} onChange={set("promotionRate")} bg={isLinked ? "#f0fdf4" : undefined} badge={isLinked ? "●" : undefined} badgeColor="#15803d" />
+          <div style={{ minWidth:0 }}>
+            <span style={lblS()}>プロモーション（%）</span>
+            <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
+            </div>
+          </div>
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>国際送料＋手数料（¥）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
@@ -2275,6 +2351,20 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     setSelectedListing(null);
   };
 
+  const handleLinkedListingBulkRefresh = () => {
+    let count = 0;
+    linkedListingItems.forEach(item => {
+      const listing = activeListings.find(listing =>
+        (listing.itemId && item.ebayUrl && item.ebayUrl.includes(listing.itemId)) ||
+        (listing.title && item.ebayTitle && listing.title.trim() === item.ebayTitle.trim())
+      );
+      if (!listing) return;
+      applyListingPatch(listing, item);
+      count += 1;
+    });
+    showToast(`${count}件更新しました`);
+  };
+
   const tabS = (active) => ({
     padding:"8px 20px", border:"none", cursor:"pointer",
     fontFamily:C.jp, fontWeight:700, fontSize:13,
@@ -2489,6 +2579,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
               <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
                 <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>未紐付け</button>
                 <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>紐付け済み</button>
+                {activeListingTab === "linked" && linkedListingItems.length > 0 && (
+                  <button type="button" onClick={handleLinkedListingBulkRefresh} style={btnS("secondary",{fontSize:11,padding:"4px 10px",marginLeft:"auto",alignSelf:"center"})}> 紐付け済みを一括更新</button>
+                )}
               </div>
               {activeListingTab === "unlinked" && (
                 <TwoColumnLinker
@@ -3476,6 +3569,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showSearch, setShowSearch] = useState(false);
   const [showSync,   setShowSync]   = useState(false);
   const [showNewForm, setShowNewForm] = useState(true);
+  const [activeListings, setActiveListings] = useState([]);
 
   const selectedItem = (syncedItem && syncedItem.id === selectedId)
     ? syncedItem
@@ -3504,6 +3598,49 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const openNewForm = () => { setSyncedItem(null); setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
   const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
   const openBundleEdit = (groupId) => { setSelectedBundleGroupId(groupId); setSelectedId(null); setSaved(false); setUpdated(false); setShowRight(true); };
+
+  useEffect(() => {
+    if (!ebayAuth?.accessToken || ebayAuth?.tokenExpiry <= Date.now()) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const listingXmlPages = await ebayFetchActiveListings(ebayAuth.accessToken);
+        if (!cancelled) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
+      } catch(_) {}
+    })();
+    return () => { cancelled = true; };
+  }, [ebayAuth?.accessToken, ebayAuth?.tokenExpiry]);
+
+  const findActiveListingMatch = (appItem) =>
+    activeListings.find(listing =>
+      (listing.itemId && appItem.ebayUrl && appItem.ebayUrl.includes(listing.itemId)) ||
+      (listing.title && appItem.ebayTitle && listing.title.trim() === appItem.ebayTitle.trim())
+    );
+
+  const applyListingPatch = (listing, appItem) => {
+    const patch = {
+      ...appItem,
+      ebayUrl: listing.ebayUrl || appItem.ebayUrl,
+      ebayTitle: listing.title || appItem.ebayTitle,
+      salePrice: listing.salePrice || appItem.salePrice,
+      saleShipping: listing.saleShipping || "0",
+      promotionRate: listing.promotionRate !== "" ? +listing.promotionRate : 0,
+      ebayListingLinked: true,
+    };
+    onSave(patch);
+    setSyncedItem(patch);
+    setFormKey(k=>k+1);
+    return patch;
+  };
+
+  const handleListingRefresh = (appItem) => {
+    const listing = findActiveListingMatch(appItem);
+    if (!listing) {
+      alert("出品データが取得できませんでした");
+      return null;
+    }
+    return applyListingPatch(listing, appItem);
+  };
 
   // まとめ売り作成 → 即バンドル化＋右パネルで編集
   const handleBundleSale = (selectedItems) => {
@@ -3594,6 +3731,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
                   settings={settings}
                   allItems={items}
                   onAddMember={(itemId)=>onBundleAddMember(selectedBundleGroupId, itemId)}
+                  onListingRefresh={handleListingRefresh}
                 />
               </>
             ) : updated ? (
@@ -3633,6 +3771,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
                   onCancel={()=>{ if(selectedItem){ setSelectedId(null); } else { setShowNewForm(false); } }}
                   allItems={items}
                   settings={settings}
+                  onListingRefresh={handleListingRefresh}
                 />
               </>
             )}
