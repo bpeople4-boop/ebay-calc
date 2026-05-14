@@ -3618,6 +3618,13 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [activeListings, setActiveListings] = useState([]);
   const [adRateMap, setAdRateMap] = useState({ itemMap: {}, defaultRate: null });
 
+  useEffect(() => {
+    if (!ebayAuth?.accessToken || !(ebayAuth?.tokenExpiry > Date.now())) return;
+    ebayFetchAdRateMap(ebayAuth.accessToken)
+      .then(map => setAdRateMap(map || { itemMap: {}, defaultRate: null }))
+      .catch(() => {});
+  }, [ebayAuth?.accessToken]);
+
   const selectedItem = (syncedItem && syncedItem.id === selectedId)
     ? syncedItem
     : (selectedId ? items.find(i=>i.id===selectedId) : null);
