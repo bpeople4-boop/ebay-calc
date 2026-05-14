@@ -3671,7 +3671,11 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      promotionRate: listing.promotionRate !== "" ? +listing.promotionRate : 0,
+      promotionRate: (() => {
+        const itemRate = listing.itemId ? adRateMap.itemMap?.[String(listing.itemId)] : null;
+        const rate = itemRate != null ? itemRate : adRateMap.defaultRate;
+        return rate != null ? +rate : (listing.promotionRate !== "" ? +listing.promotionRate : 0);
+      })(),
       ebayListingLinked: true,
     };
     onSave(patch);
