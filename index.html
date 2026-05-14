@@ -1038,7 +1038,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>プロモーション（%）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
               {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
             </div>
           </div>
@@ -1878,7 +1878,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>プロモーション（%）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
               {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
             </div>
           </div>
@@ -2567,7 +2567,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             {item.salePrice && <span style={{ fontFamily:C.num, fontSize:11, color:C.accent, fontWeight:700 }}>${item.salePrice}</span>}
           </div>
         </div>
-        <button style={btnS("secondary",{fontSize:11,padding:"5px 12px",flexShrink:0})} onClick={handleRefresh}> 更新</button>
         <button style={btnS("danger",{fontSize:11,padding:"5px 12px",flexShrink:0})} onClick={()=>handleListingUnlink(item)}>解除</button>
       </div>
     </div>
@@ -4080,6 +4079,7 @@ function App() {
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Noto+Sans+JP:wght@400;600;700&display=swap');
     * { box-sizing:border-box; margin:0; padding:0; }
     input:focus, select:focus { border-color:#4f52b5 !important; box-shadow:0 0 0 3px rgba(79,82,181,.18) !important; outline:none !important; }
+    input[type=number]::-webkit-outer-spin-button, input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
     ::-webkit-scrollbar { width:6px; height:6px; }
     ::-webkit-scrollbar-thumb { background:#b0b4d0; border-radius:4px; }
     button:hover { opacity:.85; }
