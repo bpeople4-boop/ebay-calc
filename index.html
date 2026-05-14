@@ -155,7 +155,7 @@ async function ebayFetchOrders(accessToken) {
   const res = await fetch("/api/ebay-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url:"https://api.ebay.com/sell/fulfillment/v1/order?limit=50&filter=orderfulfillmentstatus:%7BNOT_STARTED%7CIN_PROGRESS%7CFULLY_SHIPPED%7D", accessToken }),
+    body: JSON.stringify({ url:"https://api.ebay.com/sell/fulfillment/v1/order?limit=50", accessToken }),
   });
   const payload = await res.json().catch(()=>({}));
   if (!res.ok) { const e = payload.data || payload; throw new Error(e?.errors?.[0]?.message || `Fulfillment API error: ${res.status}`); }
