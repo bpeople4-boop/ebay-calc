@@ -2405,7 +2405,19 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     );
   };
 
-  const LinkedListingItemCard = ({ item }) => (
+  const LinkedListingItemCard = ({ item }) => {
+    const handleRefresh = () => {
+      const listing = activeListings.find(listing =>
+        (listing.itemId && item.ebayUrl && item.ebayUrl.includes(listing.itemId)) ||
+        (listing.title && item.ebayTitle && listing.title.trim() === item.ebayTitle.trim())
+      );
+      if (!listing) {
+        alert("出品データが取得できませんでした");
+        return;
+      }
+      applyListingPatch(listing, item);
+    };
+    return (
     <div style={{ border:`1px solid ${C.green}40`, borderLeft:`4px solid ${C.green}`, borderRadius:10, padding:"12px 14px", background:C.greenLo }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
         <Thumb src={item.photos?.[0]} />
@@ -2417,10 +2429,12 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             {item.salePrice && <span style={{ fontFamily:C.num, fontSize:11, color:C.accent, fontWeight:700 }}>${item.salePrice}</span>}
           </div>
         </div>
+        <button style={btnS("secondary",{fontSize:11,padding:"5px 12px",flexShrink:0})} onClick={handleRefresh}> 更新</button>
         <button style={btnS("danger",{fontSize:11,padding:"5px 12px",flexShrink:0})} onClick={()=>handleListingUnlink(item)}>解除</button>
       </div>
     </div>
-  );
+    );
+  };
 
   const ScrollPane = ({ children }) => (
     <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:4, display:"flex", flexDirection:"column", gap:8 }}>
