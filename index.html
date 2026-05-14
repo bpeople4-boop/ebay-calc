@@ -235,7 +235,6 @@ async function ebayFetchActiveListings(accessToken) {
 }
 
 async function ebayFetchAdRateMap(accessToken) {
-  console.log("[AdRateMap] 開始");
   const res = await fetch("/api/ebay-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -244,13 +243,15 @@ async function ebayFetchAdRateMap(accessToken) {
       accessToken,
     }),
   });
-  const payload = await res.json().catch(e => { console.error("[AdRateMap] エラー:", e); return {}; });
-  console.log("[AdRateMap] campaigns:", payload);
-  if (!res.ok) return {};
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) return { itemMap: {}, defaultRate: null };
   const campaigns = (payload.data?.campaigns || []);
-  const map = {};
+  const itemMap = {};
+  let defaultRate = null;
   await Promise.allSettled(campaigns.map(async (campaign) => {
     try {
+      const bidPercentage = campaign.fundingStrategy?.bidPercentage;
+      if (bidPercentage == null) return;
       const r = await fetch("/api/ebay-api", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -260,16 +261,19 @@ async function ebayFetchAdRateMap(accessToken) {
         }),
       });
       const p = await r.json().catch(() => ({}));
-      console.log("[AdRateMap] campaign:", campaign.campaignId, "ads response:", p);
       const ads = p.data?.ads || [];
+      if (ads.length === 0) {
+        defaultRate = defaultRate == null ? +bidPercentage : Math.max(defaultRate, +bidPercentage);
+        return;
+      }
       for (const ad of ads) {
-        if (ad.listingId && ad.bidPercentage != null) {
-          map[String(ad.listingId)] = +ad.bidPercentage;
+        if (ad.listingId) {
+          itemMap[String(ad.listingId)] = +bidPercentage;
         }
       }
     } catch(_) {}
   }));
-  return map;
+  return { itemMap, defaultRate };
 }
 
 const xmlChildren = (node, name) =>
@@ -2047,7 +2051,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [orders,   setOrders]   = useState([]);
   const [orderImages, setOrderImages] = useState({});
   const [activeListings, setActiveListings] = useState([]);
-  const [adRateMap, setAdRateMap] = useState({});
+  const [adRateMap, setAdRateMap] = useState({ itemMap: {}, defaultRate: null });
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
@@ -2068,14 +2072,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             setListingError(e.message);
             return [];
           }),
-          ebayFetchAdRateMap(ebayAuth.accessToken).catch(() => ({})),
+          ebayFetchAdRateMap(ebayAuth.accessToken).catch(() => ({ itemMap: {}, defaultRate: null })),
         ]);
         const filteredOrders = (ordersData.orders || []).filter(
           order => order.cancelStatus?.cancelState !== "CANCELLED"
         );
         setOrders(filteredOrders);
         if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
-        setAdRateMap(fetchedAdRateMap || {});
+        setAdRateMap(fetchedAdRateMap || { itemMap: {}, defaultRate: null });
         const map = {};
         await Promise.allSettled(filteredOrders.map(async order => {
           try {
@@ -2362,14 +2366,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   };
 
   const applyListingPatch = (listing, appItem) => {
-    const hasAdRate = listing.itemId && Object.prototype.hasOwnProperty.call(adRateMap, String(listing.itemId));
+    const itemRate = listing.itemId ? adRateMap.itemMap?.[String(listing.itemId)] : null;
+    const rate = itemRate != null ? itemRate : adRateMap.defaultRate;
     const patch = {
       ...appItem,
       ebayUrl: listing.ebayUrl || appItem.ebayUrl,
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      promotionRate: hasAdRate ? adRateMap[String(listing.itemId)] : (listing.promotionRate !== "" ? +listing.promotionRate : 0),
+      promotionRate: rate != null ? +rate : (listing.promotionRate !== "" ? +listing.promotionRate : 0),
       ebayListingLinked: true,
     };
     onApply(patch);
