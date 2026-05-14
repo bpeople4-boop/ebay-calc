@@ -31,12 +31,6 @@ export default async function handler(req, res) {
     });
 
     const text = await r.text();
-    const parser = new (require("node:util").TextDecoder ? 
-      class { parse(t) { 
-        const m = t.match(/<GalleryURL>(.*?)<\/GalleryURL>/);
-        return m ? m[1] : "";
-      }} : Object)();
-    
     const match = text.match(/<GalleryURL>(.*?)<\/GalleryURL>/);
     const imageUrl = match ? match[1] : "";
     res.status(200).json({ imageUrl });
