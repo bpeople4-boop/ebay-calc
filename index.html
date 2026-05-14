@@ -109,6 +109,7 @@ const EBAY_SCOPES = [
   "https://api.ebay.com/oauth/api_scope/sell.fulfillment.readonly",
   "https://api.ebay.com/oauth/api_scope/sell.finances",
   "https://api.ebay.com/oauth/api_scope/sell.inventory.readonly",
+  "https://api.ebay.com/oauth/api_scope/sell.marketing.readonly",
 ].join(" ");
 const EBAY_TOKEN_URL = "https://api.ebay.com/identity/v1/oauth2/token";
 const EBAY_AUTH_URL  = "https://auth.ebay.com/oauth2/authorize";
@@ -231,6 +232,41 @@ async function ebayFetchActiveListings(accessToken) {
     Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2))
   );
   return [firstPageXml, ...rest];
+}
+
+async function ebayFetchAdRateMap(accessToken) {
+  const res = await fetch("/api/ebay-api", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: "https://api.ebay.com/sell/marketing/v1/ad_campaign?campaign_status=RUNNING&limit=50",
+      accessToken,
+    }),
+  });
+  const payload = await res.json().catch(() => ({}));
+  if (!res.ok) return {};
+  const campaigns = (payload.data?.campaigns || []);
+  const map = {};
+  await Promise.allSettled(campaigns.map(async (campaign) => {
+    try {
+      const r = await fetch("/api/ebay-api", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: `https://api.ebay.com/sell/marketing/v1/ad_campaign/${campaign.campaignId}/ad?limit=200`,
+          accessToken,
+        }),
+      });
+      const p = await r.json().catch(() => ({}));
+      const ads = p.data?.ads || [];
+      for (const ad of ads) {
+        if (ad.listingId && ad.bidPercentage != null) {
+          map[String(ad.listingId)] = +ad.bidPercentage;
+        }
+      }
+    } catch(_) {}
+  }));
+  return map;
 }
 
 const xmlChildren = (node, name) =>
@@ -2008,6 +2044,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [orders,   setOrders]   = useState([]);
   const [orderImages, setOrderImages] = useState({});
   const [activeListings, setActiveListings] = useState([]);
+  const [adRateMap, setAdRateMap] = useState({});
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
@@ -2022,18 +2059,20 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     (async () => {
       try {
         setLoading(true);
-        const [ordersData, listingXmlPages] = await Promise.all([
+        const [ordersData, listingXmlPages, fetchedAdRateMap] = await Promise.all([
           ebayFetchOrders(ebayAuth.accessToken),
           ebayFetchActiveListings(ebayAuth.accessToken).catch(e => {
             setListingError(e.message);
             return [];
           }),
+          ebayFetchAdRateMap(ebayAuth.accessToken).catch(() => ({})),
         ]);
         const filteredOrders = (ordersData.orders || []).filter(
           order => order.cancelStatus?.cancelState !== "CANCELLED"
         );
         setOrders(filteredOrders);
         if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
+        setAdRateMap(fetchedAdRateMap || {});
         const map = {};
         await Promise.allSettled(filteredOrders.map(async order => {
           try {
@@ -2320,13 +2359,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   };
 
   const applyListingPatch = (listing, appItem) => {
+    const hasAdRate = listing.itemId && Object.prototype.hasOwnProperty.call(adRateMap, String(listing.itemId));
     const patch = {
       ...appItem,
       ebayUrl: listing.ebayUrl || appItem.ebayUrl,
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      promotionRate: listing.promotionRate !== "" ? +listing.promotionRate : 0,
+      promotionRate: hasAdRate ? adRateMap[String(listing.itemId)] : (listing.promotionRate !== "" ? +listing.promotionRate : 0),
       ebayListingLinked: true,
     };
     onApply(patch);
