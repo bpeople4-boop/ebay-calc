@@ -1934,11 +1934,11 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
   const [txMap,    setTxMap]    = useState({});
-  const [picking,  setPicking]  = useState(null);
-  const [listingPicking, setListingPicking] = useState(null);
-  const [listingPickItemId, setListingPickItemId] = useState("");
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedListing, setSelectedListing] = useState(null);
   const [tab,      setTab]      = useState("active");
   const [activeListingTab, setActiveListingTab] = useState("unlinked");
+  const [soldTab, setSoldTab] = useState("unlinked");
   const [toast, setToast] = useState("");
 
   useEffect(() => {
@@ -2129,7 +2129,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         setLocalItems(prev => prev.map(i => i.id === memberPatch.id ? memberPatch : i));
       });
     }
-    setPicking(null);
+    setSelectedOrder(null);
   };
 
   const handleUnlink = (appItem) => {
@@ -2159,6 +2159,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
         setLocalItems(prev => prev.map(i => i.id === memberPatch.id ? memberPatch : i));
       });
     }
+    setSelectedOrder(null);
   };
 
   // 紐づけ済み判定: items の ebayOrderId と orders の orderId を照合
@@ -2209,25 +2210,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       )
     );
 
-  const handleListingPickOpen = (listing) => {
-    setListingPicking(listing);
-    const matched = listingCandidates.find(i =>
-      (listing.title && i.ebayTitle && listing.title.trim() === i.ebayTitle.trim()) ||
-      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
-    );
-    setListingPickItemId(matched?.id || listingCandidates[0]?.id || "");
-  };
-
-  const handleListingLink = () => {
-    const appItem = listingCandidates.find(i => i.id === listingPickItemId);
-    if (!listingPicking || !appItem) return;
+  const handleListingLink = (listing, appItem) => {
+    if (!listing || !appItem) return;
     if (appItem.ebayListingLinked) {
       showToast("この商品はすでに別の出品と紐付け済みです。解除してから変更してください");
       return;
     }
-    applyListingPatch(listingPicking, appItem);
-    setListingPicking(null);
-    setListingPickItemId("");
+    applyListingPatch(listing, appItem);
+    setSelectedListing(null);
   };
 
   const applyListingPatch = (listing, appItem) => {
@@ -2242,6 +2232,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+    setSelectedListing(null);
   };
 
   const handleListingUnlink = (appItem) => {
@@ -2258,6 +2249,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
+    setSelectedListing(null);
   };
 
   const tabS = (active) => ({
@@ -2269,13 +2261,56 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     transition:"all .15s",
   });
 
-  const OrderCard = ({ order, linked, onApply }) => {
+  const imgBoxS = { width:60, height:60, borderRadius:8, objectFit:"cover", flexShrink:0, background:C.bg, border:`1px solid ${C.border}` };
+  const EmptyImage = () => (
+    <div style={{ ...imgBoxS, display:"flex", alignItems:"center", justifyContent:"center", color:C.muted, fontFamily:C.jp, fontSize:10 }}>画像なし</div>
+  );
+  const Thumb = ({ src }) => src ? <img src={src} alt="" style={imgBoxS}/> : <EmptyImage />;
+  const newestFirst = (a, b) => String(b.createdAt || b.id || "").localeCompare(String(a.createdAt || a.id || ""), undefined, { numeric:true });
+  const orderCandidateMatches = (parsedOrder, item) =>
+    (parsedOrder.title && item.ebayTitle && parsedOrder.title.trim() === item.ebayTitle.trim()) ||
+    (parsedOrder.itemId && item.ebayUrl && item.ebayUrl.includes(parsedOrder.itemId));
+  const listingCandidateMatches = (listing, item) =>
+    (listing.title && item.ebayTitle && listing.title.trim() === item.ebayTitle.trim()) ||
+    (listing.itemId && item.ebayUrl && item.ebayUrl.includes(listing.itemId));
+  const sortOrderCandidates = order => {
+    const p = parseOrder(order);
+    return [...candidates].sort((a, b) => {
+      const am = orderCandidateMatches(p, a), bm = orderCandidateMatches(p, b);
+      if (am !== bm) return am ? -1 : 1;
+      return newestFirst(a, b);
+    });
+  };
+  const sortListingCandidates = listing =>
+    [...listingCandidates].sort((a, b) => {
+      const am = listingCandidateMatches(listing, a), bm = listingCandidateMatches(listing, b);
+      if (am !== bm) return am ? -1 : 1;
+      return newestFirst(a, b);
+    });
+
+  const CandidateCard = ({ item, matched, onClick }) => (
+    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:`1px solid ${matched ? C.green : C.border}`, background:matched ? C.greenLo : C.card }}>
+      <Thumb src={item.photos?.[0]} />
+      <div style={{ flex:1, minWidth:0 }}>
+        <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||item.ebayTitle||"—"}</div>
+        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:5, alignItems:"center" }}>
+          <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
+          <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{yen(item.cost)}</span>
+          {matched && <span style={{ fontSize:10, color:C.green, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>✓ タイトル一致</span>}
+        </div>
+      </div>
+      <button style={btnS("primary",{fontSize:11,padding:"6px 12px",flexShrink:0})} onClick={onClick}>紐付け</button>
+    </div>
+  );
+
+  const OrderCard = ({ order, linked, onApply, selected, onSelect }) => {
     const p = parseOrder(order);
     const linkedItem = linkedItemByOrderId[order.orderId];
     const listingLinkedItem = !linked ? findListingLinkedMatch(p) : null;
     return (
-      <div style={{ border:`1px solid ${linked ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: linked ? C.greenLo : C.card }}>
+      <div onClick={onSelect} style={{ border:`1px solid ${selected ? C.accent : linked ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: selected ? C.accentLo : linked ? C.greenLo : C.card, cursor: onSelect ? "pointer" : "default" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+          <Thumb src={p.imageUrl} />
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {p.title}
@@ -2310,22 +2345,23 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
           </div>
           {linked && linkedItem && (
             <button style={btnS("danger",{fontSize:11,padding:"5px 12px",flexShrink:0})}
-              onClick={()=>onApply(linkedItem)}>解除</button>
+              onClick={e=>{ e.stopPropagation(); onApply(linkedItem); }}>解除</button>
           )}
           {!linked && (
             <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
-              onClick={()=>setPicking(order)}>紐づけ</button>
+              onClick={e=>{ e.stopPropagation(); onSelect?.(); }}>選択</button>
           )}
         </div>
       </div>
     );
   };
 
-  const ListingCard = ({ listing }) => {
+  const ListingCard = ({ listing, selected, onSelect }) => {
     const alreadyLinked = findListingLinkedItem(listing);
     return (
-      <div style={{ border:`1px solid ${alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:alreadyLinked ? C.indigoLo : C.card }}>
+      <div onClick={onSelect} style={{ border:`1px solid ${selected ? C.accent : alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:selected ? C.accentLo : alreadyLinked ? C.indigoLo : C.card, cursor:onSelect ? "pointer" : "default" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
+          <Thumb src={listing.galleryUrl} />
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {listing.title || "Untitled"}
@@ -2340,7 +2376,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{listing.itemId}</div>
           </div>
           <button style={btnS("primary",{fontSize:11,padding:"5px 12px",flexShrink:0})}
-            onClick={()=>handleListingPickOpen(listing)}>紐付け</button>
+            onClick={e=>{ e.stopPropagation(); onSelect?.(); }}>選択</button>
         </div>
       </div>
     );
@@ -2349,7 +2385,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
   const LinkedListingItemCard = ({ item }) => (
     <div style={{ border:`1px solid ${C.green}40`, borderLeft:`4px solid ${C.green}`, borderRadius:10, padding:"12px 14px", background:C.greenLo }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-        {item.photos?.[0] && <img src={item.photos[0]} alt="" style={{ width:44, height:44, borderRadius:6, objectFit:"cover", flexShrink:0 }}/>}
+        <Thumb src={item.photos?.[0]} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
@@ -2363,23 +2399,34 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     </div>
   );
 
-  const selectedListingItem = listingCandidates.find(i => i.id === listingPickItemId);
-  const PreviewBox = ({ src, label }) => (
-    <div style={{ flex:1, minWidth:0 }}>
-      <div style={{ aspectRatio:"1/1", border:`1px solid ${C.border}`, borderRadius:8, background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden", marginBottom:8 }}>
-        {src
-          ? <img src={src} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }}/>
-          : <span style={{ fontFamily:C.jp, fontSize:12, color:C.muted }}>画像なし</span>}
-      </div>
-      <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted }}>{label}</div>
+  const ScrollPane = ({ children }) => (
+    <div style={{ flex:1, minHeight:0, overflowY:"auto", paddingRight:4, display:"flex", flexDirection:"column", gap:8 }}>
+      {children}
+    </div>
+  );
+
+  const EmptyState = ({ children }) => (
+    <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>{children}</div>
+  );
+
+  const TwoColumnLinker = ({ left, selected, candidatesList, placeholder, renderCandidate }) => (
+    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, height:"100%", minHeight:0 }}>
+      <ScrollPane>{left}</ScrollPane>
+      <ScrollPane>
+        {!selected ? (
+          <EmptyState>{placeholder}</EmptyState>
+        ) : candidatesList.length === 0 ? (
+          <EmptyState>紐付け候補がありません</EmptyState>
+        ) : candidatesList.map(renderCandidate)}
+      </ScrollPane>
     </div>
   );
 
   return (
-    <Modal title="🔄 eBay 注文同期" onClose={onClose} width={640}>
+    <Modal title="🔄 eBay 注文同期" onClose={onClose} width={"1000px"}>
       {toast && <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", zIndex:500, background:C.redLo, color:C.red, border:`1px solid ${C.red}30`, borderRadius:10, padding:"10px 16px", fontFamily:C.jp, fontSize:13, fontWeight:700, boxShadow:C.shadowMd }}>{toast}</div>}
       {loading ? (
-        <div style={{ textAlign:"center", padding:"40px 0", fontFamily:C.jp, color:C.muted }}>
+        <div style={{ height:"calc(85vh - 120px)", textAlign:"center", padding:"40px 0", fontFamily:C.jp, color:C.muted }}>
           <div style={{ fontSize:32, marginBottom:12 }}>🔄</div>
           注文データを取得中…
         </div>
@@ -2389,125 +2436,87 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
           <div style={{ marginTop:8, fontSize:11, color:C.muted }}>トークンが期限切れの場合は再接続してください</div>
         </div>
       ) : (
-        <div>
+        <div style={{ height:"calc(85vh - 120px)", overflow:"hidden", display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ display:"flex", borderBottom:`2px solid ${C.border}`, marginBottom:16, marginTop:-8 }}>
             <button style={tabS(tab==="active")} onClick={()=>setTab("active")}>
-              出品紐付け <span style={{ background:tab==="active"?C.indigoLo:C.bg, color:C.indigo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{activeListings.length}</span>
+              出品紐付け
             </button>
             <button style={tabS(tab==="sold")} onClick={()=>setTab("sold")}>
-              売却紐付け <span style={{ background:tab==="sold"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length + linkedOrders.length}</span>
+              売却紐付け
             </button>
           </div>
 
           {tab === "active" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+            <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1, minHeight:0 }}>
               {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
               <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
-                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>
-                  未紐付け <span style={{ background:activeListingTab==="unlinked"?C.accentLo:C.bg, color:C.accent, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{unlinkedActiveListings.length}</span>
-                </button>
-                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>
-                  紐付け済み <span style={{ background:activeListingTab==="linked"?C.greenLo:C.bg, color:C.green, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedListingItems.length}</span>
-                </button>
+                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>未紐付け</button>
+                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>紐付け済み</button>
               </div>
               {activeListingTab === "unlinked" && (
-                unlinkedActiveListings.length === 0
-                  ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐付けの出品はありません</div>
-                  : unlinkedActiveListings.map(listing => <ListingCard key={listing.itemId || listing.title} listing={listing}/>)
+                <TwoColumnLinker
+                  selected={selectedListing}
+                  placeholder="←左の商品を選択してください"
+                  candidatesList={selectedListing ? sortListingCandidates(selectedListing) : []}
+                  left={unlinkedActiveListings.length === 0
+                    ? <EmptyState>未紐付けの出品はありません</EmptyState>
+                    : unlinkedActiveListings.map(listing => (
+                      <ListingCard key={listing.itemId || listing.title} listing={listing} selected={selectedListing === listing} onSelect={()=>setSelectedListing(listing)} />
+                    ))}
+                  renderCandidate={item => (
+                    <CandidateCard
+                      key={item.id}
+                      item={item}
+                      matched={listingCandidateMatches(selectedListing, item)}
+                      onClick={()=>handleListingLink(selectedListing, item)}
+                    />
+                  )}
+                />
               )}
               {activeListingTab === "linked" && (
                 linkedListingItems.length === 0
-                  ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>出品紐付け済みの商品はありません</div>
-                  : linkedListingItems.map(item => <LinkedListingItemCard key={item.id} item={item}/>)
+                  ? <EmptyState>出品紐付け済みの商品はありません</EmptyState>
+                  : <ScrollPane>{linkedListingItems.map(item => <LinkedListingItemCard key={item.id} item={item}/>)}</ScrollPane>
               )}
             </div>
           )}
 
           {tab === "sold" && (
-            <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
-              <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, marginTop:2 }}>未紐付け <span style={{ color:C.accent, background:C.accentLo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{pendingOrders.length}</span></div>
-              {pendingOrders.length === 0
-                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>未紐づけの注文はありません</div>
-                : pendingOrders.map(order => <OrderCard key={order.orderId} order={order} linked={false} onApply={handleUnlink}/>)
-              }
-              <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, marginTop:10 }}>紐付け済み <span style={{ color:C.green, background:C.greenLo, borderRadius:10, padding:"1px 7px", fontSize:11, marginLeft:4 }}>{linkedOrders.length}</span></div>
-              {linkedOrders.length === 0
-                ? <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>まだ紐づけした注文はありません</div>
-                : linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)
-              }
-            </div>
-          )}
-        </div>
-      )}
-
-      {picking && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:480, maxHeight:"80vh", overflow:"auto" }}>
-            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>どの商品ですか？</span>
-              <button onClick={()=>setPicking(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted }}><X size={16}/></button>
-            </div>
-            <div style={{ padding:"8px 12px", background:C.accentLo, borderBottom:`1px solid ${C.border}` }}>
-              <div style={{ fontFamily:C.jp, fontSize:12, color:C.accent, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
-                🔗 {parseOrder(picking).title}
+            <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1, minHeight:0 }}>
+              <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
+                <button style={tabS(soldTab==="unlinked")} onClick={()=>setSoldTab("unlinked")}>未紐付け</button>
+                <button style={tabS(soldTab==="linked")} onClick={()=>setSoldTab("linked")}>紐付け済み</button>
               </div>
-            </div>
-            <div style={{ padding:12 }}>
-              {candidates.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"20px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐づけ候補がありません</div>
-              ) : candidates.map(item => (
-                <div key={item.id} onClick={()=>handleLink(picking, item)}
-                  style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:8, cursor:"pointer", border:`1px solid ${C.border}`, marginBottom:6, transition:"background .1s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background=C.accentLo}
-                  onMouseLeave={e=>e.currentTarget.style.background=""}>
-                  {item.photos?.[0] && <img src={item.photos[0]} alt="" style={{ width:40, height:40, borderRadius:6, objectFit:"cover", flexShrink:0 }}/>}
-                  <div style={{ minWidth:0 }}>
-                    <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||"—"}</div>
-                    <div style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber} · {yen(item.cost)}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {listingPicking && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.5)", zIndex:300, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-          <div style={{ background:C.card, borderRadius:16, boxShadow:C.shadowMd, width:"100%", maxWidth:560 }}>
-            <div style={{ padding:"16px 20px", borderBottom:`1px solid ${C.border}`, display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-              <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:14, color:C.text }}>出品中商品を紐付け</span>
-              <button onClick={()=>setListingPicking(null)} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted }}><X size={16}/></button>
-            </div>
-            <div style={{ padding:16 }}>
-              {listingCandidates.length === 0 ? (
-                <div style={{ textAlign:"center", padding:"20px", color:C.muted, fontFamily:C.jp, fontSize:13 }}>紐付け可能な出品中商品がありません</div>
-              ) : (
-                <>
-                  <div style={{ display:"flex", gap:14, marginBottom:14 }}>
-                    <PreviewBox src={listingPicking.galleryUrl} label="eBay" />
-                    <PreviewBox src={selectedListingItem?.photos?.[0]} label="アプリ商品" />
-                  </div>
-                  <div style={{ marginBottom:12, padding:"10px 12px", background:C.indigoLo, borderRadius:8 }}>
-                    <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{listingPicking.title || "Untitled"}</div>
-                    <div style={{ display:"flex", gap:12, flexWrap:"wrap", marginTop:6 }}>
-                      <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listingPicking.salePrice || "0"}</span>
-                      <span style={{ fontFamily:C.num, fontSize:12, color:C.muted }}>送料 ${listingPicking.saleShipping || "0"}</span>
-                    </div>
-                  </div>
-                  <select value={listingPickItemId} onChange={e=>setListingPickItemId(e.target.value)} style={inpS({ width:"100%", marginBottom:12 })}>
-                    {listingCandidates.map(item => (
-                      <option key={item.id} value={item.id}>#{item.managementNumber} {item.productName || item.ebayTitle || "Untitled"}</option>
+              {soldTab === "unlinked" && (
+                <TwoColumnLinker
+                  selected={selectedOrder}
+                  placeholder="←左の商品を選択してください"
+                  candidatesList={selectedOrder ? sortOrderCandidates(selectedOrder) : []}
+                  left={pendingOrders.length === 0
+                    ? <EmptyState>未紐づけの注文はありません</EmptyState>
+                    : pendingOrders.map(order => (
+                      <OrderCard key={order.orderId} order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} />
                     ))}
-                  </select>
-                  <div style={{ display:"flex", gap:8, justifyContent:"flex-end" }}>
-                    <button onClick={()=>setListingPicking(null)} style={btnS("ghost",{fontSize:12,padding:"8px 14px"})}>キャンセル</button>
-                    <button onClick={handleListingLink} style={btnS("primary",{fontSize:12,padding:"8px 16px"})}>確定</button>
-                  </div>
-                </>
+                  renderCandidate={item => {
+                    const parsed = parseOrder(selectedOrder);
+                    return (
+                      <CandidateCard
+                        key={item.id}
+                        item={item}
+                        matched={orderCandidateMatches(parsed, item)}
+                        onClick={()=>handleLink(selectedOrder, item)}
+                      />
+                    );
+                  }}
+                />
+              )}
+              {soldTab === "linked" && (
+                linkedOrders.length === 0
+                  ? <EmptyState>まだ紐づけした注文はありません</EmptyState>
+                  : <ScrollPane>{linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)}</ScrollPane>
               )}
             </div>
-          </div>
+          )}
         </div>
       )}
     </Modal>
