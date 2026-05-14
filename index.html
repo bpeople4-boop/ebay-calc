@@ -260,6 +260,7 @@ async function ebayFetchAdRateMap(accessToken) {
         }),
       });
       const p = await r.json().catch(() => ({}));
+      console.log("[AdRateMap] campaign:", campaign.campaignId, "ads response:", p);
       const ads = p.data?.ads || [];
       for (const ad of ads) {
         if (ad.listingId && ad.bidPercentage != null) {
