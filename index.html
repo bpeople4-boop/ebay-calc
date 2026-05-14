@@ -1952,10 +1952,13 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
             return [];
           }),
         ]);
-        setOrders(ordersData.orders || []);
+        const filteredOrders = (ordersData.orders || []).filter(
+          order => order.cancelStatus?.cancelState !== "CANCELLED"
+        );
+        setOrders(filteredOrders);
         if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
         const map = {};
-        await Promise.allSettled((ordersData.orders || []).map(async order => {
+        await Promise.allSettled(filteredOrders.map(async order => {
           try {
             const txData = await ebayFetchTransactionByOrder(ebayAuth.accessToken, order.orderId);
             const txs = txData.transactions || [];
