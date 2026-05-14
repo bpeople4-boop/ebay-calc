@@ -2084,7 +2084,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
 
   useEffect(() => {
     const itemIds = [...new Set(orders.map(order => order.lineItems?.[0]?.legacyItemId || "").filter(Boolean))];
-    if (!itemIds.length || !ebayAuth.accessToken) {
+    if (!itemIds.length) {
       setOrderImages({});
       return;
     }
@@ -2092,7 +2092,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
     (async () => {
       const results = await Promise.all(itemIds.map(async itemId => {
         try {
-          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}&accessToken=${encodeURIComponent(ebayAuth.accessToken)}`);
+          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}`);
           const data = await res.json();
           return [itemId, data.imageUrl || ""];
         } catch(_) {
@@ -2102,7 +2102,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       if (!cancelled) setOrderImages(Object.fromEntries(results));
     })();
     return () => { cancelled = true; };
-  }, [orders, ebayAuth.accessToken]);
+  }, [orders]);
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
