@@ -235,6 +235,7 @@ async function ebayFetchActiveListings(accessToken) {
 }
 
 async function ebayFetchAdRateMap(accessToken) {
+  console.log("[AdRateMap] 開始");
   const res = await fetch("/api/ebay-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -243,7 +244,8 @@ async function ebayFetchAdRateMap(accessToken) {
       accessToken,
     }),
   });
-  const payload = await res.json().catch(() => ({}));
+  const payload = await res.json().catch(e => { console.error("[AdRateMap] エラー:", e); return {}; });
+  console.log("[AdRateMap] campaigns:", payload);
   if (!res.ok) return {};
   const campaigns = (payload.data?.campaigns || []);
   const map = {};
