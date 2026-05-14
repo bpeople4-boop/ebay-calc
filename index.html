@@ -2250,7 +2250,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      ...(listing.promotionRate !== "" && +listing.promotionRate < 5 ? { promotionRate: listing.promotionRate } : {}),
+      promotionRate: listing.promotionRate !== "" ? +listing.promotionRate : 0,
       ebayListingLinked: true,
     };
     onApply(patch);
