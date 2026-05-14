@@ -2070,12 +2070,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings }) {
       ebayFee      = "0";
       promoFee     = "0";
     }
+    const imageUrl = itemId ? `https://i.ebayimg.com/thumbs/images/g/~~/s-l300.jpg`.replace("~~", itemId) : "";
     return {
       orderId: order.orderId, title: line.title || "—",
       salePrice, saleShipping, ebayFee, promoFee,
       currency, isUSD, country, isUS, itemId, saleDate,
       displayAmount: `${order.pricingSummary?.total?.currency} ${order.pricingSummary?.total?.value || ""}`,
       netUSD: tx?.amount?.value || "",
+      imageUrl,
     };
   };
 
