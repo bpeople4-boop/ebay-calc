@@ -250,6 +250,23 @@ async function fetchHistoricalRate(date, onSuccess) {
   } catch(_) {}
 }
 
+async function fetchHistoricalRateValue(date) {
+  try {
+    const res = await fetch(`/api/exchange-rate?date=${date}`);
+    const data = await res.json();
+    const fetched = Math.round(data.rates?.JPY ?? 0);
+    return Number.isFinite(fetched) && fetched > 0 ? fetched : null;
+  } catch(_) {
+    return null;
+  }
+}
+
+const isValidDateString = date => {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date || "")) return false;
+  const d = new Date(`${date}T00:00:00`);
+  return !Number.isNaN(d.getTime());
+};
+
 async function fetchExchangeRate(onSuccess, onError, onLoading) {
   onLoading(true);
   try {
@@ -580,7 +597,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     promotionRate: catS.promoPct,
     intlShipping: catS.shippingJPY,
     actualEbayFeeUSD:"", actualPromoFeeUSD:"",
-    refundUSD:"", refundExchangeRate:"", refundType:"none",
+    refundDate:"", refundUSD:"", refundExchangeRate:"", refundType:"none",
+    refundRateLocked:false, refundRateNotFetched:false,
     returnShippingJPY:"",
     status:"stored", returnDate:"", returnNotes:"",
     notes:"", photos:[],
@@ -606,7 +624,32 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
     });
   }, [form.saleDate]);
 
+  useEffect(() => {
+    if (!isValidDateString(form.refundDate) || form.refundRateLocked) return;
+    let cancelled = false;
+    (async () => {
+      const fetched = await fetchHistoricalRateValue(form.refundDate);
+      if (cancelled) return;
+      setForm(p => {
+        if (p.refundDate !== form.refundDate || p.refundRateLocked) return p;
+        return fetched
+          ? { ...p, refundExchangeRate: fetched, refundRateLocked:true, refundRateNotFetched:false }
+          : { ...p, refundRateNotFetched:true };
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [form.refundDate, form.refundRateLocked]);
+
   const set  = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const setRefundDate = e => {
+    const value = e.target.value;
+    setForm(p => ({
+      ...p,
+      refundDate: value,
+      refundRateLocked: false,
+      refundRateNotFetched: false,
+    }));
+  };
   const tog  = k => () => setForm(p => ({ ...p, [k]: !p[k] }));
 
   const handleJunkToggle = () => setForm(p => {
@@ -618,7 +661,8 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
       actualEbayFeeUSD:"", actualPromoFeeUSD:"",
       actualDdpFee:"", ddpSurcharge:"",
       shippingConfirmed:false, ddpConfirmed:false,
-      refundUSD:"", refundExchangeRate:"", refundType:"none",
+      refundDate:"", refundUSD:"", refundExchangeRate:"", refundType:"none",
+      refundRateLocked:false, refundRateNotFetched:false,
       returnShippingJPY:"", returnDate:"", returnNotes:"",
     };
   });
@@ -1022,6 +1066,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
               </div>
               {form.refundType !== "none" && (
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+                  <DateField label="返金日" value={form.refundDate} onChange={setRefundDate} inputStyle={{ background:"#fff" }} />
                   <div>
                     <span style={lblS({ color:C.red })}>返金額（$）</span>
                     <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal"
@@ -1029,9 +1074,22 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings }) {
                       value={form.refundUSD??""} onChange={set("refundUSD")} />
                   </div>
                   <div>
-                    <span style={lblS({ color:C.red })}>返金時の為替レート</span>
-                    <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal"
-                      placeholder={String(form.exchangeRate)} value={form.refundExchangeRate??""} onChange={set("refundExchangeRate")} />
+                    <span style={lblS({ color:C.red })}>返金時の為替レート{" "}
+                      {form.refundRateLocked && !form.refundRateNotFetched &&
+                        <span style={{ color:C.green, fontSize:10 }}> 返金日レート取得済み</span>}
+                      {form.refundRateNotFetched &&
+                        <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
+                    </span>
+                    <input
+                      style={inpS(form.refundRateLocked && !form.refundRateNotFetched
+                        ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
+                        : { background:"#fff" })}
+                      type="text" inputMode="decimal"
+                      placeholder={String(form.exchangeRate)}
+                      value={form.refundExchangeRate??""}
+                      readOnly={!!(form.refundRateLocked && !form.refundRateNotFetched)}
+                      onChange={form.refundRateLocked && !form.refundRateNotFetched ? undefined : set("refundExchangeRate")}
+                    />
                     <div style={{ color:C.muted, fontSize:10, marginTop:4, fontFamily:C.jp }}>空欄なら落札時の為替を使用</div>
                   </div>
                   <div style={{ gridColumn:"1/-1" }}>
@@ -1374,9 +1432,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     actualDdpFee: leader.actualDdpFee || "",
     actualEbayFeeUSD: (leader.status === "sold" || leader.status === "returned") ? (leader.actualEbayFeeUSD || "") : "",
     actualPromoFeeUSD: (leader.status === "sold" || leader.status === "returned") ? (leader.actualPromoFeeUSD || "") : "",
+    refundDate: leader.refundDate || "",
     refundUSD: leader.refundUSD || "",
     refundExchangeRate: leader.refundExchangeRate || "",
     refundType: leader.refundType || "none",
+    refundRateLocked: leader.refundRateLocked || false,
+    refundRateNotFetched: leader.refundRateNotFetched || false,
     returnShippingJPY: leader.returnShippingJPY || "",
     status: leader.status || "unsold",
     notes: leader.notes || "",
@@ -1404,7 +1465,32 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     });
   }, [form.saleDate]);
 
+  useEffect(() => {
+    if (!isValidDateString(form.refundDate) || form.refundRateLocked) return;
+    let cancelled = false;
+    (async () => {
+      const fetched = await fetchHistoricalRateValue(form.refundDate);
+      if (cancelled) return;
+      setForm(p => {
+        if (p.refundDate !== form.refundDate || p.refundRateLocked) return p;
+        return fetched
+          ? { ...p, refundExchangeRate: fetched, refundRateLocked:true, refundRateNotFetched:false }
+          : { ...p, refundRateNotFetched:true };
+      });
+    })();
+    return () => { cancelled = true; };
+  }, [form.refundDate, form.refundRateLocked]);
+
   const set = k => e => setForm(p => ({ ...p, [k]: e.target.value }));
+  const setRefundDate = e => {
+    const value = e.target.value;
+    setForm(p => ({
+      ...p,
+      refundDate: value,
+      refundRateLocked: false,
+      refundRateNotFetched: false,
+    }));
+  };
 
   // 実費入力時に手数料率を逆算して自動反映
   const handleActualEbayFee = e => {
@@ -1760,8 +1846,26 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               </div>
               {form.refundType!=="none" && (
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, padding:"12px 14px", background:C.redLo, borderRadius:9, border:`1px solid ${C.red}28` }}>
+                  <DateField label="返金日" value={form.refundDate} onChange={setRefundDate} inputStyle={{ background:"#fff" }} />
                   <div><span style={lblS({ color:C.red })}>返金額（$）</span><input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" value={form.refundUSD??""} onChange={set("refundUSD")} /></div>
-                  <div><span style={lblS({ color:C.red })}>返金時の為替レート</span><input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" placeholder={String(form.exchangeRate)} value={form.refundExchangeRate??""} onChange={set("refundExchangeRate")} /></div>
+                  <div>
+                    <span style={lblS({ color:C.red })}>返金時の為替レート{" "}
+                      {form.refundRateLocked && !form.refundRateNotFetched &&
+                        <span style={{ color:C.green, fontSize:10 }}> 返金日レート取得済み</span>}
+                      {form.refundRateNotFetched &&
+                        <span style={{ color:C.amber, fontSize:10 }}>⏳ 設定値使用（取得中）</span>}
+                    </span>
+                    <input
+                      style={inpS(form.refundRateLocked && !form.refundRateNotFetched
+                        ? { background:"#f0f1f7", color:C.muted, borderStyle:"dashed" }
+                        : { background:"#fff" })}
+                      type="text" inputMode="decimal"
+                      placeholder={String(form.exchangeRate)}
+                      value={form.refundExchangeRate??""}
+                      readOnly={!!(form.refundRateLocked && !form.refundRateNotFetched)}
+                      onChange={form.refundRateLocked && !form.refundRateNotFetched ? undefined : set("refundExchangeRate")}
+                    />
+                  </div>
                   <div style={{ gridColumn:"1/-1" }}>
                     <span style={lblS({ color:C.red })}>返送送料（¥）</span>
                     <input style={inpS({ background:"#fff" })} type="text" inputMode="decimal" placeholder="0" value={form.returnShippingJPY??""} onChange={set("returnShippingJPY")} />
@@ -3520,7 +3624,13 @@ function App() {
             // 為替レートが不正値（NaN・0・負数）の場合のみ補正
             const rate = +i.exchangeRate;
             const fixedRate = Number.isFinite(rate) && rate > 0 ? rate : 158;
-            const base = { ...i, exchangeRate: fixedRate };
+            const base = {
+              ...i,
+              exchangeRate: fixedRate,
+              refundDate: i.refundDate || "",
+              refundRateLocked: i.refundRateLocked || false,
+              refundRateNotFetched: i.refundRateNotFetched || false,
+            };
             if (hasSaleDate && i.status !== "returned") return { ...base, status: "sold" };
             if (!hasSaleDate && i.status === "sold") return { ...base, status: "unsold" };
             return base;
@@ -3569,19 +3679,21 @@ function App() {
     const tryFetchRates = async () => {
       const snapshot = items;
       const targets = snapshot.filter(i => i.rateNotFetched && (i.rateSaleDate || i.saleDate));
-      if (targets.length === 0) return;
+      const refundTargets = snapshot.filter(i => i.refundRateNotFetched && i.refundDate);
+      if (targets.length === 0 && refundTargets.length === 0) return;
       const updates = await Promise.all(targets.map(async i => {
-        try {
-          const res = await fetch(`/api/exchange-rate?date=${i.rateSaleDate || i.saleDate}`);
-          const data = await res.json();
-          const fetched = Math.round(data.rates?.JPY ?? 0);
-          if (Number.isFinite(fetched) && fetched > 0) {
-            return { id: i.id, exchangeRate: fetched, exchangeRateLocked: true, rateNotFetched: false };
-          }
-        } catch(_) {}
-        return null;
+        const fetched = await fetchHistoricalRateValue(i.rateSaleDate || i.saleDate);
+        return fetched
+          ? { id: i.id, exchangeRate: fetched, exchangeRateLocked: true, rateNotFetched: false }
+          : null;
       }));
-      const validUpdates = updates.filter(Boolean);
+      const refundUpdates = await Promise.all(refundTargets.map(async i => {
+        const fetched = await fetchHistoricalRateValue(i.refundDate);
+        return fetched
+          ? { id: i.id, refundExchangeRate: fetched, refundRateLocked: true, refundRateNotFetched: false }
+          : null;
+      }));
+      const validUpdates = [...updates, ...refundUpdates].filter(Boolean);
       if (validUpdates.length > 0) {
         setItems(p => p.map(i => {
           const u = validUpdates.find(v => v.id === i.id);
@@ -3630,7 +3742,8 @@ function App() {
       salePrice:"", saleDate:"", saleShipping:"", status:"stored",
       // 返品情報リセット
       returnDate:"", returnNotes:"",
-      refundUSD:"", refundExchangeRate:"", refundType:"none", returnShippingJPY:"",
+      refundDate:"", refundUSD:"", refundExchangeRate:"", refundType:"none", returnShippingJPY:"",
+      refundRateLocked:false, refundRateNotFetched:false,
       // 実費フィールドリセット
       actualEbayFeeUSD:"", actualPromoFeeUSD:"",
       actualDdpFee:"", ddpSurcharge:"",
