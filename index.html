@@ -2202,7 +2202,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     (async () => {
       const results = await Promise.all(itemIds.map(async itemId => {
         try {
-          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}`);
+          const token = ebayAuth?.accessToken || "";
+          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}&accessToken=${encodeURIComponent(token)}`);
           const data = await res.json();
           return [itemId, data.imageUrl || ""];
         } catch(_) {

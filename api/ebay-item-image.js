@@ -3,36 +3,20 @@ export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
   if (req.method === "OPTIONS") return res.status(200).end();
 
-  const { itemId } = req.query;
+  const { itemId, accessToken } = req.query;
   if (!itemId) return res.status(400).json({ error: "missing itemId" });
-
-  const appId = process.env.EBAY_APP_ID;
-  if (!appId) return res.status(500).json({ error: "EBAY_APP_ID not set" });
+  if (!accessToken) return res.status(400).json({ error: "missing accessToken" });
 
   try {
-    const xml = `<?xml version="1.0" encoding="utf-8"?>
-<GetItemRequest xmlns="urn:ebay:apis:eBLBaseComponents">
-  <RequesterCredentials><AppId>${appId}</AppId></RequesterCredentials>
-  <ItemID>${itemId}</ItemID>
-  <DetailLevel>ItemReturnDescription</DetailLevel>
-  <IncludeItemSpecifics>false</IncludeItemSpecifics>
-</GetItemRequest>`;
-
-    const r = await fetch("https://api.ebay.com/ws/api.dll", {
-      method: "POST",
+    const r = await fetch(`https://api.ebay.com/buy/browse/v1/item/v1|${itemId}|0`, {
       headers: {
-        "Content-Type": "text/xml",
-        "X-EBAY-API-CALL-NAME": "GetItem",
-        "X-EBAY-API-APP-NAME": appId,
-        "X-EBAY-API-COMPATIBILITY-LEVEL": "967",
-        "X-EBAY-API-SITEID": "0",
+        "Authorization": `Bearer ${accessToken}`,
+        "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+        "Content-Type": "application/json",
       },
-      body: xml,
     });
-
-    const text = await r.text();
-    const match = text.match(/<GalleryURL>(.*?)<\/GalleryURL>/);
-    const imageUrl = match ? match[1] : "";
+    const data = await r.json();
+    const imageUrl = data.image?.imageUrl || "";
     res.status(200).json({ imageUrl });
   } catch (e) {
     res.status(500).json({ error: e.message });
