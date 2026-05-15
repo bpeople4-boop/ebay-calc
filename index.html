@@ -2181,7 +2181,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ebayFee      = "0";
       promoFee     = "0";
     }
-    const imageUrl = (itemId && orderImages[itemId]) ? orderImages[itemId] : "";
+    const imageUrl = (itemId && orderImages[itemId]) ? orderImages[itemId] : (order.ebayImageUrl || "");
     return {
       orderId: order.orderId, title: line.title || "—",
       salePrice, saleShipping, ebayFee, promoFee,
