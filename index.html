@@ -2258,6 +2258,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       promotionRate:      p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:        order.orderId,
       ebaySynced:         true,
+      ebayImageUrl:       activeListings.find(l => String(l.itemId) === String(p.itemId))?.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked:  false,
       exchangeRate:       exchangeRate,
       exchangeRateLocked: rateFetched,
@@ -2377,6 +2378,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
       promotionRate: rate != null ? +rate : (listing.promotionRate !== "" ? +listing.promotionRate : 0),
+      ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
     };
     onApply(patch);
@@ -2390,6 +2392,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const patch = {
       ...appItem,
       ebayListingLinked: false,
+      ebayImageUrl: "",
       ebayUrl: "",
       ebayTitle: "",
       salePrice: "",
@@ -3686,6 +3689,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
         const rate = itemRate != null ? itemRate : adRateMap.defaultRate;
         return rate != null ? +rate : (listing.promotionRate !== "" ? +listing.promotionRate : 0);
       })(),
+      ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
     };
     onSave(patch);
