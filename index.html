@@ -2526,7 +2526,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     return (
       <div onClick={onSelect} style={{ border:`1px solid ${selected ? C.accent : alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:selected ? C.accentLo : alreadyLinked ? C.indigoLo : C.card, cursor:onSelect ? "pointer" : "default" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-          <Thumb src={listing.galleryUrl} />
+          <Thumb src={listing.galleryUrl || listing.ebayImageUrl} />
           <div style={{ flex:1, minWidth:0 }}>
             <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:C.text, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
               {listing.title || "Untitled"}
