@@ -2455,7 +2455,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const CandidateCard = ({ item, matched, onClick }) => (
     <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:`1px solid ${matched ? C.green : C.border}`, background:matched ? C.greenLo : C.card }}>
-      <Thumb src={item.photos?.[0]} />
+      <Thumb src={item.ebayImageUrl || item.photos?.[0]} />
       <div style={{ flex:1, minWidth:0 }}>
         <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||item.ebayTitle||"—"}</div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:5, alignItems:"center" }}>
@@ -2562,7 +2562,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     return (
     <div style={{ border:`1px solid ${C.green}40`, borderLeft:`4px solid ${C.green}`, borderRadius:10, padding:"12px 14px", background:C.greenLo }}>
       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-        <Thumb src={item.photos?.[0]} />
+        <Thumb src={item.ebayImageUrl || item.photos?.[0]} />
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
