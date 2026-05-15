@@ -2198,9 +2198,22 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       setOrderImages({});
       return;
     }
+    // まずactiveListingsのgalleryUrlから取得
+    const fromListings = Object.fromEntries(
+      itemIds.map(itemId => {
+        const listing = activeListings.find(l => String(l.itemId) === String(itemId));
+        return [itemId, listing?.galleryUrl || ""];
+      })
+    );
+    // galleryUrlが取れなかったものだけAPIで取得
+    const missing = itemIds.filter(id => !fromListings[id]);
+    if (!missing.length) {
+      setOrderImages(fromListings);
+      return;
+    }
     let cancelled = false;
     (async () => {
-      const results = await Promise.all(itemIds.map(async itemId => {
+      const results = await Promise.all(missing.map(async itemId => {
         try {
           const token = ebayAuth?.accessToken || "";
           const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}&accessToken=${encodeURIComponent(token)}`);
@@ -2210,10 +2223,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           return [itemId, ""];
         }
       }));
-      if (!cancelled) setOrderImages(Object.fromEntries(results));
+      if (!cancelled) setOrderImages({ ...fromListings, ...Object.fromEntries(results) });
     })();
     return () => { cancelled = true; };
-  }, [orders]);
+  }, [orders, activeListings]);
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
