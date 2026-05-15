@@ -1038,7 +1038,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>プロモーション（%）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={isLinked ? undefined : set("promotionRate")} readOnly={isLinked} />
               {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
             </div>
           </div>
@@ -1878,7 +1878,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <div style={{ minWidth:0 }}>
             <span style={lblS()}>プロモーション（%）</span>
             <div style={{ display:"flex", gap:6, alignItems:"center" }}>
-              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={set("promotionRate")} />
+              <input style={inpS({ flex:1, background:isLinked ? "#f0fdf4" : undefined, MozAppearance:"textfield", WebkitAppearance:"none" })} type="number" value={form.promotionRate} onChange={isLinked ? undefined : set("promotionRate")} readOnly={isLinked} />
               {isLinked && <button type="button" onClick={handleListingRefresh} style={btnS("ghost",{fontSize:11,padding:"4px 8px",flexShrink:0})}>更新</button>}
             </div>
           </div>
