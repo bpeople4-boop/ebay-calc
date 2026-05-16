@@ -2415,12 +2415,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     showToast(`${count}件更新しました`);
   };
 
-  const tabS = (active) => ({
-    padding:"8px 20px", border:"none", cursor:"pointer",
-    fontFamily:C.jp, fontWeight:700, fontSize:13,
-    background: active ? C.card : C.bg,
-    color: active ? C.accent : C.muted,
-    borderBottom: active ? `2px solid ${C.accent}` : `2px solid transparent`,
+  const tabS = (active, large) => ({
+    padding: large ? "10px 24px" : "8px 20px",
+    border:"none", cursor:"pointer",
+    fontFamily:C.jp, fontWeight:700,
+    fontSize: large ? 14 : 13,
+    borderRadius: large ? "8px 8px 0 0" : 0,
+    background: active ? C.accent : C.bg,
+    color: active ? "#fff" : C.muted,
+    borderBottom: active ? "none" : `2px solid ${C.border}`,
     transition:"all .15s",
   });
 
@@ -2585,16 +2588,22 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>{children}</div>
   );
 
-  const TwoColumnLinker = ({ left, selected, candidatesList, placeholder, renderCandidate }) => (
-    <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, height:"100%", minHeight:0 }}>
-      <ScrollPane>{left}</ScrollPane>
-      <ScrollPane>
-        {!selected ? (
-          <EmptyState>{placeholder}</EmptyState>
-        ) : candidatesList.length === 0 ? (
-          <EmptyState>紐付け候補がありません</EmptyState>
-        ) : candidatesList.map(renderCandidate)}
-      </ScrollPane>
+  const TwoColumnLinker = ({ left, selected, candidatesList, placeholder, renderCandidate, leftLabel, rightLabel }) => (
+    <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:6 }}>
+        {leftLabel && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, padding:"4px 2px" }}>{leftLabel}</div>}
+        {rightLabel && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, padding:"4px 2px" }}>{rightLabel}</div>}
+      </div>
+      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, flex:1, minHeight:0 }}>
+        <ScrollPane>{left}</ScrollPane>
+        <ScrollPane>
+          {!selected ? (
+            <EmptyState>{placeholder}</EmptyState>
+          ) : candidatesList.length === 0 ? (
+            <EmptyState>紐付け候補がありません</EmptyState>
+          ) : candidatesList.map(renderCandidate)}
+        </ScrollPane>
+      </div>
     </div>
   );
 
@@ -2614,10 +2623,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ) : (
         <div style={{ height:"calc(85vh - 120px)", overflow:"hidden", display:"flex", flexDirection:"column", minHeight:0 }}>
           <div style={{ display:"flex", borderBottom:`2px solid ${C.border}`, marginBottom:16, marginTop:-8 }}>
-            <button style={tabS(tab==="active")} onClick={()=>setTab("active")}>
+            <button style={tabS(tab==="active", true)} onClick={()=>setTab("active")}>
               出品紐付け
             </button>
-            <button style={tabS(tab==="sold")} onClick={()=>setTab("sold")}>
+            <button style={tabS(tab==="sold", true)} onClick={()=>setTab("sold")}>
               売却紐付け
             </button>
           </div>
@@ -2626,14 +2635,16 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1, minHeight:0 }}>
               {listingError && <div style={{ padding:"10px 12px", background:C.redLo, color:C.red, borderRadius:8, fontFamily:C.jp, fontSize:12 }}>出品中リスト取得エラー: {listingError}</div>}
               <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
-                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>未紐付け</button>
-                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>紐付け済み</button>
+                <button style={tabS(activeListingTab==="unlinked")} onClick={()=>setActiveListingTab("unlinked")}>未紐付け（{unlinkedActiveListings.length}）</button>
+                <button style={tabS(activeListingTab==="linked")} onClick={()=>setActiveListingTab("linked")}>紐付け済み（{linkedListingItems.length}）</button>
                 {activeListingTab === "linked" && linkedListingItems.length > 0 && (
                   <button type="button" onClick={handleLinkedListingBulkRefresh} style={btnS("secondary",{fontSize:11,padding:"4px 10px",marginLeft:"auto",alignSelf:"center"})}> 紐付け済みを一括更新</button>
                 )}
               </div>
               {activeListingTab === "unlinked" && (
                 <TwoColumnLinker
+                  leftLabel=" eBay出品中リストから選んでください"
+                  rightLabel=" アプリ内候補"
                   selected={selectedListing}
                   placeholder="←左の商品を選択してください"
                   candidatesList={selectedListing ? sortListingCandidates(selectedListing) : []}
@@ -2663,11 +2674,13 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           {tab === "sold" && (
             <div style={{ display:"flex", flexDirection:"column", gap:8, flex:1, minHeight:0 }}>
               <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
-                <button style={tabS(soldTab==="unlinked")} onClick={()=>setSoldTab("unlinked")}>未紐付け</button>
-                <button style={tabS(soldTab==="linked")} onClick={()=>setSoldTab("linked")}>紐付け済み</button>
+                <button style={tabS(soldTab==="unlinked")} onClick={()=>setSoldTab("unlinked")}>未紐付け（{pendingOrders.length}）</button>
+                <button style={tabS(soldTab==="linked")} onClick={()=>setSoldTab("linked")}>紐付け済み（{linkedOrders.length}）</button>
               </div>
               {soldTab === "unlinked" && (
                 <TwoColumnLinker
+                  leftLabel=" eBay売却済み注文から選んでください"
+                  rightLabel=" アプリ内候補"
                   selected={selectedOrder}
                   placeholder="←左の商品を選択してください"
                   candidatesList={selectedOrder ? sortOrderCandidates(selectedOrder) : []}
