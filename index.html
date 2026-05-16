@@ -2194,39 +2194,21 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   useEffect(() => {
     const itemIds = [...new Set(orders.map(order => order.lineItems?.[0]?.legacyItemId || "").filter(Boolean))];
-    if (!itemIds.length) {
-      setOrderImages({});
-      return;
-    }
-    // まずactiveListingsのgalleryUrlから取得
-    const fromListings = Object.fromEntries(
+    if (!itemIds.length) { setOrderImages({}); return; }
+    const result = Object.fromEntries(
       itemIds.map(itemId => {
+        const appItem = items.find(i => {
+          const match = (i.ebayUrl || "").match(/\/itm\/[^?]*?(\d{10,})/);
+          return match && match[1] === String(itemId);
+        });
+        if (appItem?.ebayImageUrl) return [itemId, appItem.ebayImageUrl];
         const listing = activeListings.find(l => String(l.itemId) === String(itemId));
-        return [itemId, listing?.galleryUrl || ""];
+        if (listing?.galleryUrl) return [itemId, listing.galleryUrl];
+        return [itemId, ""];
       })
     );
-    // galleryUrlが取れなかったものだけAPIで取得
-    const missing = itemIds.filter(id => !fromListings[id]);
-    if (!missing.length) {
-      setOrderImages(fromListings);
-      return;
-    }
-    let cancelled = false;
-    (async () => {
-      const results = await Promise.all(missing.map(async itemId => {
-        try {
-          const token = ebayAuth?.accessToken || "";
-          const res = await fetch(`/api/ebay-item-image?itemId=${encodeURIComponent(itemId)}&accessToken=${encodeURIComponent(token)}`);
-          const data = await res.json();
-          return [itemId, data.imageUrl || ""];
-        } catch(_) {
-          return [itemId, ""];
-        }
-      }));
-      if (!cancelled) setOrderImages({ ...fromListings, ...Object.fromEntries(results) });
-    })();
-    return () => { cancelled = true; };
-  }, [orders, activeListings]);
+    setOrderImages(result);
+  }, [orders, activeListings, items]);
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
