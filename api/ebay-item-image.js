@@ -16,8 +16,7 @@ export default async function handler(req, res) {
       },
     });
     const data = await r.json();
-    const imageUrl = data.image?.imageUrl || "";
-    res.status(200).json({ imageUrl });
+    res.status(200).json({ imageUrl: data.image?.imageUrl || "", debug: data });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
