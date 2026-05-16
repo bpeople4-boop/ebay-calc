@@ -2380,6 +2380,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       promotionRate: adRateMap.itemMap?.[String(listing.itemId)] != null ? +adRateMap.itemMap[String(listing.itemId)] : 0,
       ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
+      status: "unsold",
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
