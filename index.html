@@ -2380,14 +2380,13 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   };
 
   const applyListingPatch = (listing, appItem) => {
-    const catSettings = getCatSettings(appItem.category, settings);
     const patch = {
       ...appItem,
       ebayUrl: listing.ebayUrl || appItem.ebayUrl,
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      promotionRate: catSettings.promoPct ?? 2,
+      promotionRate: adRateMap.itemMap?.[String(listing.itemId)] != null ? +adRateMap.itemMap[String(listing.itemId)] : 0,
       ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
     };
@@ -3714,14 +3713,13 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
     );
 
   const applyListingPatch = (listing, appItem) => {
-    const catSettings = getCatSettings(appItem.category, settings);
     const patch = {
       ...appItem,
       ebayUrl: listing.ebayUrl || appItem.ebayUrl,
       ebayTitle: listing.title || appItem.ebayTitle,
       salePrice: listing.salePrice || appItem.salePrice,
       saleShipping: listing.saleShipping || "0",
-      promotionRate: catSettings.promoPct ?? 2,
+      promotionRate: adRateMap.itemMap?.[String(listing.itemId)] != null ? +adRateMap.itemMap[String(listing.itemId)] : 0,
       ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
     };
