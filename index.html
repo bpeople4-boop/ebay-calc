@@ -246,23 +246,36 @@ async function ebayFetchAdRateMap(accessToken) {
   const payload = await res.json().catch(() => ({}));
   if (!res.ok) return { itemMap: {}, defaultRate: null };
   const campaigns = (payload.data?.campaigns || []);
-  // キャンペーンをstartDateの降順（新しい順）でソートして最新1件のbidPercentageをdefaultRateにする
-  const sortedCampaigns = [...campaigns].sort((a, b) => {
-    const aDate = a.startDate ? new Date(a.startDate) : new Date(0);
-    const bDate = b.startDate ? new Date(b.startDate) : new Date(0);
-    return bDate - aDate;
-  });
-  let defaultRate = null;
-  for (const c of sortedCampaigns) {
-    const bp = c.fundingStrategy?.bidPercentage;
-    if (bp != null) {
-      defaultRate = +bp;
-      break;
-    }
-  }
-  // itemMapはads配列が返ってくる場合のみ使用（現状は全キャンペーンads空のため実質未使用）
+
+  // 自動生成キャンペーンを除外（名前が日付のみのパターン）
+  const autoPattern = /^(Campaign|Campagna|Campagne|Kampagne|Campaña)\s+[\d\s\/\-.:TZ]+$/i;
+  const manualCampaigns = campaigns.filter(c => !autoPattern.test((c.campaignName || "").trim()));
+
+  // 手動キャンペーンのads一覧を取得してitemMap構築
   const itemMap = {};
-  return { itemMap, defaultRate };
+  await Promise.all(manualCampaigns.map(async (c) => {
+    const campaignId = c.campaignId;
+    if (!campaignId) return;
+    const adsRes = await fetch("/api/ebay-api", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: `https://api.ebay.com/sell/marketing/v1/ad_campaign/${campaignId}/ad?limit=200`,
+        accessToken,
+      }),
+    });
+    const adsPayload = await adsRes.json().catch(() => ({}));
+    const ads = adsPayload.data?.ads || [];
+    for (const ad of ads) {
+      const listingId = ad.listingId;
+      const bid = ad.bidPercentage;
+      if (listingId && bid != null) {
+        itemMap[String(listingId)] = +bid;
+      }
+    }
+  }));
+
+  return { itemMap, defaultRate: null };
 }
 
 const xmlChildren = (node, name) =>
