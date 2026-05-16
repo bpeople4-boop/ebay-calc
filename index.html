@@ -689,7 +689,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
     cost:"", storageShipping:0, isJunk:false, junkDate:today(),
     serialNumber:"", auctRevoId:"",
     ebayUrl:"", ebayTitle:"",
-    destination:"other", saleDate:"", salePrice:"", saleShipping:"",
+    destination:"us", saleDate:"", salePrice:"", saleShipping:"",
     ddpSurcharge:"", ddpMethod:"", actualDdpFee:"",
     shippingConfirmed: false, ddpConfirmed: false,
     exchangeRate: settings.exchangeRate,
@@ -2381,6 +2381,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
       status: "unsold",
+      destination: "us",
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
