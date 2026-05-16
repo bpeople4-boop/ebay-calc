@@ -2191,7 +2191,11 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const country  = shipToCountry || (marketplaceId === "EBAY_US" ? "US" : "other");
     const isUS     = country === "US";
     const itemId   = line.legacyItemId || "";
-    const saleDate = (order.creationDate || "").slice(0, 10);
+    const creationUtc = order.creationDate || "";
+    const saleDate = creationUtc
+      ? new Date(new Date(creationUtc).getTime() + 9 * 60 * 60 * 1000)
+          .toISOString().slice(0, 10)
+      : "";
     let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
     if (isUS) {
       salePrice    = line.lineItemCost?.value || "";
@@ -2478,7 +2482,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{yen(item.cost)}</span>
           {matched && <span style={{ fontSize:10, color:C.green, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>✓ 一致</span>}
         </div>
-        <button style={{ ...btnS("primary",{fontSize:11,padding:"6px 0",marginTop:8}), width:"100%" }} onClick={onClick}>紐付け</button>
+        <button style={{ ...btnS("primary",{fontSize:11,padding:"6px 0",marginTop:8}), width:"100%", justifyContent:"center" }} onClick={onClick}>紐付け</button>
       </div>
     </div>
   );
