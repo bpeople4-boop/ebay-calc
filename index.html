@@ -2469,7 +2469,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:`1px solid ${matched ? C.green : C.border}`, background:matched ? C.greenLo : C.card }}>
       <Thumb src={item.ebayImageUrl || item.photos?.[0]} />
       <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||item.ebayTitle||"—"}</div>
+        <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{item.productName||item.ebayTitle||"—"}</div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:5, alignItems:"center" }}>
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{yen(item.cost)}</span>
@@ -2576,7 +2576,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
         <Thumb src={item.ebayImageUrl || item.photos?.[0]} />
         <div style={{ flex:1, minWidth:0 }}>
-          <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
+          <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
             <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
             {item.ebayTitle && <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted, maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.ebayTitle}</span>}
