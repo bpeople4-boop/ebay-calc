@@ -2334,7 +2334,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const candidates = localItems.filter(i =>
     !i.isJunk &&
     !i.ebaySynced &&
-    ["unsold","unlisted","stored"].includes(i.status) &&
+    i.status === "unsold" &&
     (!i.bundleGroupId || i.isBundleLeader)
   );
   const listingCandidates = localItems.filter(i => {
