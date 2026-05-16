@@ -2186,7 +2186,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const line     = order.lineItems?.[0] || {};
     const currency = order.pricingSummary?.total?.currency || "USD";
     const isUSD    = currency === "USD";
-    const shipToCountry = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipTo?.countryCode || "";
+    const shipToCountry = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipTo?.contactAddress?.countryCode || "";
     const marketplaceId = order.lineItems?.[0]?.listingMarketplaceId || "";
     const country  = shipToCountry || (marketplaceId === "EBAY_US" ? "US" : "other");
     const isUS     = country === "US";
