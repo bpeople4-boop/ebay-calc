@@ -2198,8 +2198,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       saleShipping = order.pricingSummary?.deliveryCost?.value || "0";
       if (tx) {
         const fees = tx.orderLineItems?.[0]?.marketplaceFees || [];
-        const ebayF = fees.find(f => f.feeType === "FINAL_VALUE_FEE");
-        ebayFee  = ebayF  ? Math.abs(+ebayF.amount?.value  || 0).toFixed(2) : "";
+        const fvFees = fees.filter(f => f.feeType?.startsWith("FINAL_VALUE_FEE"));
+        const totalFVFee = fvFees.reduce((sum, f) => sum + Math.abs(+f.amount?.value || 0), 0);
+        ebayFee = fvFees.length > 0 ? totalFVFee.toFixed(2) : "";
         const promoTx = tx._promoTx;
         promoFee = promoTx ? Math.abs(+promoTx.amount?.value || 0).toFixed(2) : "";
       }
