@@ -818,10 +818,6 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
       return;
     }
     // 未出品 → 出品中: eBay URL必須
-    if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
-      setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
-      return;
-    }
     // 出品中 → 売却済み: 実績手数料未入力でも保存可能（警告のみ）
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
       setStatusWarn("ℹ️ 実績手数料は後から入力できます（空欄時は概算値を使用）");
@@ -1650,10 +1646,6 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
         setStatusWarn("⚠️ オークレボIDを入力してから「未出品」に変更してください");
         return;
       }
-      if (cur === "unlisted" && next === "unsold" && !form.ebayUrl?.trim()) {
-        setStatusWarn("⚠️ eBay出品URLを入力してから「出品中」に変更してください");
-        return;
-      }
     }
     if (cur === "unsold" && next === "sold" && (!form.actualEbayFeeUSD?.trim() || form.actualPromoFeeUSD === "" || form.actualPromoFeeUSD == null)) {
       setStatusWarn("⚠️ eBay実績手数料・プロモ費用を入力してから保存してください");
@@ -2056,6 +2048,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const [activeListings, setActiveListings] = useState([]);
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
+  useEffect(() => { setLocalItems(items); }, [items]);
   const [txMap,    setTxMap]    = useState({});
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedListing, setSelectedListing] = useState(null);
@@ -2341,7 +2334,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     return !i.isJunk &&
       !i.ebaySynced &&
       !i.ebayListingLinked &&
-      i.status === "unsold" &&
+      i.status === "unlisted" &&
       (!i.bundleGroupId || isBundleLeader);
   });
 
