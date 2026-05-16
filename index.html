@@ -301,7 +301,7 @@ const parseActiveListingsXml = (xml) => {
   };
   const filteredItems = items.filter(item => {
     const listingDetails = xmlChildren(item, "ListingDetails")[0];
-    return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
+    return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/");
   });
   return filteredItems.map(item => {
     const listingDetails = xmlChildren(item, "ListingDetails")[0];
@@ -2141,7 +2141,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     );
     const filteredItems = items.filter(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
-      return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
+      return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/");
     });
     const listings = filteredItems.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
