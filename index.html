@@ -1536,7 +1536,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     saleShipping: leader.saleShipping || "",
     exchangeRate: leader.exchangeRate || settings.exchangeRate,
     ebayFeeRate: leader.ebayFeeRate || 12,
-    promotionRate: leader.promotionRate || 2,
+    promotionRate: leader.promotionRate != null && leader.promotionRate !== "" ? leader.promotionRate : 0,
     intlShipping: leader.intlShipping || 6000,
     destination: leader.destination || "other",
     ddpMethod: leader.ddpMethod || "",
