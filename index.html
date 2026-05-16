@@ -2039,6 +2039,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
   const [orderImages, setOrderImages] = useState({});
+  const [listingImageMap, setListingImageMap] = useState({});
   const [activeListings, setActiveListings] = useState([]);
   const [listingError, setListingError] = useState("");
   const [localItems, setLocalItems] = useState(items);
@@ -2066,7 +2067,12 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           order => order.cancelStatus?.cancelState !== "CANCELLED"
         );
         setOrders(filteredOrders);
-        if (listingXmlPages.length) setActiveListings(listingXmlPages.flatMap(xml => parseActiveListingsXml(xml)));
+        if (listingXmlPages.length) {
+          const parsed = listingXmlPages.map(xml => parseActiveListingsXml(xml));
+          setActiveListings(parsed.flatMap(p => p.listings));
+          const merged = Object.assign({}, ...parsed.map(p => p.allImageMap));
+          setListingImageMap(merged);
+        }
         onAdRateMapChange(fetchedAdRateMap || { itemMap: {}, defaultRate: null });
         const map = {};
         await Promise.allSettled(filteredOrders.map(async order => {
@@ -2125,11 +2131,19 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       });
       return rateNode ? xmlNum(rateNode.textContent, "") : "";
     };
+    // 全サイトのitemId→galleryUrlマップ（画像取得用）
+    const allImageMap = Object.fromEntries(
+      items.map(item => {
+        const itemId = xmlText(item, "ItemID");
+        const galleryUrl = item.getElementsByTagName("GalleryURL")[0]?.textContent?.trim() || "";
+        return [itemId, galleryUrl];
+      }).filter(([id]) => id)
+    );
     const filteredItems = items.filter(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       return xmlText(listingDetails, "ViewItemURL").startsWith("https://www.ebay.com/itm/") && !!getUsdPriceNode(item);
     });
-    return filteredItems.map(item => {
+    const listings = filteredItems.map(item => {
       const listingDetails = xmlChildren(item, "ListingDetails")[0];
       const shippingDetails = xmlChildren(item, "ShippingDetails")[0];
       const shippingOptions = xmlChildren(shippingDetails, "ShippingServiceOptions")[0];
@@ -2145,6 +2159,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         listingDate: (xmlText(listingDetails, "StartTime") || "").slice(0, 10),
       };
     }).filter(i => i.itemId || i.title);
+    return { listings, allImageMap };
   };
 
   const countryFlag = code => {
@@ -2204,11 +2219,12 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         if (appItem?.ebayImageUrl) return [itemId, appItem.ebayImageUrl];
         const listing = activeListings.find(l => String(l.itemId) === String(itemId));
         if (listing?.galleryUrl) return [itemId, listing.galleryUrl];
+        if (listingImageMap[itemId]) return [itemId, listingImageMap[itemId]];
         return [itemId, ""];
       })
     );
     setOrderImages(result);
-  }, [orders, activeListings, items]);
+  }, [orders, activeListings, items, listingImageMap]);
 
   const handleLink = async (order, appItem) => {
     const p = parseOrder(order);
