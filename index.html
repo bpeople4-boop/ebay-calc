@@ -2328,6 +2328,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const isBundleLeader = i.isBundleLeader === true;
     return !i.isJunk &&
       !i.ebaySynced &&
+      !i.ebayListingLinked &&
       i.status === "unsold" &&
       (!i.bundleGroupId || isBundleLeader);
   });
