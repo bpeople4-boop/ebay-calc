@@ -2466,17 +2466,21 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     });
 
   const CandidateCard = ({ item, matched, onClick }) => (
-    <div style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, border:`1px solid ${matched ? C.green : C.border}`, background:matched ? C.greenLo : C.card }}>
-      <Thumb src={item.ebayImageUrl || item.photos?.[0]} />
-      <div style={{ flex:1, minWidth:0 }}>
-        <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{item.productName||item.ebayTitle||"—"}</div>
-        <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:5, alignItems:"center" }}>
+    <div style={{ borderRadius:12, border:`2px solid ${matched ? C.green : C.border}`, background:matched ? C.greenLo : C.card, overflow:"hidden" }}>
+      <div style={{ width:"100%", aspectRatio:"1/1", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+        {(item.ebayImageUrl || item.photos?.[0])
+          ? <img src={item.ebayImageUrl || item.photos?.[0]} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+          : <div style={{ color:C.muted, fontFamily:C.jp, fontSize:11 }}>画像なし</div>}
+      </div>
+      <div style={{ padding:"10px 12px" }}>
+        <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", marginBottom:6 }}>{item.productName||item.ebayTitle||"—"}</div>
+        <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{yen(item.cost)}</span>
-          {matched && <span style={{ fontSize:10, color:C.green, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>✓ タイトル一致</span>}
+          {matched && <span style={{ fontSize:10, color:C.green, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>✓ 一致</span>}
         </div>
+        <button style={{ ...btnS("primary",{fontSize:11,padding:"6px 0",marginTop:8}), width:"100%" }} onClick={onClick}>紐付け</button>
       </div>
-      <button style={btnS("primary",{fontSize:11,padding:"6px 12px",flexShrink:0})} onClick={onClick}>紐付け</button>
     </div>
   );
 
@@ -2484,6 +2488,27 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const p = parseOrder(order);
     const linkedItem = linkedItemByOrderId[order.orderId];
     const listingLinkedItem = !linked ? findListingLinkedMatch(p) : null;
+    if (selected) return (
+      <div style={{ borderRadius:12, border:`2px solid ${C.accent}`, background:C.accentLo, overflow:"hidden", width:"100%" }}>
+        <div style={{ width:"100%", aspectRatio:"1/1", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+          {p.imageUrl
+            ? <img src={p.imageUrl} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+            : <div style={{ color:C.muted, fontFamily:C.jp, fontSize:11 }}>画像なし</div>}
+        </div>
+        <div style={{ padding:"12px 14px" }}>
+          <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, marginBottom:8, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical" }}>{p.title}</div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+            <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>
+              {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
+            </span>
+            <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
+            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
+            {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
+          </div>
+          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{order.orderId}</div>
+        </div>
+      </div>
+    );
     return (
       <div onClick={onSelect} style={{ border:`1px solid ${selected ? C.accent : linked ? C.green : C.border}`, borderRadius:10, padding:"12px 14px", background: selected ? C.accentLo : linked ? C.greenLo : C.card, cursor: onSelect ? "pointer" : "default" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
@@ -2535,8 +2560,26 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const ListingCard = ({ listing, selected, onSelect }) => {
     const alreadyLinked = findListingLinkedItem(listing);
+    if (selected) return (
+      <div style={{ borderRadius:12, border:`2px solid ${C.accent}`, background:C.accentLo, overflow:"hidden", width:"100%" }}>
+        <div style={{ width:"100%", aspectRatio:"1/1", background:C.bg, display:"flex", alignItems:"center", justifyContent:"center", overflow:"hidden" }}>
+          {(listing.galleryUrl || listing.ebayImageUrl)
+            ? <img src={listing.galleryUrl || listing.ebayImageUrl} alt="" style={{ width:"100%", height:"100%", objectFit:"cover" }} />
+            : <div style={{ color:C.muted, fontFamily:C.jp, fontSize:11 }}>画像なし</div>}
+        </div>
+        <div style={{ padding:"12px 14px" }}>
+          <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, marginBottom:8, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical" }}>{listing.title || "Untitled"}</div>
+          <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
+            <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listing.salePrice || "0"}</span>
+            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>送料 ${listing.saleShipping || "0"}</span>
+            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{listing.listingDate || "日付なし"}</span>
+          </div>
+          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{listing.itemId}</div>
+        </div>
+      </div>
+    );
     return (
-      <div onClick={onSelect} style={{ border:`1px solid ${selected ? C.accent : alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:selected ? C.accentLo : alreadyLinked ? C.indigoLo : C.card, cursor:onSelect ? "pointer" : "default" }}>
+      <div onClick={onSelect} style={{ border:`1px solid ${alreadyLinked ? C.indigo : C.border}`, borderRadius:10, padding:"12px 14px", background:alreadyLinked ? C.indigoLo : C.card, cursor:"pointer" }}>
         <div style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
           <Thumb src={listing.galleryUrl || listing.ebayImageUrl} />
           <div style={{ flex:1, minWidth:0 }}>
@@ -2546,7 +2589,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
               <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>${listing.salePrice || "0"}</span>
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>送料 ${listing.saleShipping || "0"}</span>
-              {listing.promotionRate !== "" && <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>Promo {listing.promotionRate}%</span>}
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{listing.listingDate || "日付なし"}</span>
               {alreadyLinked && <span style={{ fontSize:10, color:C.indigo, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>#{alreadyLinked.managementNumber} 紐付け済み</span>}
             </div>
@@ -2621,7 +2663,11 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             <EmptyState>{placeholder}</EmptyState>
           ) : candidatesList.length === 0 ? (
             <EmptyState>紐付け候補がありません</EmptyState>
-          ) : candidatesList.map(renderCandidate)}
+          ) : (
+            <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+              {candidatesList.map(renderCandidate)}
+            </div>
+          )}
         </ScrollPane>
       </div>
     </div>
