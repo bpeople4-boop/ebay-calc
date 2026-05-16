@@ -2191,11 +2191,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const country  = shipToCountry || (marketplaceId === "EBAY_US" ? "US" : "other");
     const isUS     = country === "US";
     const itemId   = line.legacyItemId || "";
-    const creationUtc = order.creationDate || "";
-    const saleDate = creationUtc
-      ? new Date(new Date(creationUtc).getTime() + 9 * 60 * 60 * 1000)
-          .toISOString().slice(0, 10)
-      : "";
+    const saleDate = (order.creationDate || "").slice(0, 10);
     let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
     if (isUS) {
       salePrice    = line.lineItemCost?.value || "";
