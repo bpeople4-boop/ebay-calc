@@ -502,8 +502,8 @@ const StatCard = ({ label, value, sub, color }) => (
 // ── Modal ─────────────────────────────────────────────────────
 function Modal({ title, onClose, children, width=480 }) {
   return (
-    <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }}>
-      <div style={{ background:C.card, borderRadius:18, boxShadow:C.shadowMd, width:"100%", maxWidth:width, maxHeight:"90vh", overflow:"auto" }}>
+    <div style={{ position:"fixed", inset:0, background:"rgba(20,22,60,.45)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:16 }} onClick={onClose}>
+      <div style={{ background:C.card, borderRadius:18, boxShadow:C.shadowMd, width:"100%", maxWidth:width, maxHeight:"90vh", overflow:"auto" }} onClick={e=>e.stopPropagation()}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", padding:"18px 24px", borderBottom:`1px solid ${C.border}` }}>
           <span style={{ fontFamily:C.jp, fontWeight:700, fontSize:16, color:C.text }}>{title}</span>
           <button onClick={onClose} style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:4 }}><X size={18}/></button>
@@ -2589,14 +2589,23 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     <div style={{ textAlign:"center", padding:"30px 0", color:C.muted, fontFamily:C.jp, fontSize:13 }}>{children}</div>
   );
 
-  const TwoColumnLinker = ({ left, selected, candidatesList, placeholder, renderCandidate, leftLabel, rightLabel }) => (
+  const TwoColumnLinker = ({ left, selected, candidatesList, placeholder, renderCandidate, leftLabel, rightLabel, onClearSelect, selectedCard }) => (
     <div style={{ display:"flex", flexDirection:"column", height:"100%", minHeight:0 }}>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:6 }}>
-        {leftLabel && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, padding:"4px 2px" }}>{leftLabel}</div>}
+        <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+          {selected && <button onClick={onClearSelect} style={{ background:"none", border:`1px solid ${C.border}`, borderRadius:6, cursor:"pointer", color:C.muted, fontFamily:C.jp, fontSize:11, padding:"2px 8px" }}>← 戻る</button>}
+          {leftLabel && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, padding:"4px 2px" }}>{leftLabel}</div>}
+        </div>
         {rightLabel && <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.muted, padding:"4px 2px" }}>{rightLabel}</div>}
       </div>
       <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, flex:1, minHeight:0 }}>
-        <ScrollPane>{left}</ScrollPane>
+        {selected ? (
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center" }}>
+            {selectedCard}
+          </div>
+        ) : (
+          <ScrollPane>{left}</ScrollPane>
+        )}
         <ScrollPane>
           {!selected ? (
             <EmptyState>{placeholder}</EmptyState>
@@ -2649,6 +2658,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                   selected={selectedListing}
                   placeholder="←左の商品を選択してください"
                   candidatesList={selectedListing ? sortListingCandidates(selectedListing) : []}
+                  onClearSelect={()=>setSelectedListing(null)}
+                  selectedCard={selectedListing && <ListingCard listing={selectedListing} selected={true} onSelect={()=>setSelectedListing(null)} />}
                   left={unlinkedActiveListings.length === 0
                     ? <EmptyState>未紐付けの出品はありません</EmptyState>
                     : unlinkedActiveListings.map(listing => (
@@ -2685,6 +2696,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                   selected={selectedOrder}
                   placeholder="←左の商品を選択してください"
                   candidatesList={selectedOrder ? sortOrderCandidates(selectedOrder) : []}
+                  onClearSelect={()=>setSelectedOrder(null)}
+                  selectedCard={selectedOrder && <OrderCard order={selectedOrder} linked={false} onApply={handleUnlink} selected={true} onSelect={()=>setSelectedOrder(null)} />}
                   left={pendingOrders.length === 0
                     ? <EmptyState>未紐づけの注文はありません</EmptyState>
                     : pendingOrders.map(order => (
