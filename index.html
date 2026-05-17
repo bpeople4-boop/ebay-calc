@@ -2183,6 +2183,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const parseOrder = (order) => {
     const tx       = txMap[order.orderId];
+    if (tx) console.log("TX RAW:", JSON.stringify(tx, null, 2));
     const line     = order.lineItems?.[0] || {};
     const currency = order.pricingSummary?.total?.currency || "USD";
     const isUSD    = currency === "USD";
