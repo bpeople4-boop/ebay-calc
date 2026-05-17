@@ -790,6 +790,9 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
 
   const [statusWarn, setStatusWarn] = useState("");
   const handleStatusChange = e => {
+    if (form.ebayListingLinked) {
+      if (!window.confirm("この商品は出品紐付けされています。ステータスを変更しますか？")) return;
+    }
     const next = e.target.value;
     const cur  = form.status;
 
@@ -1621,6 +1624,9 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
 
   const [statusWarn, setStatusWarn] = useState("");
   const handleStatusChange = e => {
+    if (form.ebayListingLinked) {
+      if (!window.confirm("この商品は出品紐付けされています。ステータスを変更しますか？")) return;
+    }
     const next = e.target.value;
     const cur  = form.status;
     const isMember = !!(form.bundleGroupId && !form.isBundleLeader);
@@ -2390,6 +2396,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const handleListingUnlink = (appItem) => {
     if (!appItem) return;
+    if (appItem.ebaySynced) {
+      window.alert("この商品は売却紐付けされています。先に売却紐付けを解除してください");
+      return;
+    }
     if (!window.confirm("出品紐付けを解除しますか？")) return;
     const patch = {
       ...appItem,
