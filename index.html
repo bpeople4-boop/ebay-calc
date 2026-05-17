@@ -2183,7 +2183,6 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const parseOrder = (order) => {
     const tx       = txMap[order.orderId];
-    if (tx) console.log("TX RAW:", JSON.stringify(tx, null, 2));
     const line     = order.lineItems?.[0] || {};
     const currency = order.pricingSummary?.total?.currency || "USD";
     const isUSD    = currency === "USD";
@@ -2203,10 +2202,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         promoFee = tx._promoFee != null ? tx._promoFee : "";
       }
     } else {
-      const basis = +(tx?.totalFeeBasisAmount?.value || 0);
-      const fee   = +(tx?.totalFeeAmount?.value || 0);
-      const promo = tx?._promoFee != null ? +tx._promoFee : 0;
-      salePrice    = tx ? (basis - fee - promo).toFixed(2) : "";
+      const hasConversion = !!tx?.amount?.convertedFromCurrency;
+      if (hasConversion) {
+        salePrice = tx?.amount?.value || "";
+      } else {
+        const basis = +(tx?.totalFeeBasisAmount?.value || 0);
+        const fee   = +(tx?.totalFeeAmount?.value || 0);
+        const promo = tx?._promoFee != null ? +tx._promoFee : 0;
+        salePrice = tx ? (basis - fee - promo).toFixed(2) : "";
+      }
       saleShipping = "0";
       ebayFee      = "0";
       promoFee     = "0";
