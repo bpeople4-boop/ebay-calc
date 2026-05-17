@@ -1688,7 +1688,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
-  const feeError = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
+  const feeError = needsFeeCheck && !form.ebaySynced && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
   const handleListingRefresh = () => {
     const patch = onListingRefresh?.({ ...leader, ...form });
     if (patch) setForm(p => ({ ...p, ...patch }));
