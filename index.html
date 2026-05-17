@@ -1258,7 +1258,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
       {/* ── 保存ボタン ── */}
       {(() => {
         const needsFeeCheck = initial.id && (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
-        const feeWarn = needsFeeCheck && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
+        const feeWarn = needsFeeCheck && !form.ebaySynced && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
         const catError = !form.category;
         return (
           <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
