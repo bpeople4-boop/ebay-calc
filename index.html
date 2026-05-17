@@ -2095,11 +2095,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             const promoTxs = txs.filter(t =>
               t.transactionType === "NON_SALE_CHARGE" &&
               t.feeType === "AD_FEE" &&
-              +t.amount?.value < 0 &&
               (t.references || []).some(r => r.referenceType === "ORDER_ID" && r.referenceId === order.orderId)
             );
-            const promoFeeTotal = promoTxs.reduce((sum, t) => sum + Math.abs(+t.amount?.value || 0), 0);
-            if (saleTx) map[order.orderId] = { ...saleTx, _promoFee: promoTxs.length > 0 ? promoFeeTotal.toFixed(2) : null };
+            const promoFeeMax = promoTxs.length > 0 ? Math.max(...promoTxs.map(t => Math.abs(+t.amount?.value || 0))) : null;
+            if (saleTx) map[order.orderId] = { ...saleTx, _promoFee: promoFeeMax != null ? promoFeeMax.toFixed(2) : null };
           } catch(_) {}
         }));
         setTxMap({...map});
