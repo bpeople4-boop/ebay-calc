@@ -3469,7 +3469,11 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {indent && <span style={{ width:14, flexShrink:0, borderLeft:`2px solid ${C.border}`, height:14, display:"inline-block", marginLeft:6 }}/>}
             <div style={{ minWidth:0 }}>
               <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:600, color:item.status==="purchaseReturned"?C.muted:C.text, overflow:"hidden", textOverflow:"ellipsis", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical", lineHeight:1.4, textDecoration:item.status==="purchaseReturned"?"line-through":"none" }}>{item.isJunk&&"💀 "}{item.productName||"—"}</div>
-              {item.ebayListingLinked && !item.ebaySynced && <div style={{ display:"inline-block", marginTop:3, fontSize:10, color:C.green, background:C.greenLo, border:`1px solid ${C.green}40`, borderRadius:4, padding:"1px 6px", fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</div>}
+              {item.ebaySynced ? (
+                <div style={{ display:"inline-block", marginTop:3, fontSize:10, color:C.amber, background:C.amberLo, border:`1px solid ${C.amber}40`, borderRadius:4, padding:"1px 6px", fontFamily:C.jp, fontWeight:700 }}>売却紐付け済み</div>
+              ) : item.ebayListingLinked ? (
+                <div style={{ display:"inline-block", marginTop:3, fontSize:10, color:C.green, background:C.greenLo, border:`1px solid ${C.green}40`, borderRadius:4, padding:"1px 6px", fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</div>
+              ) : null}
             {(()=>{ const w=getStatusWarnings(item); return w.length>0 ? <div title={w.join(" / ")} style={{ display:"inline-block", marginTop:3, fontSize:10, color:"#d97706", background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:4, padding:"1px 6px", cursor:"default" }}>⚠️ {w.join(" / ")}</div> : null; })()}
               {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
               {(()=>{
