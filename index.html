@@ -2092,12 +2092,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             const txData = await ebayFetchTransactionByOrder(ebayAuth.accessToken, order.orderId);
             const txs = txData.transactions || [];
             const saleTx = txs.find(t => t.orderId === order.orderId && t.transactionType === "SALE");
-            const promoTx = txs.find(t =>
+            const promoTxs = txs.filter(t =>
               t.transactionType === "NON_SALE_CHARGE" &&
               t.feeType === "AD_FEE" &&
+              +t.amount?.value < 0 &&
               (t.references || []).some(r => r.referenceType === "ORDER_ID" && r.referenceId === order.orderId)
             );
-            if (saleTx) map[order.orderId] = { ...saleTx, _promoTx: promoTx || null };
+            const promoFeeTotal = promoTxs.reduce((sum, t) => sum + Math.abs(+t.amount?.value || 0), 0);
+            if (saleTx) map[order.orderId] = { ...saleTx, _promoFee: promoTxs.length > 0 ? promoFeeTotal.toFixed(2) : null };
           } catch(_) {}
         }));
         setTxMap({...map});
@@ -2198,8 +2200,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       if (tx) {
         const totalFee = tx.totalFeeAmount?.value;
         ebayFee = totalFee ? Math.abs(+totalFee).toFixed(2) : "";
-        const promoTx = tx._promoTx;
-        promoFee = promoTx ? Math.abs(+promoTx.amount?.value || 0).toFixed(2) : "";
+        promoFee = tx._promoFee != null ? tx._promoFee : "";
       }
     } else {
       salePrice    = tx?.amount?.value || "";
