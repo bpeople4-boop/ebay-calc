@@ -2202,7 +2202,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         promoFee = tx._promoFee != null ? tx._promoFee : "";
       }
     } else {
-      salePrice    = tx?.amount?.value || "";
+      const basis = +(tx?.totalFeeBasisAmount?.value || 0);
+      const fee   = +(tx?.totalFeeAmount?.value || 0);
+      const promo = tx?._promoFee != null ? +tx._promoFee : 0;
+      salePrice    = tx ? (basis - fee - promo).toFixed(2) : "";
       saleShipping = "0";
       ebayFee      = "0";
       promoFee     = "0";
