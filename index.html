@@ -3104,7 +3104,9 @@ function ReportModal({ items, onClose }) {
   items.forEach(item => {
     if (!isSold(item)) return;
     if (item.bundleGroupId && !item.isBundleLeader) return; // bundle member はスキップ
-    const c = item.isJunk && !item.salePrice ? calcJunk(item) : calcFull(item);
+    const c = item.isBundleLeader
+      ? calcBundle(item, items.filter(m => m.bundleGroupId===item.bundleGroupId && !m.isBundleLeader))
+      : item.isJunk && !item.salePrice ? calcJunk(item) : calcFull(item);
     if (!c) return;
     const d = new Date(item.saleDate);
     const y = d.getFullYear(), m = d.getMonth() + 1;
