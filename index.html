@@ -175,7 +175,7 @@ async function ebayFetchTransactions(accessToken) {
 }
 
 async function ebayFetchTransactionByOrder(accessToken, orderId) {
-  const url = `https://apiz.ebay.com/sell/finances/v1/transaction?filter=orderId%3A%7B${orderId}%7D&limit=5`;
+  const url = `https://apiz.ebay.com/sell/finances/v1/transaction?filter=orderId%3A%7B${orderId}%7D&limit=20`;
   const res = await fetch("/api/ebay-api", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
