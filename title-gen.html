@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>eBay タイトル生成</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    :root{
+      --bg:#0d1117;--surf:#161b24;--surf2:#1e2535;--bdr:#2a3348;
+      --txt:#e4e8f4;--mut:#6e7a9e;
+      --acc:#f5a623;--acc-lo:rgba(245,166,35,.12);
+      --blu:#4f8ef7;--blu-lo:rgba(79,142,247,.1);
+      --grn:#3fb950;--red:#f87171;--red-lo:rgba(248,113,113,.12);
+      --jp:'Noto Sans JP',sans-serif;
+      --ui:'DM Sans',var(--jp),sans-serif;
+      --mono:'DM Mono',monospace;
+    }
+    html,body,#root{height:100%;width:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--txt);font-family:var(--ui);font-size:14px}
+    #root{display:flex;height:100%}
+
+    /* layout */
+    .wrap{display:flex;width:100%;height:100%;overflow:hidden}
+    .lpanel{width:420px;min-width:420px;display:flex;flex-direction:column;border-right:1px solid var(--bdr);background:var(--surf)}
+    .rpanel{flex:1;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+
+    /* header */
+    .hdr{padding:10px 18px;border-bottom:1px solid var(--bdr);background:var(--surf);display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .hdr-ttl{font-size:13px;font-weight:700;color:var(--acc)}
+    .hdr-sub{font-size:11px;color:var(--mut)}
+
+    /* scroll content */
+    .lscroll{flex:1;overflow-y:auto;padding:14px}
+    .rscroll{flex:1;overflow-y:auto;padding:18px}
+
+    /* section */
+    .sec{background:var(--bg);border:1px solid var(--bdr);border-radius:9px;padding:14px;margin-bottom:10px}
+    .sec.err{border-color:var(--red);background:var(--red-lo);animation:shake .25s ease}
+    @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+    .sttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--mut);margin-bottom:10px;display:flex;align-items:center;gap:6px}
+    .sttl-req{font-size:9px;font-weight:700;color:var(--red)}
+    .err-msg{font-size:11px;color:var(--red);margin-top:6px;display:flex;align-items:center;gap:4px}
+
+    /* condition buttons */
+    .cwrap{display:flex;flex-wrap:wrap;gap:4px}
+    .cbtn{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--surf);user-select:none;white-space:nowrap}
+    .cbtn:hover{border-color:var(--acc)}
+    .cbtn.on{border-color:var(--acc);background:var(--acc-lo);color:var(--acc);font-weight:700}
+    .cbtn.err-item{border-color:var(--red);color:var(--red)}
+
+    /* checkbox list */
+    .chklist{display:flex;flex-wrap:wrap;gap:5px}
+    .chkbtn{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--surf);user-select:none;display:flex;align-items:center;gap:5px}
+    .chkbtn:hover{border-color:var(--blu)}
+    .chkbtn.on{border-color:var(--blu);background:var(--blu-lo);color:var(--blu);font-weight:600}
+    .chkbtn .dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0}
+    .chkbtn.on .dot{background:var(--blu)}
+
+    /* text input */
+    input[type=text]{width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:var(--ui);font-size:13px;padding:6px 10px;outline:none;transition:border-color .15s}
+    input[type=text]:focus{border-color:var(--acc)}
+    .input-row{display:flex;gap:6px;align-items:center}
+    .input-row input{flex:1}
+    .input-label{font-size:11px;color:var(--mut);margin-bottom:5px}
+
+    /* sn toggle */
+    .sn-wrap{display:flex;flex-direction:column;gap:6px}
+    .sn-toggle-row{display:flex;gap:5px}
+    .sntgl{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--surf);user-select:none}
+    .sntgl:hover{border-color:var(--blu)}
+    .sntgl.on{border-color:var(--blu);background:var(--blu-lo);color:var(--blu);font-weight:600}
+    .sn-input-row{display:flex;gap:6px;align-items:center;padding-top:4px}
+    .sn-input-row .prefix{font-size:12px;color:var(--acc);font-weight:700;font-family:var(--mono);white-space:nowrap}
+    .sn-input-row input{flex:1}
+
+    /* generate button area */
+    .genbar{padding:10px 14px;border-top:1px solid var(--bdr);flex-shrink:0;background:var(--surf)}
+    .genbtn{width:100%;padding:10px;border-radius:7px;border:none;cursor:pointer;font-family:var(--ui);font-size:14px;font-weight:700;background:var(--acc);color:#000;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:7px}
+    .genbtn:hover{background:#e69520}
+    .genbtn:disabled{opacity:.5;pointer-events:none}
+    .spin{display:inline-block;width:13px;height:13px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:sp .6s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+
+    /* right panel — results */
+    .r-hdr{padding:10px 18px;border-bottom:1px solid var(--bdr);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .r-hdr-ttl{font-size:12px;font-weight:700;color:var(--mut);text-transform:uppercase;letter-spacing:.08em}
+    .char-badge{font-size:11px;font-family:var(--mono);color:var(--mut)}
+
+    /* candidate cards */
+    .cand-list{display:flex;flex-direction:column;gap:10px}
+    .cand{background:var(--surf);border:1px solid var(--bdr);border-radius:9px;padding:14px;cursor:pointer;transition:all .15s;position:relative}
+    .cand:hover{border-color:var(--acc);background:var(--surf2)}
+    .cand.selected{border-color:var(--grn);background:rgba(63,185,80,.07)}
+    .cand-num{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+    .cand-num .sel-badge{background:var(--grn);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+    .cand-title{font-size:13px;font-weight:600;color:var(--txt);line-height:1.5;font-family:var(--mono);word-break:break-all}
+    .cand-title span.cond{color:var(--acc)}
+    .cand-title span.special{color:var(--red)}
+    .cand-foot{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+    .cand-chars{font-size:11px;font-family:var(--mono);color:var(--mut)}
+    .cand-chars.over{color:var(--red)}
+    .cand-chars.ok{color:var(--grn)}
+    .copy-btn{padding:3px 9px;border:1px solid var(--bdr);border-radius:4px;background:none;color:var(--mut);font-size:11px;cursor:pointer;font-family:var(--ui);transition:all .12s}
+    .copy-btn:hover{border-color:var(--acc);color:var(--acc)}
+    .copy-btn.copied{border-color:var(--grn);color:var(--grn)}
+
+    /* empty / placeholder */
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:10px;color:var(--mut);text-align:center;padding:20px}
+    .empty-icon{font-size:36px;opacity:.3}
+    .empty-ttl{font-size:14px;font-weight:600;color:var(--txt)}
+    .empty-sub{font-size:12px;line-height:1.6}
+
+    /* scrollbar */
+    ::-webkit-scrollbar{width:5px;height:5px}
+    ::-webkit-scrollbar-track{background:transparent}
+    ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
+  </style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const {useState, useRef, useCallback} = React;
+
+const CONDITIONS = [
+  'Top MINT','MINT','Near MINT','Exc+5','Exc+4','Exc+3','Exc+','Exc','AS-IS'
+];
+const SPECIALS = ['READ','All Works','Meter Works','Rare'];
+const WITH_ITEMS = ['Hood','Case','Box','Strap'];
+
+const SAMPLE_TITLES = [
+  "[Exc+5 w/Hood] Mamiya RB67 Pro S CdS Prism Finder Sekor C 127mm f/3.8 From JAPAN",
+  "[Near MINT] Konica Lexio 70 BLACK Limited 35mm Point & Shoot Film Camera JAPAN",
+  "[MINT] Panasonic Lumix G Vario 12-32mm f/3.5-5.6 ASPH Lens Black From JAPAN",
+  "[Exc+5 w/ Case] Mamiya 6 Six Model IVB D.Zuiko F.C. 7.5cm f/3.5 From JAPAN",
+  "READ [Exc+5] Mamiya M645 Film Camera Sekor C 210mm f/4 w/80mm AS-IS Lens JAPAN",
+  "All Works [Exc+5] Canon Auto Zoom 814 Electronic Super 8 Movie Film Camera JAPAN",
+  "[Exc+5] Mamiya 6 Six Type IV 6x6 Rangefinder Zuiko F.C. 7.5cm From JAPAN",
+  "[Near MINT] Kyocera TD Yashica T2 Tessar T* 35mm Point & Shoot From JAPAN",
+  "[Near MINT] Olympus XA2 Rangefinder Film Camera From JAPAN",
+  "READ! [Exc+3] Olympus OM-1 35mm SLR Film Camera Body Black From JAPAN",
+  "[Near MINT] Canon EF 75-300mm f/4-5.6 IS USM Image Stabilizer Zoom Lens JAPAN",
+  "[Exc+5] Nikon 1 J1 Pink Mirrorless Digital Camera w/ 10-30mm VR Lens From JAPAN",
+  "[Exc+5] Nikon F80 35mm SLR Film Camera Body Only From JAPAN",
+  "[MINT] Panasonic Lumix G X Vario PZ 45-175mm f/4-5.6 ASPH OIS Black From JAPAN",
+  "Rare [MINT] SMC Pentax-M 20mm f/4 Wide Angle Lens K Mount From JAPAN",
+  "[Exc+5] Olympus OM-2N 35mm SLR Film Camera G.Zuiko Auto-S 50mm f/1.4 From JAPAN",
+  "READ! [Exc+5] Olympus PEN E-P2 14-42mm Lens Kit w/ VF-3 EVF Boxed From JAPAN",
+  "[Near MINT] Canon Single-8 518 Auto Zoom 8mm Movie Camera From JAPAN",
+  "[AS-IS] Canon EOS 5D Mark II 21.1MP Digital SLR Camera Body BG-E6 From JAPAN",
+  "[Near MINT] Canon EF-S 18-55mm f/3.5-5.6 IS STM Lens From JAPAN",
+  "[Near MINT] Olympus OM-2N + G.Zuiko Auto-W 28mm f/3.5 From JAPAN",
+  "[MINT] Panasonic LUMIX G 45-200mm f/4-5.6 MEGA OIS Micro 4/3 Lens JAPAN",
+  "[Near MINT] Mamiya 6 Type IV 6x6 Rangefinder Film Camera From JAPAN",
+  "[Exc+5] Sigma APO 170-500mm f/5-6.3 AF Zoom Lens Pentax K Mount JAPAN",
+  "[Exc+5] Olympus OM-2N Black 35mm SLR Film Camera Body From JAPAN",
+  "[Near MINT] FUJI Fujinon W 210mm f/5.6 Large Format Lens Copal Shutter JAPAN",
+  "[MINT] Fujifilm FinePix REAL 3D W1 10.0MP Digital Camera English OK From JAPAN",
+  "[MINT w/ Box] Sigma DP1 Digital Camera Foveon Sensor From JAPAN",
+  "[Near MINT] Minolta AF 28-70mm f/2.8 G Sony/Minolta A-Mount Lens From JAPAN",
+  "[Exc+5] Yashica/Kyocera 230 AF 35mm Film SLR +28/2.8 +35-70 Macro +CS250AF JAPAN",
+  "[Near MINT] Olympus XA2 Black 35mm Rangefinder Film Camera A11 Flash From JAPAN",
+  "[Near MINT] Sony HDR-FX1 HDV 3CCD Handycam Camcorder Carl Zeiss From JAPAN",
+  "[Near MINT] Olympus XA Rangefinder Film Camera + A11 Flash From JAPAN",
+  "[Near MINT] Canon EF 100mm f/2.8 Macro USM Lens for EOS From JAPAN",
+  "READ! [Near MINT] Konica BiG mini BM-201 Point & Shoot 35mm Film Camera JAPAN",
+  "[MINT] Nikon AF-S DX NIKKOR 18-140mm f/3.5-5.6G ED VR Lens From JAPAN",
+  "[Near MINT] Mamiya RB67 Pro S Sekor C 127mm f/3.8 Prism Finder From JAPAN",
+  "[Near MINT] Canon AE-1 Program Camera New FD 50mm f/1.4 Lens Winder A2 JAPAN",
+  "[AS-IS] Minolta XD-s Black 35mm SLR Film Camera Body From JAPAN",
+  "[Exc+5] Super Rare Mamiya Sketch 35mm f/2.8 Rangefinder Film Camera From JAPAN",
+  "[Near MINT] Nikon FE Black 35mm SLR Film Camera Body Only From JAPAN",
+  "[Near MINT] Mamiya RB67 Pro Film Camera Sekor 127mm f/3.8 Lens 120 From JAPAN",
+  "[Near MINT] Nikon F80S F80 S 35mm SLR Film Camera Body + SB-10 Flash From JAPAN",
+  "[MINT w/ Hood] Sigma 20mm f/2 DG DN Contemporary Lens for L Mount From JAPAN",
+  "[Near MINT] Canon Autoboy S Panorama 35mm Point & Shoot Film Camera From JAPAN",
+  "[AS-IS] Kyocera Slim T Yashica T4 Slim 35mm Point & Shoot Film Camera JAPAN",
+  "[MINT] Nikon AF-P DX NIKKOR 70-300mm f/4.5-6.3G ED VR Telephoto Lens From JAPAN",
+  "[Near MINT] Olympus mju II 115 VF Point & Shoot 35mm Film Camera From JAPAN",
+  "[Near MINT] Mamiya Sekor C 180mm f/4.5 Lens for RB67 Pro S Pro SD From JAPAN",
+  "[Exc+5] Nikon AF 600 PANORAMA Black Film Camera Point & Shoot From JAPAN",
+  "[Near MINT] Nikon D200 DSLR Camera Body + MB-D200 Battery Grip S/C 9,514 JAPAN",
+  "[MINT] Olympus mju II 170 VF Point & Shoot 35mm Film Camera From JAPAN",
+  "[Near MINT] Olympus mju II 80 VF Point & Shoot 35mm Film Camera From JAPAN",
+];
+
+function buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model}) {
+  const withStr = withItems.length > 0 ? ' w/ ' + withItems.join(', ') : '';
+  const condBlock = `[${cond}${withStr}]`;
+  const specialStr = specials.join(' ');
+  const snStr = snType && snValue ? `${snType} ${snValue}` : '';
+  const colorStr = color.trim();
+
+  const exampleTitles = SAMPLE_TITLES.slice(0, 30).join('\n');
+
+  return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
+
+## Strict Rules
+- Use HALF-WIDTH SPACES only (critical for search)
+- Max 80 characters per title
+- F-value format: f/4.5 (if 1 char over limit, use f4.5 without slash)
+- Title structure: {Special} {ConditionBlock} Brand Model {Color} Specs {SN} JAPAN
+  - ConditionBlock format: [Condition{w/ Item1, Item2}]  e.g. [Near MINT w/ Hood]
+  - Special keywords go BEFORE the condition block
+  - Color goes AFTER model name, BEFORE specs
+  - JAPAN is REQUIRED at the end
+  - "From" before JAPAN is optional (lower priority)
+
+## If title exceeds 80 chars, remove in this order:
+1. Remove "From" (keep JAPAN)
+2. Remove slash from f-value (f/4.5 → f4.5)
+3. Remove color
+4. Remove w/ accessories from condition block
+5. Remove S/N or S/C value
+Never remove: Special keywords, Condition, Brand/Model, JAPAN
+
+## Inputs
+- Condition: ${cond}
+- Special keywords: ${specials.length > 0 ? specials.join(', ') : 'none'}
+- Accessories (w/): ${withItems.length > 0 ? withItems.join(', ') : 'none'}
+- Color: ${colorStr || 'none'}
+- ${snStr || 'No S/N or S/C'}
+- Brand & Model: ${brand} ${model}
+
+## Reference titles (your past successful sales):
+${exampleTitles}
+
+## Output format
+Return ONLY 3 titles, one per line, no numbering, no explanation, no quotes.`;
+}
+
+async function callClaude(prompt) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': 'YOUR_API_KEY_HERE',
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-calls': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+  if (!res.ok) throw new Error(`API error ${res.status}`);
+  const data = await res.json();
+  const text = data.content?.[0]?.text || '';
+  return text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0).slice(0, 3);
+}
+
+function highlightTitle(title) {
+  // highlight condition block and special keywords
+  const parts = [];
+  let rest = title;
+
+  // special at start
+  const specMatch = rest.match(/^(READ!?|All Works|Meter Works|Rare)\s+/);
+  if (specMatch) {
+    parts.push(<span key="sp" style={{color:'var(--red)'}}>{specMatch[0]}</span>);
+    rest = rest.slice(specMatch[0].length);
+  }
+  // condition block
+  const condMatch = rest.match(/^\[.*?\]/);
+  if (condMatch) {
+    parts.push(<span key="cd" style={{color:'var(--acc)'}}>{condMatch[0]}</span>);
+    rest = rest.slice(condMatch[0].length);
+  }
+  parts.push(<span key="rest">{rest}</span>);
+  return parts;
+}
+
+function App() {
+  const [cond, setCond] = useState('');
+  const [specials, setSpecials] = useState([]);
+  const [withItems, setWithItems] = useState([]);
+  const [color, setColor] = useState('');
+  const [snType, setSnType] = useState('');
+  const [snValue, setSnValue] = useState('');
+  const [brand, setBrand] = useState('');
+  const [model, setModel] = useState('');
+
+  const [loading, setLoading] = useState(false);
+  const [candidates, setCandidates] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [copied, setCopied] = useState(null);
+  const [condErr, setCondErr] = useState(false);
+  const [brandErr, setBrandErr] = useState(false);
+
+  const condRef = useRef(null);
+  const brandRef = useRef(null);
+
+  const toggleSpecial = (s) => setSpecials(p => p.includes(s) ? p.filter(x=>x!==s) : [...p, s]);
+  const toggleWith = (w) => setWithItems(p => p.includes(w) ? p.filter(x=>x!==w) : [...p, w]);
+  const toggleSnType = (t) => { setSnType(p => p === t ? '' : t); setSnValue(''); };
+
+  const generate = useCallback(async () => {
+    let hasErr = false;
+    if (!cond) {
+      setCondErr(true);
+      if (!hasErr) { condRef.current?.scrollIntoView({behavior:'smooth', block:'center'}); }
+      hasErr = true;
+    }
+    if (!brand.trim() || !model.trim()) {
+      setBrandErr(true);
+      if (!hasErr) { brandRef.current?.scrollIntoView({behavior:'smooth', block:'center'}); }
+      hasErr = true;
+    }
+    if (hasErr) return;
+
+    setCondErr(false); setBrandErr(false);
+    setLoading(true);
+    setCandidates([]);
+    setSelected(null);
+
+    try {
+      const prompt = buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model});
+      const titles = await callClaude(prompt);
+      setCandidates(titles);
+    } catch(e) {
+      setCandidates(['エラーが発生しました: ' + e.message]);
+    }
+    setLoading(false);
+  }, [cond, specials, withItems, color, snType, snValue, brand, model]);
+
+  const copyTitle = (title, idx) => {
+    navigator.clipboard.writeText(title).then(() => {
+      setCopied(idx);
+      setTimeout(() => setCopied(null), 2000);
+    });
+  };
+
+  const selectTitle = (title, idx) => {
+    setSelected(idx);
+    copyTitle(title, idx);
+  };
+
+  return (
+    <div className="wrap">
+      {/* ── Left panel ── */}
+      <div className="lpanel">
+        <div className="hdr">
+          <span className="hdr-ttl">eBay タイトル生成</span>
+          <span className="hdr-sub">過去62件の実績タイトルを参考に生成</span>
+        </div>
+        <div className="lscroll">
+
+          {/* コンディション */}
+          <div className={`sec ${condErr ? 'err' : ''}`} ref={condRef}>
+            <div className="sttl">
+              コンディション
+              <span className="sttl-req">必須</span>
+            </div>
+            <div className="cwrap">
+              {CONDITIONS.map(c => (
+                <div
+                  key={c}
+                  className={`cbtn ${cond===c ? 'on' : ''} ${condErr && !cond ? 'err-item' : ''}`}
+                  onClick={() => { setCond(c); setCondErr(false); }}
+                >{c}</div>
+              ))}
+            </div>
+            {condErr && (
+              <div className="err-msg">⚠ コンディションを選んでください</div>
+            )}
+          </div>
+
+          {/* 特記 */}
+          <div className="sec">
+            <div className="sttl">特記キーワード <span style={{color:'var(--mut)',fontWeight:400,textTransform:'none',letterSpacing:0}}>任意</span></div>
+            <div className="chklist">
+              {SPECIALS.map(s => (
+                <div
+                  key={s}
+                  className={`chkbtn ${specials.includes(s) ? 'on' : ''}`}
+                  onClick={() => toggleSpecial(s)}
+                >
+                  <span className="dot" />
+                  {s}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* w/ */}
+          <div className="sec">
+            <div className="sttl">付属品 w/ <span style={{color:'var(--mut)',fontWeight:400,textTransform:'none',letterSpacing:0}}>任意・文字数余裕時に追加</span></div>
+            <div className="chklist">
+              {WITH_ITEMS.map(w => (
+                <div
+                  key={w}
+                  className={`chkbtn ${withItems.includes(w) ? 'on' : ''}`}
+                  onClick={() => toggleWith(w)}
+                >
+                  <span className="dot" />
+                  {w}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* カラー */}
+          <div className="sec">
+            <div className="sttl">カラー <span style={{color:'var(--mut)',fontWeight:400,textTransform:'none',letterSpacing:0}}>任意</span></div>
+            <div className="input-label">モデル名の直後に入ります</div>
+            <input
+              type="text"
+              value={color}
+              onChange={e => setColor(e.target.value)}
+              placeholder="Black / Silver / Chrome / White ..."
+            />
+          </div>
+
+          {/* S/N or S/C */}
+          <div className="sec">
+            <div className="sttl">シリアル番号 / シャッターカウント <span style={{color:'var(--mut)',fontWeight:400,textTransform:'none',letterSpacing:0}}>任意</span></div>
+            <div className="sn-wrap">
+              <div className="sn-toggle-row">
+                {['S/N','S/C'].map(t => (
+                  <div
+                    key={t}
+                    className={`sntgl ${snType===t ? 'on' : ''}`}
+                    onClick={() => toggleSnType(t)}
+                  >{t}</div>
+                ))}
+              </div>
+              {snType && (
+                <div className="sn-input-row">
+                  <span className="prefix">{snType}</span>
+                  <input
+                    type="text"
+                    value={snValue}
+                    onChange={e => setSnValue(e.target.value)}
+                    placeholder={snType === 'S/N' ? '250XXXX' : '9,514'}
+                    autoFocus
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* ブランド・モデル */}
+          <div className={`sec ${brandErr ? 'err' : ''}`} ref={brandRef}>
+            <div className="sttl">
+              ブランド・モデル
+              <span className="sttl-req">必須</span>
+            </div>
+            <div className="input-label">ブランド</div>
+            <input
+              type="text"
+              value={brand}
+              onChange={e => { setBrand(e.target.value); setBrandErr(false); }}
+              placeholder="Canon / Nikon / Mamiya ..."
+            />
+            <div className="input-label" style={{marginTop:8}}>モデル名・スペック</div>
+            <input
+              type="text"
+              value={model}
+              onChange={e => { setModel(e.target.value); setBrandErr(false); }}
+              placeholder="AE-1 35mm SLR Film Camera Body"
+            />
+            {brandErr && (
+              <div className="err-msg">⚠ ブランドとモデル名を入力してください</div>
+            )}
+          </div>
+
+          <div style={{height:10}} />
+        </div>
+
+        {/* Generate button */}
+        <div className="genbar">
+          <button className="genbtn" onClick={generate} disabled={loading}>
+            {loading ? <><span className="spin" />生成中...</> : '✦ タイトル候補を生成'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── Right panel ── */}
+      <div className="rpanel">
+        <div className="r-hdr">
+          <span className="r-hdr-ttl">候補タイトル</span>
+          {candidates.length > 0 && (
+            <span className="char-badge">クリックで選択＆コピー</span>
+          )}
+        </div>
+        <div className="rscroll">
+          {!loading && candidates.length === 0 && (
+            <div className="empty">
+              <div className="empty-icon">✦</div>
+              <div className="empty-ttl">タイトル候補がここに表示されます</div>
+              <div className="empty-sub">
+                左のフォームを入力して<br />
+                「タイトル候補を生成」を押してください<br />
+                <span style={{color:'var(--acc)'}}>過去62件の実績タイトルを参考に3件生成します</span>
+              </div>
+            </div>
+          )}
+
+          {loading && (
+            <div className="empty">
+              <div className="empty-icon">
+                <span className="spin" style={{width:28,height:28,borderWidth:3}} />
+              </div>
+              <div className="empty-ttl">生成中...</div>
+              <div className="empty-sub">Claude が過去タイトルを参考に候補を作成しています</div>
+            </div>
+          )}
+
+          {!loading && candidates.length > 0 && (
+            <div className="cand-list">
+              {candidates.map((title, idx) => {
+                const chars = title.length;
+                const isOver = chars > 80;
+                return (
+                  <div
+                    key={idx}
+                    className={`cand ${selected === idx ? 'selected' : ''}`}
+                    onClick={() => selectTitle(title, idx)}
+                  >
+                    <div className="cand-num">
+                      候補 {idx + 1}
+                      {selected === idx && <span className="sel-badge">選択済み</span>}
+                    </div>
+                    <div className="cand-title">
+                      {highlightTitle(title)}
+                    </div>
+                    <div className="cand-foot">
+                      <span className={`cand-chars ${isOver ? 'over' : 'ok'}`}>
+                        {chars} / 80 文字{isOver ? ' ⚠ 超過' : ''}
+                      </span>
+                      <button
+                        className={`copy-btn ${copied === idx ? 'copied' : ''}`}
+                        onClick={e => { e.stopPropagation(); copyTitle(title, idx); }}
+                      >
+                        {copied === idx ? '✓ コピー済み' : 'コピー'}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+
+              <div style={{padding:'10px 2px',fontSize:11,color:'var(--mut)',lineHeight:1.7}}>
+                ヒント：気に入った候補をクリックするとコピーされます。<br />
+                別の候補が欲しい場合はもう一度「生成」ボタンを押してください。
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
