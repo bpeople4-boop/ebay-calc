@@ -1872,10 +1872,10 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <div>
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:5 }}>
               <span style={{...lblS({marginBottom:0}), display:"flex", alignItems:"center", gap:4}}>落札価格（$）</span>
-              <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
+              {!isSynced && <button type="button" onClick={()=>{setShowOffer(v=>!v);if(!showOffer)setOfferPrice("");}}
                 style={{ background:showOffer?C.accent:C.bg, color:showOffer?"#fff":C.accent, border:`1px solid ${showOffer?C.accent:C.accent+"50"}`, borderRadius:6, padding:"2px 8px", fontSize:10, fontWeight:700, fontFamily:C.jp, cursor:"pointer" }}>
                 📊 オファー比較
-              </button>
+              </button>}
             </div>
             <input style={inpS({ background: form.ebaySynced ? "#f3f4f6" : linkBg, ...(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed" } : {}) })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : e => {
               const val = e.target.value;
@@ -1900,7 +1900,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             }
           </div>
 
-          {showOffer && (
+          {!isSynced && showOffer && (
             <div style={{ gridColumn:"1/-1", background:C.accentLo, borderRadius:10, padding:"12px 14px", border:`1px dashed ${C.accent}50` }}>
               <span style={lblS({ color:C.accent })}>オファー金額（$）</span>
               <input style={inpS({ background:"#fff", fontSize:18, fontWeight:700 })} type="text" inputMode="decimal" placeholder="0.00" value={offerPrice} onChange={e=>setOfferPrice(e.target.value)} />
@@ -2460,6 +2460,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const patch = {
       ...appItem,
       ebayListingLinked: false,
+      status: "unlisted",
       ebayImageUrl: "",
       ebayUrl: "",
       ebayTitle: "",
