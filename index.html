@@ -1416,7 +1416,7 @@ function SplitModal({ item, onConfirm, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 // MiniCalc（デスクトップ右パネル上部）
 // ═══════════════════════════════════════════════════════════════
-function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
+function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onClearSoldListingLinks, showToast }) {
   const [mode, setMode]       = useState("forward");
   const [v, setV]             = useState("");
   const [showCfg, setShowCfg] = useState(false);
@@ -1551,12 +1551,8 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
             <button
               style={btnS("danger",{fontSize:11,padding:"7px 12px",width:"100%",justifyContent:"center"})}
               onClick={() => {
-                const key = Object.keys(localStorage).find(k => k.includes('v2'));
-                const items = JSON.parse(localStorage.getItem(key) || '[]');
-                let count = 0;
-                items.forEach(i => { if(i.ebaySynced) { i.ebayListingLinked = false; count++; } });
-                localStorage.setItem(key, JSON.stringify(items));
-                alert(count + '件クリーンアップしました。リロードしてください。');
+                const count = onClearSoldListingLinks ? onClearSoldListingLinks() : 0;
+                if (showToast) showToast(count + '件クリーンアップしました');
               }}>
               売却済み出品紐付けをクリア
             </button>
@@ -3764,7 +3760,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
 // ═══════════════════════════════════════════════════════════════
 // Desktop App Layout
 // ═══════════════════════════════════════════════════════════════
-function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onBundleAddMember, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
+function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onRelist, onCreateBundle, onBundleSaveEdit, onBundleDissolve, onBundleAddMember, onSplit, onImport, onExport, returnItem, setReturnItem, splitItem, setSplitItem, onSplitConfirm, settings, onSettingsChange, ebayAuth, onEbayAuthChange, onClearSoldListingLinks }) {
   const [selectedId, setSelectedId] = useState(null);
   const [selectedBundleGroupId, setSelectedBundleGroupId] = useState(null);
   const [formKey, setFormKey]       = useState(0);
@@ -3781,6 +3777,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
   const [showNewForm, setShowNewForm] = useState(true);
   const [activeListings, setActiveListings] = useState([]);
   const [adRateMap, setAdRateMap] = useState({ itemMap: {}, defaultRate: null });
+  const [toast, setToast] = useState("");
 
   useEffect(() => {
     if (!ebayAuth?.accessToken || !(ebayAuth?.tokenExpiry > Date.now())) return;
@@ -3812,6 +3809,16 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
     onSave(form);
     if (!form.id) { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k => k + 1); setSaved(true); setUpdated(false); }
     else { setUpdated(true); setSaved(false); }
+  };
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(""), 3500);
+  };
+  const handleClearSoldListingLinks = () => {
+    const count = onClearSoldListingLinks ? onClearSoldListingLinks() : 0;
+    setSyncedItem(prev => prev?.ebaySynced ? { ...prev, ebayListingLinked:false } : prev);
+    setFormKey(k => k + 1);
+    return count;
   };
   const openNewForm = () => { setSyncedItem(null); setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setSaved(false); setUpdated(false); setShowNewForm(true); };
   const openEdit = (item) => { setSelectedId(item.id); setSelectedBundleGroupId(null); setSaved(false); setUpdated(false); setShowRight(true); };
@@ -3890,6 +3897,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
           <button onClick={openNewForm} style={btnS("primary",{fontSize:13,padding:"5px 16px"})}><Plus size={13}/> 新規追加</button>
         </div>
       </div>
+      {toast && <div style={{ position:"fixed", top:16, left:"50%", transform:"translateX(-50%)", zIndex:500, background:C.greenLo, color:C.green, border:`1px solid ${C.green}30`, borderRadius:10, padding:"10px 16px", fontFamily:C.jp, fontSize:13, fontWeight:700, boxShadow:C.shadowMd }}>{toast}</div>}
 
       {/* Panels */}
       <div style={{ display:"flex", flex:1, minHeight:0 }}>
@@ -3937,7 +3945,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
               onMouseLeave={e=>e.currentTarget.style.color=C.muted}>✕</button>
           </div>
           <div style={{ padding:"0 18px 16px", maxWidth: showLeft ? undefined : 700, margin: showLeft ? undefined : "0 auto" }}>
-            <MiniCalc settings={settings} onSettingsChange={onSettingsChange} ebayAuth={ebayAuth} onEbayAuthChange={onEbayAuthChange} />
+            <MiniCalc settings={settings} onSettingsChange={onSettingsChange} ebayAuth={ebayAuth} onEbayAuthChange={onEbayAuthChange} onClearSoldListingLinks={handleClearSoldListingLinks} showToast={showToast} />
             {selectedBundleGroupId && bundleLeader && !updated ? (
               <>
                 <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:14 }}>
@@ -4143,6 +4151,11 @@ function App() {
     if (form.id) { setItems(p => p.map(i => i.id===form.id ? form : i)); }
     else { setItems(p => [{ ...form, id:genId(), managementNumber:nextNo(p) }, ...p]); }
   };
+  const handleClearSoldListingLinks = () => {
+    const count = items.filter(i => i.ebaySynced).length;
+    setItems(p => p.map(i => i.ebaySynced ? { ...i, ebayListingLinked:false } : i));
+    return count;
+  };
   const handleDelete       = (id)    => setItems(p => p.filter(i => i.id!==id));
   const handleReturnOpen   = (item)  => setReturnItem(item);
   const handleReturnConfirm = (form) => {
@@ -4292,6 +4305,7 @@ function App() {
         splitItem={splitItem}     setSplitItem={setSplitItem}
         settings={settings}       onSettingsChange={setSettings}
         ebayAuth={ebayAuth}       onEbayAuthChange={setEbayAuth}
+        onClearSoldListingLinks={handleClearSoldListingLinks}
       />
     </div>
   );
