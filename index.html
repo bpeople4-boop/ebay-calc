@@ -2389,8 +2389,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   });
 
   const findListingLinkedItem = (listing) =>
-    localItems.find(i => i.ebayListingLinked &&
-      (listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
+    localItems.find(i =>
+      (i.ebayListingLinked && listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId)) ||
+      (i.ebaySynced && listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
     );
   const unlinkedActiveListings = activeListings.filter(listing => !findListingLinkedItem(listing));
   const linkedListingItems = localItems.filter(i => i.ebayListingLinked && (!i.bundleGroupId || i.isBundleLeader));
