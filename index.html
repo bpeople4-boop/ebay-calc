@@ -1546,6 +1546,21 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange }) {
               </div>
             )}
           </div>
+          <div style={{ marginTop:14, paddingTop:12, borderTop:`1px solid ${C.border}` }}>
+            <div style={{ fontFamily:C.jp, fontSize:11, fontWeight:700, color:C.accent, marginBottom:10 }}>メンテナンス</div>
+            <button
+              style={btnS("danger",{fontSize:11,padding:"7px 12px",width:"100%",justifyContent:"center"})}
+              onClick={() => {
+                const key = Object.keys(localStorage).find(k => k.includes('v2'));
+                const items = JSON.parse(localStorage.getItem(key) || '[]');
+                let count = 0;
+                items.forEach(i => { if(i.ebaySynced) { i.ebayListingLinked = false; count++; } });
+                localStorage.setItem(key, JSON.stringify(items));
+                alert(count + '件クリーンアップしました。リロードしてください。');
+              }}>
+              売却済み出品紐付けをクリア
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -2921,6 +2936,7 @@ function SearchModal({ items, onClose }) {
   const calcs       = filtered.map(i => ({ item: i, calc: calcItem(i) }));
   const soldCalcs   = calcs.filter(({item,calc}) => isSold(item) && calc).map(({calc})=>calc);
   const junkLoss    = filtered.filter(i => i.isJunk && !isSold(i)).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
+  const totalCost   = filtered.reduce((s,i)=>s+(+i.cost||0),0);
   const totalRevenue= soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const totalProfit = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
 
@@ -3080,6 +3096,10 @@ function SearchModal({ items, onClose }) {
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
           <span style={{ fontFamily:C.jp, fontSize:13, color:C.muted }}>{filtered.length} 件ヒット</span>
           <div style={{ display:"flex", gap:20 }}>
+            <div style={{ textAlign:"right" }}>
+              <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>仕入れ合計</div>
+              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(totalCost)}</div>
+            </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>売上合計</div>
               <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(totalRevenue)}</div>
