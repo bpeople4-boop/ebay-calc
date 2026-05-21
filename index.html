@@ -2935,6 +2935,7 @@ function SearchModal({ items, onClose }) {
   const totalCost   = filtered.reduce((s,i)=>s+(+i.cost||0),0);
   const totalRevenue= soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const totalProfit = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
+  const dateHeader = dateType === "purchase" ? "仕入れ日" : dateType === "sale" ? "落札日" : dateType === "junk" ? "損切り確定日" : "日付";
 
   const toggleStatus = (v) => setSelStatus(prev => {
     if (v === "all") return prev.size === allStatuses.size ? new Set() : new Set(allStatuses);
@@ -3113,7 +3114,7 @@ function SearchModal({ items, onClose }) {
             <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:C.num, fontSize:12 }}>
               <thead>
                 <tr style={{ background:C.bg }}>
-                  {["#","商品名","ステータス","仕入れ先","日付","利益"].map((h,i) => (
+                  {["#","商品名","ステータス","仕入れ先",dateHeader,"仕入れ","利益"].map((h,i) => (
                     <th key={h} style={{ padding:"6px 8px", textAlign:i>=5?"right":"left", color:C.muted, borderBottom:`1px solid ${C.border}`, fontFamily:C.jp, fontSize:11, fontWeight:700, whiteSpace:"nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -3122,7 +3123,10 @@ function SearchModal({ items, onClose }) {
                 {calcs.map(({ item, calc }) => {
                   const st = getItemStatus(item);
                   const { label, style } = statusBadgeStyle(st);
-                  const dateVal = isSold(item) ? item.saleDate : (item.junkDate || item.purchaseDate);
+                  const dateVal = dateType === "purchase" ? item.purchaseDate
+                    : dateType === "sale" ? item.saleDate
+                    : dateType === "junk" ? item.junkDate
+                    : isSold(item) ? item.saleDate : (item.junkDate || item.purchaseDate);
                   const profitVal = calc ? calc.profitJPY : null;
                   return (
                     <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
@@ -3131,6 +3135,7 @@ function SearchModal({ items, onClose }) {
                       <td style={{ padding:"7px 8px" }}><span style={style}>{label}</span></td>
                       <td style={{ padding:"7px 8px", color:C.textSub, fontFamily:C.jp, fontSize:12 }}>{item.source||"—"}</td>
                       <td style={{ padding:"7px 8px", color:C.muted, fontSize:11, whiteSpace:"nowrap" }}>{dt(dateVal)}</td>
+                      <td style={{ padding:"7px 8px", textAlign:"right", color:C.muted, whiteSpace:"nowrap" }}>{+item.cost ? yen(item.cost) : "—"}</td>
                       <td style={{ padding:"7px 8px", textAlign:"right", fontWeight:700, color:profitVal==null?C.muted:profitVal>=0?C.green:C.red, whiteSpace:"nowrap" }}>
                         {profitVal!=null ? (profitVal>=0?"+":"")+yen(profitVal) : "—"}
                       </td>
