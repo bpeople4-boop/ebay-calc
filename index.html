@@ -1734,6 +1734,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const linkColor = isLinked ? "#15803d" : isSynced ? "#6b7280" : undefined;
 
   const needsFeeCheck = (form.status==="sold"||form.status==="returned") && +form.salePrice > 0;
+  const actualEbayFeeRequired = !form.ebaySynced && leader.id && needsFeeCheck && !form.actualEbayFeeUSD;
   const feeError = needsFeeCheck && !form.ebaySynced && (!form.actualEbayFeeUSD || form.actualPromoFeeUSD==="" || form.actualPromoFeeUSD==null);
   const handleListingRefresh = () => {
     const patch = onListingRefresh?.({ ...leader, ...form });
@@ -1993,8 +1994,13 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               <div style={{ color:C.accent, fontSize:11, fontWeight:700, letterSpacing:"0.08em", fontFamily:C.jp, marginBottom:12 }}>実際の手数料（確定後に入力）</div>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12 }}>
                 <div>
-                  <span style={lblS()}>eBay手数料（$）実費</span>
-                  <input style={inpS(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : {})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : handleActualEbayFee} />
+                  <span style={lblS()}>eBay手数料（$）実費{" "}
+                    {form.ebaySynced
+                      ? <span style={{ color:C.green, fontSize:10 }}> 同期済み</span>
+                      : actualEbayFeeRequired && <span style={{ color:C.red, fontWeight:700 }}>※必須</span>
+                    }
+                  </span>
+                  <input style={inpS(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed", background:"#f3f4f6" } : actualEbayFeeRequired ? {borderColor:C.red,boxShadow:`0 0 0 2px ${C.red}20`} : {})} type="text" inputMode="decimal" placeholder="空欄で概算を使用" value={form.actualEbayFeeUSD??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : handleActualEbayFee} />
                   {!form.actualEbayFeeUSD && totalUSD>0 && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:3 }}>概算: <span style={{ fontFamily:C.num, color:C.textSub }}>${estEbayUSD.toFixed(2)}</span>（{form.ebayFeeRate}%）</div>}
                 </div>
                 <div>
