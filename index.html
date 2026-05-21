@@ -3553,7 +3553,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
                 <div style={{ display:"inline-block", marginTop:3, fontSize:10, color:C.green, background:C.greenLo, border:`1px solid ${C.green}40`, borderRadius:4, padding:"1px 6px", fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</div>
               ) : null}
             {(()=>{ const w=getStatusWarnings(item); return w.length>0 ? <div title={w.join(" / ")} style={{ display:"inline-block", marginTop:3, fontSize:10, color:"#d97706", background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:4, padding:"1px 6px", cursor:"default" }}>⚠️ {w.join(" / ")}</div> : null; })()}
-              {item.auctRevoId&&<div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{item.auctRevoId}</div>}
+              {(() => {
+                const subText = item.ebaySynced ? (item.ebayOrderId || item.auctRevoId) : item.auctRevoId;
+                return subText ? <div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{subText}</div> : null;
+              })()}
               {(()=>{
                 const isSold = item.status==="sold"||item.status==="returned";
                 if (!isSold || item.isJunk) return null;
