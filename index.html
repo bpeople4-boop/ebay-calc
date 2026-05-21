@@ -4152,7 +4152,7 @@ function App() {
     else { setItems(p => [{ ...form, id:genId(), managementNumber:nextNo(p) }, ...p]); }
   };
   const handleClearSoldListingLinks = () => {
-    const count = items.filter(i => i.ebaySynced).length;
+    const count = items.filter(i => i.ebaySynced && i.ebayListingLinked).length;
     setItems(p => p.map(i => i.ebaySynced ? { ...i, ebayListingLinked:false } : i));
     return count;
   };
