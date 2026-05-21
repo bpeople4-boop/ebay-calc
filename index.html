@@ -2275,6 +2275,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       promotionRate:      p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:        order.orderId,
       ebaySynced:         true,
+      ebayListingLinked:  false,
       ebayImageUrl:       appItem.ebayImageUrl || activeListings.find(l => String(l.itemId) === String(p.itemId))?.galleryUrl || orderImages[p.itemId] || "",
       exchangeRate:       exchangeRate,
       exchangeRateLocked: rateFetched,
@@ -2773,11 +2774,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                     ))}
                   renderCandidate={item => {
                     const parsed = parseOrder(selectedOrder);
+                    const sortedCandidates = selectedOrder ? sortOrderCandidates(selectedOrder) : [];
+                    const itemIdMatchExists = sortedCandidates.some(c => parsed.itemId && c.ebayUrl && c.ebayUrl.includes(parsed.itemId));
+                    const matched = itemIdMatchExists ? (parsed.itemId && item.ebayUrl && item.ebayUrl.includes(parsed.itemId)) : orderCandidateMatches(parsed, item);
                     return (
                       <CandidateCard
                         key={item.id}
                         item={item}
-                        matched={orderCandidateMatches(parsed, item)}
+                        matched={matched}
                         onClick={()=>handleLink(selectedOrder, item)}
                       />
                     );
@@ -3860,6 +3864,12 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
             onMouseEnter={e=>{if(!dragging)e.currentTarget.style.background=C.accent;}}
             onMouseLeave={e=>{if(!dragging)e.currentTarget.style.background=C.border;}}
           />
+        )}
+        {showLeft && !showRight && (
+          <button onClick={()=>setShowRight(true)} title="詳細を開く"
+            style={{ ...btnS("secondary",{fontSize:11,padding:"6px 8px"}), alignSelf:"flex-start", margin:"12px 8px 0 0", writingMode:"vertical-rl", borderRadius:8 }}>
+            ▶ 詳細
+          </button>
         )}
         {/* Right: form */}
         {showRight && (
