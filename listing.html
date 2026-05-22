@@ -121,6 +121,30 @@
     .frow{display:flex;gap:5px;margin-bottom:8px}
     .fopt{padding:5px 11px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--bg);user-select:none}
     .fopt.on{border-color:var(--acc);background:var(--acc-lo);color:var(--acc);font-weight:600}
+    .chklist{display:flex;flex-wrap:wrap;gap:5px}
+    .chkbtn{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--bg);user-select:none;display:flex;align-items:center;gap:5px}
+    .chkbtn:hover{border-color:var(--blu)}
+    .chkbtn.on{border-color:var(--blu);background:var(--blu-lo);color:var(--blu);font-weight:600}
+    .chkbtn .dot{width:7px;height:7px;border-radius:50%;border:1.5px solid currentColor;flex-shrink:0}
+    .chkbtn.on .dot{background:var(--blu)}
+    .input-label{font-size:11px;color:var(--mut);margin-bottom:5px;margin-top:9px}
+    .sn-wrap{display:flex;flex-direction:column;gap:6px}
+    .sn-toggle-row{display:flex;gap:5px}
+    .sntgl{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--bg);user-select:none}
+    .sntgl:hover{border-color:var(--blu)}
+    .sntgl.on{border-color:var(--blu);background:var(--blu-lo);color:var(--blu);font-weight:600}
+    .sn-input-row{display:flex;gap:6px;align-items:center;padding-top:4px}
+    .sn-input-row .prefix{font-size:12px;color:var(--acc);font-weight:700;font-family:var(--mono);white-space:nowrap}
+    .title-cands{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;flex-shrink:0}
+    .cand{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:10px;cursor:pointer;transition:all .15s}
+    .cand:hover{border-color:var(--acc);background:var(--surf2)}
+    .cand.selected{border-color:var(--grn);background:rgba(63,185,80,.07)}
+    .cand-num{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+    .sel-badge{background:var(--grn);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
+    .cand-title{font-size:12px;font-weight:600;color:var(--txt);line-height:1.5;font-family:var(--mono);word-break:break-all}
+    .cand-foot{display:flex;justify-content:flex-end;margin-top:5px}
+    .cand-chars{font-size:11px;font-family:var(--mono);color:var(--grn)}
+    .cand-chars.over{color:var(--red)}
     .genbar{position:sticky;bottom:0;padding:12px 16px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:0 -16px}
     .note{font-size:11px;color:var(--mut);margin-top:6px;text-align:center}
   </style>
@@ -135,6 +159,9 @@ const VID_B64 = "/9j/4AAQSkZJRgABAQAAAQABAAD/4gHYSUNDX1BST0ZJTEUAAQEAAAHIAAAAAAQ
 
 const TYPES = ['Film Camera','Digital Camera','Movie Camera','Camcorder','Lens','Binoculars'];
 const CONDITIONS = ['Top MINT','MINT','Near MINT','EXC+5','EXC+4','EXC+3','AS-IS / For parts or repair'];
+const SPECIALS = ['READ','All Works','Meter Works','Rare'];
+const WITH_ITEMS = ['Hood','Case','Box','Strap'];
+const API_KEY_STORAGE_KEY = 'anthropic_api_key';
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
 const OVERALL_OPTS = [
@@ -346,6 +373,114 @@ Return ONLY valid JSON: {"lensNotes":{"fungus":"","haze":"","scratch":"","dust":
 }
 
 // ── OpBox ──
+const SAMPLE_TITLES = [
+  "[Exc+5 w/Hood] Mamiya RB67 Pro S CdS Prism Finder Sekor C 127mm f/3.8 From JAPAN",
+  "[Near MINT] Konica Lexio 70 BLACK Limited 35mm Point & Shoot Film Camera JAPAN",
+  "[MINT] Panasonic Lumix G Vario 12-32mm f/3.5-5.6 ASPH Lens Black From JAPAN",
+  "[Exc+5 w/ Case] Mamiya 6 Six Model IVB D.Zuiko F.C. 7.5cm f/3.5 From JAPAN",
+  "READ [Exc+5] Mamiya M645 Film Camera Sekor C 210mm f/4 w/80mm AS-IS Lens JAPAN",
+  "All Works [Exc+5] Canon Auto Zoom 814 Electronic Super 8 Movie Film Camera JAPAN",
+  "[Exc+5] Mamiya 6 Six Type IV 6x6 Rangefinder Zuiko F.C. 7.5cm From JAPAN",
+  "[Near MINT] Kyocera TD Yashica T2 Tessar T* 35mm Point & Shoot From JAPAN",
+  "[Near MINT] Olympus XA2 Rangefinder Film Camera From JAPAN",
+  "READ! [Exc+3] Olympus OM-1 35mm SLR Film Camera Body Black From JAPAN",
+  "[Near MINT] Canon EF 75-300mm f/4-5.6 IS USM Image Stabilizer Zoom Lens JAPAN",
+  "[Exc+5] Nikon 1 J1 Pink Mirrorless Digital Camera w/ 10-30mm VR Lens From JAPAN",
+  "[Exc+5] Nikon F80 35mm SLR Film Camera Body Only From JAPAN",
+  "[MINT] Panasonic Lumix G X Vario PZ 45-175mm f/4-5.6 ASPH OIS Black From JAPAN",
+  "Rare [MINT] SMC Pentax-M 20mm f/4 Wide Angle Lens K Mount From JAPAN",
+  "[Exc+5] Olympus OM-2N 35mm SLR Film Camera G.Zuiko Auto-S 50mm f/1.4 From JAPAN",
+  "READ! [Exc+5] Olympus PEN E-P2 14-42mm Lens Kit w/ VF-3 EVF Boxed From JAPAN",
+  "[Near MINT] Canon Single-8 518 Auto Zoom 8mm Movie Camera From JAPAN",
+  "[AS-IS] Canon EOS 5D Mark II 21.1MP Digital SLR Camera Body BG-E6 From JAPAN",
+  "[Near MINT] Canon EF-S 18-55mm f/3.5-5.6 IS STM Lens From JAPAN",
+  "[Near MINT] Olympus OM-2N + G.Zuiko Auto-W 28mm f/3.5 From JAPAN",
+  "[MINT] Panasonic LUMIX G 45-200mm f/4-5.6 MEGA OIS Micro 4/3 Lens JAPAN",
+  "[Near MINT] Mamiya 6 Type IV 6x6 Rangefinder Film Camera From JAPAN",
+  "[Exc+5] Sigma APO 170-500mm f/5-6.3 AF Zoom Lens Pentax K Mount JAPAN",
+  "[Exc+5] Olympus OM-2N Black 35mm SLR Film Camera Body From JAPAN",
+  "[Near MINT] FUJI Fujinon W 210mm f/5.6 Large Format Lens Copal Shutter JAPAN",
+  "[MINT] Fujifilm FinePix REAL 3D W1 10.0MP Digital Camera English OK From JAPAN",
+  "[MINT w/ Box] Sigma DP1 Digital Camera Foveon Sensor From JAPAN",
+  "[Near MINT] Minolta AF 28-70mm f/2.8 G Sony/Minolta A-Mount Lens From JAPAN",
+  "[Exc+5] Yashica/Kyocera 230 AF 35mm Film SLR +28/2.8 +35-70 Macro +CS250AF JAPAN"
+];
+
+function buildTitlePrompt({cond, specials, withItems, color, snType, snValue, brand, model}) {
+  const snStr = snType && snValue ? `${snType} ${snValue}` : '';
+  const colorStr = color.trim();
+  return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
+
+## Strict Rules
+- Use HALF-WIDTH SPACES only (critical for search)
+- Max 80 characters per title
+- F-value format: f/4.5 (if 1 char over limit, use f4.5 without slash)
+- Title structure: {Special} {ConditionBlock} Brand Model {Color} Specs {SN} JAPAN
+  - ConditionBlock format: [Condition{w/ Item1, Item2}]  e.g. [Near MINT w/ Hood]
+  - Special keywords go BEFORE the condition block
+  - Color goes AFTER model name, BEFORE specs
+  - JAPAN is REQUIRED at the end
+  - "From" before JAPAN is optional (lower priority)
+
+## If title exceeds 80 chars, remove in this order:
+1. Remove "From" (keep JAPAN)
+2. Remove slash from f-value (f/4.5 -> f4.5)
+3. Remove color
+4. Remove w/ accessories from condition block
+5. Remove S/N or S/C value
+Never remove: Special keywords, Condition, Brand/Model, JAPAN
+
+## Inputs
+- Condition: ${cond}
+- Special keywords: ${specials.length > 0 ? specials.join(', ') : 'none'}
+- Accessories (w/): ${withItems.length > 0 ? withItems.join(', ') : 'none'}
+- Color: ${colorStr || 'none'}
+- ${snStr || 'No S/N or S/C'}
+- Brand & Model: ${brand} ${model}
+
+## Reference titles (your past successful sales):
+${SAMPLE_TITLES.join('\n')}
+
+## Output format
+Return ONLY 3 titles, one per line, no numbering, no explanation, no quotes.`;
+}
+
+async function callTitleClaude(prompt) {
+  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+  if (!apiKey) throw new Error('API key is not set');
+  const res = await fetch('/api/claude', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
+    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
+  });
+  const rawText = await res.text();
+  let data = {};
+  try { data = rawText ? JSON.parse(rawText) : {}; } catch(e) { data = {}; }
+  if(!res.ok) {
+    const upstreamMessage = data.error?.message || data.message || '';
+    throw new Error(`Claude request failed (${res.status})${upstreamMessage ? ': ' + upstreamMessage : ''}`);
+  }
+  const text = data.content?.[0]?.text || '';
+  return text.trim().split('\n').map(l=>l.trim()).filter(Boolean).slice(0,3);
+}
+
+function highlightTitle(title) {
+  const parts = [];
+  let rest = title;
+  const specMatch = rest.match(/^(READ!?|All Works|Meter Works|Rare)\s+/);
+  if(specMatch) {
+    parts.push(<span key="sp" style={{color:'var(--red)'}}>{specMatch[0]}</span>);
+    rest = rest.slice(specMatch[0].length);
+  }
+  const condMatch = rest.match(/^\[.*?\]/);
+  if(condMatch) {
+    parts.push(<span key="cd" style={{color:'var(--acc)'}}>{condMatch[0]}</span>);
+    rest = rest.slice(condMatch[0].length);
+  }
+  parts.push(<span key="rest">{rest}</span>);
+  return parts;
+}
+
 function OpBox({title,op,setOp,showBalsam}) {
   const items=[...OP_ITEMS,...(showBalsam?['Balsam']:[])];
   const set=(f,v)=>setOp(p=>({...p,[f]:v}));
@@ -398,6 +533,14 @@ function App() {
   const [ebayTitle,setEbayTitle]=useState('');
   const [titleBusy,setTitleBusy]=useState(false);
   const [titleCandidates,setTitleCandidates]=useState([]);
+  const [selectedTitleIdx,setSelectedTitleIdx]=useState(null);
+  const [specials,setSpecials]=useState([]);
+  const [withItems,setWithItems]=useState([]);
+  const [color,setColor]=useState('');
+  const [snType,setSnType]=useState('');
+  const [snValue,setSnValue]=useState('');
+  const [brand,setBrand]=useState('');
+  const [model,setModel]=useState('');
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -414,36 +557,28 @@ function App() {
   },[cond]);
 
   const toggleBundle=n=>setBundles(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n]);
+  const toggleSpecial=s=>setSpecials(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]);
+  const toggleWith=w=>setWithItems(p=>p.includes(w)?p.filter(x=>x!==w):[...p,w]);
+  const toggleSnType=t=>{ setSnType(p=>p===t?'':t); setSnValue(''); };
 
   const handleGenTitle=async()=>{
-    setTitleBusy(true); setTitleCandidates([]);
+    setRtab('html');
+    if(!brand.trim() || !model.trim()) {
+      setTitleCandidates(['Brand and Model are required.']);
+      setSelectedTitleIdx(null);
+      return;
+    }
+    if(!localStorage.getItem(API_KEY_STORAGE_KEY)) {
+      setTitleCandidates(['API key is not set in localStorage: anthropic_api_key']);
+      setSelectedTitleIdx(null);
+      return;
+    }
+    setTitleBusy(true); setTitleCandidates([]); setSelectedTitleIdx(null);
     try{
-      const bundleStr=bundles.length?bundles.join(', '):'None';
-      const prompt=`Generate 3 eBay listing titles for a Japanese vintage camera/lens.
-Product type: ${pType}
-Condition: ${cond}
-Bundled items: ${bundleStr}
-
-Requirements:
-- Under 80 characters each
-- Start with [${cond}]
-- Include "From JAPAN"
-- SEO optimized for eBay camera buyers
-- Natural English
-
-Return ONLY a JSON array of 3 strings, no other text. Example: ["title1","title2","title3"]`;
-
-      const res=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-20250514',max_tokens:400,
-          messages:[{role:'user',content:prompt}]
-        })
-      });
-      const data=await res.json();
-      const parsed=JSON.parse(data.content[0].text.replace(/```json|```/g,'').trim());
-      setTitleCandidates(Array.isArray(parsed)?parsed:[]);
-    }catch(e){console.error(e);}
+      const prompt=buildTitlePrompt({cond,specials,withItems,color,snType,snValue,brand,model});
+      const titles=await callTitleClaude(prompt);
+      setTitleCandidates(titles);
+    }catch(e){console.error(e);setTitleCandidates(['Error: '+e.message]);}
     finally{setTitleBusy(false);}
   };
 
@@ -526,21 +661,60 @@ Return ONLY a JSON array of 3 strings, no other text. Example: ["title1","title2
 
           <div className="sec">
             <div className="sttl">基本情報</div>
-            <label>eBay タイトル</label>
-            <div style={{display:'flex',gap:6,alignItems:'center'}}>
-              <input type="text" value={ebayTitle} onChange={e=>setEbayTitle(e.target.value)} placeholder="[Near MINT] Canon AE-1 35mm SLR Film Camera From JAPAN" style={{flex:1}} />
-              <button className="btn bsec bsm" onClick={handleGenTitle} disabled={titleBusy} style={{flexShrink:0,whiteSpace:'nowrap'}}>
-                {titleBusy?<><span className="spin"></span></>:' 生成'}
-              </button>
+            <div className="input-label">Brand</div>
+            <input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Canon / Nikon / Mamiya ..." />
+            <div className="input-label">Model</div>
+            <input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="AE-1 35mm SLR Film Camera Body" />
+
+            <div className="input-label">特記キーワード（任意）</div>
+            <div className="chklist">
+              {SPECIALS.map(s=>(
+                <div key={s} className={`chkbtn ${specials.includes(s)?'on':''}`} onClick={()=>toggleSpecial(s)}>
+                  <span className="dot" />{s}
+                </div>
+              ))}
             </div>
-            {titleCandidates.length>0&&(
-              <div style={{marginTop:6,display:'flex',flexDirection:'column',gap:4}}>
-                {titleCandidates.map((t,i)=>(
-                  <div key={i} style={{padding:'5px 8px',border:'1px solid var(--bdr)',borderRadius:5,fontSize:11,cursor:'pointer',background:'var(--bg)',color:'var(--txt)'}}
-                    onClick={()=>{setEbayTitle(t);setTitleCandidates([]);}}>
-                    {t}
-                  </div>
+
+            <div className="input-label">付属品 w/（任意）</div>
+            <div className="chklist">
+              {WITH_ITEMS.map(w=>(
+                <div key={w} className={`chkbtn ${withItems.includes(w)?'on':''}`} onClick={()=>toggleWith(w)}>
+                  <span className="dot" />{w}
+                </div>
+              ))}
+            </div>
+
+            <div className="input-label">カラー（任意）</div>
+            <div className="chklist" style={{marginBottom:6}}>
+              {['Black','Silver'].map(c=>(
+                <div key={c} className={`chkbtn ${color===c?'on':''}`} onClick={()=>setColor(p=>p===c?'':c)}>
+                  <span className="dot" />{c}
+                </div>
+              ))}
+            </div>
+            <input type="text" value={color} onChange={e=>setColor(e.target.value)} placeholder="Black / Silver / Chrome / White ..." />
+
+            <div className="input-label">S/N or S/C（任意）</div>
+            <div className="sn-wrap">
+              <div className="sn-toggle-row">
+                {['S/N','S/C'].map(t=>(
+                  <div key={t} className={`sntgl ${snType===t?'on':''}`} onClick={()=>toggleSnType(t)}>{t}</div>
                 ))}
+              </div>
+              {snType&&(
+                <div className="sn-input-row">
+                  <span className="prefix">{snType}</span>
+                  <input type="text" value={snValue} onChange={e=>setSnValue(e.target.value)} placeholder={snType==='S/N'?'250XXXX':'9,514'} />
+                </div>
+              )}
+            </div>
+
+            <button className="btn bprim bfull" onClick={handleGenTitle} disabled={titleBusy} style={{marginTop:12}}>
+              {titleBusy?<><span className="spin"></span>生成中...</>:'タイトル生成'}
+            </button>
+            {ebayTitle&&(
+              <div className="aapp" style={{marginTop:8,marginBottom:0}}>
+                確定タイトル: <span style={{color:'var(--txt)',fontFamily:'var(--mono)'}}>{ebayTitle}</span>
               </div>
             )}
             <label>シリアルナンバー（ボディ）</label>
@@ -614,6 +788,37 @@ Return ONLY a JSON array of 3 strings, no other text. Example: ["title1","title2
 
           {rtab==='html'&&(
             <div className="html-area">
+              {(titleBusy||titleCandidates.length>0)&&(
+                <div className="title-cands">
+                  {titleBusy&&(
+                    <div className="cand">
+                      <div className="cand-title"><span className="spin"></span> タイトル生成中...</div>
+                    </div>
+                  )}
+                  {!titleBusy&&titleCandidates.map((t,i)=>{
+                    const isError=t.startsWith('Error:')||t.startsWith('API key')||t.startsWith('Brand and Model');
+                    const chars=t.length;
+                    return (
+                      <div
+                        key={i}
+                        className={`cand ${selectedTitleIdx===i?'selected':''}`}
+                        onClick={()=>{if(!isError){setEbayTitle(t);setSelectedTitleIdx(i);}}}
+                      >
+                        <div className="cand-num">
+                          {isError?'MESSAGE':`TITLE ${i+1}`}
+                          {selectedTitleIdx===i&&<span className="sel-badge">確定</span>}
+                        </div>
+                        <div className="cand-title">{isError?t:highlightTitle(t)}</div>
+                        {!isError&&(
+                          <div className="cand-foot">
+                            <span className={`cand-chars ${chars>80?'over':''}`}>{chars} / 80</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
                 <span style={{fontSize:11,color:'var(--mut)'}}>eBayの説明欄（HTMLモード）に貼り付け</span>
                 <div style={{display:'flex',gap:7,alignItems:'center'}}>
