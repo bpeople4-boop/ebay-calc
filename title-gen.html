@@ -62,8 +62,8 @@
     .chkbtn.on .dot{background:var(--blu)}
 
     /* text input */
-    input[type=text]{width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:var(--ui);font-size:13px;padding:6px 10px;outline:none;transition:border-color .15s}
-    input[type=text]:focus{border-color:var(--acc)}
+    input[type=text],input[type=password]{width:100%;background:var(--surf);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:var(--ui);font-size:13px;padding:6px 10px;outline:none;transition:border-color .15s}
+    input[type=text]:focus,input[type=password]:focus{border-color:var(--acc)}
     .input-row{display:flex;gap:6px;align-items:center}
     .input-row input{flex:1}
     .input-label{font-size:11px;color:var(--mut);margin-bottom:5px}
@@ -115,6 +115,19 @@
     .empty-ttl{font-size:14px;font-weight:600;color:var(--txt)}
     .empty-sub{font-size:12px;line-height:1.6}
 
+    /* API key settings */
+    .api-key-btn{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;background:var(--surf);color:var(--mut);font-size:11px;font-family:var(--ui);cursor:pointer;transition:all .12s;white-space:nowrap}
+    .api-key-btn:hover{border-color:var(--acc);color:var(--acc)}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.68);display:flex;align-items:center;justify-content:center;z-index:50;padding:20px}
+    .modal{width:min(420px,100%);background:var(--surf);border:1px solid var(--bdr);border-radius:8px;padding:18px;box-shadow:0 18px 50px rgba(0,0,0,.45)}
+    .modal-title{font-size:15px;font-weight:700;color:var(--txt);margin-bottom:8px}
+    .modal-desc{font-size:12px;line-height:1.6;color:var(--mut);margin-bottom:14px}
+    .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px}
+    .modal-save{padding:7px 14px;border:none;border-radius:6px;background:var(--acc);color:#000;font-family:var(--ui);font-size:13px;font-weight:700;cursor:pointer}
+    .modal-save:disabled{opacity:.5;pointer-events:none}
+    .modal-cancel{padding:7px 12px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--mut);font-family:var(--ui);font-size:13px;cursor:pointer}
+    .modal-cancel:hover{border-color:var(--acc);color:var(--acc)}
+
     /* scrollbar */
     ::-webkit-scrollbar{width:5px;height:5px}
     ::-webkit-scrollbar-track{background:transparent}
@@ -124,13 +137,14 @@
 <body>
 <div id="root"></div>
 <script type="text/babel" data-presets="react">
-const {useState, useRef, useCallback} = React;
+const {useState, useRef, useCallback, useEffect} = React;
 
 const CONDITIONS = [
   'Top MINT','MINT','Near MINT','Exc+5','Exc+4','Exc+3','Exc+','Exc','AS-IS'
 ];
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
+const API_KEY_STORAGE_KEY = 'anthropic_api_key';
 
 const SAMPLE_TITLES = [
   "[Exc+5 w/Hood] Mamiya RB67 Pro S CdS Prism Finder Sekor C 127mm f/3.8 From JAPAN",
@@ -234,11 +248,14 @@ Return ONLY 3 titles, one per line, no numbering, no explanation, no quotes.`;
 }
 
 async function callClaude(prompt) {
+  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+  if (!apiKey) throw new Error('API key is not set');
+
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'x-api-key': 'YOUR_API_KEY_HERE',
+      'x-api-key': apiKey,
       'anthropic-version': '2023-06-01',
       'anthropic-dangerous-direct-browser-calls': 'true'
     },
@@ -291,13 +308,38 @@ function App() {
   const [copied, setCopied] = useState(null);
   const [condErr, setCondErr] = useState(false);
   const [brandErr, setBrandErr] = useState(false);
+  const [apiKeyInput, setApiKeyInput] = useState('');
+  const [showApiKeyModal, setShowApiKeyModal] = useState(false);
+  const [apiKeyErr, setApiKeyErr] = useState(false);
 
   const condRef = useRef(null);
   const brandRef = useRef(null);
 
+  useEffect(() => {
+    const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
+    setApiKeyInput(storedKey);
+    setShowApiKeyModal(!storedKey);
+  }, []);
+
   const toggleSpecial = (s) => setSpecials(p => p.includes(s) ? p.filter(x=>x!==s) : [...p, s]);
   const toggleWith = (w) => setWithItems(p => p.includes(w) ? p.filter(x=>x!==w) : [...p, w]);
   const toggleSnType = (t) => { setSnType(p => p === t ? '' : t); setSnValue(''); };
+  const openApiKeyModal = () => {
+    setApiKeyInput(localStorage.getItem(API_KEY_STORAGE_KEY) || '');
+    setApiKeyErr(false);
+    setShowApiKeyModal(true);
+  };
+  const saveApiKey = () => {
+    const trimmedKey = apiKeyInput.trim();
+    if (!trimmedKey) {
+      setApiKeyErr(true);
+      return;
+    }
+    localStorage.setItem(API_KEY_STORAGE_KEY, trimmedKey);
+    setApiKeyInput(trimmedKey);
+    setApiKeyErr(false);
+    setShowApiKeyModal(false);
+  };
 
   const generate = useCallback(async () => {
     let hasErr = false;
@@ -312,6 +354,11 @@ function App() {
       hasErr = true;
     }
     if (hasErr) return;
+
+    if (!localStorage.getItem(API_KEY_STORAGE_KEY)) {
+      openApiKeyModal();
+      return;
+    }
 
     setCondErr(false); setBrandErr(false);
     setLoading(true);
@@ -342,6 +389,37 @@ function App() {
 
   return (
     <div className="wrap">
+      {showApiKeyModal && (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-title">APIキー設定</div>
+            <div className="modal-desc">
+              Anthropic APIキーを入力してください。キーはこのブラウザのlocalStorageに保存されます。
+            </div>
+            <input
+              type="password"
+              value={apiKeyInput}
+              onChange={e => { setApiKeyInput(e.target.value); setApiKeyErr(false); }}
+              onKeyDown={e => { if (e.key === 'Enter') saveApiKey(); }}
+              placeholder="sk-ant-api..."
+              autoFocus
+            />
+            {apiKeyErr && (
+              <div className="err-msg">APIキーを入力してください</div>
+            )}
+            <div className="modal-actions">
+              {localStorage.getItem(API_KEY_STORAGE_KEY) && (
+                <button className="modal-cancel" onClick={() => setShowApiKeyModal(false)}>
+                  キャンセル
+                </button>
+              )}
+              <button className="modal-save" onClick={saveApiKey} disabled={!apiKeyInput.trim()}>
+                保存
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Left panel ── */}
       <div className="lpanel">
         <div className="hdr">
@@ -487,6 +565,7 @@ function App() {
           {candidates.length > 0 && (
             <span className="char-badge">クリックで選択＆コピー</span>
           )}
+          <button className="api-key-btn" onClick={openApiKeyModal}>APIキー設定</button>
         </div>
         <div className="rscroll">
           {!loading && candidates.length === 0 && (
