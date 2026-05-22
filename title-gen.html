@@ -264,8 +264,18 @@ async function callClaude(prompt) {
       messages: [{ role: 'user', content: prompt }]
     })
   });
-  if (!res.ok) throw new Error(`API error ${res.status}`);
-  const data = await res.json();
+  const rawText = await res.text();
+  let data = {};
+  try {
+    data = rawText ? JSON.parse(rawText) : {};
+  } catch(e) {
+    data = {};
+  }
+  if (!res.ok) {
+    const upstreamMessage = data.error?.message || data.message || '';
+    const detail = upstreamMessage ? `: ${upstreamMessage}` : '';
+    throw new Error(`Claude request failed (${res.status})${detail}`);
+  }
   const text = data.content?.[0]?.text || '';
   return text.trim().split('\n').map(l => l.trim()).filter(l => l.length > 0).slice(0, 3);
 }
