@@ -146,70 +146,43 @@ const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
 const API_KEY_STORAGE_KEY = 'anthropic_api_key';
 
-const SAMPLE_TITLES = [
-  "[Exc+5 w/Hood] Mamiya RB67 Pro S CdS Prism Finder Sekor C 127mm f/3.8 From JAPAN",
-  "[Near MINT] Konica Lexio 70 BLACK Limited 35mm Point & Shoot Film Camera JAPAN",
-  "[MINT] Panasonic Lumix G Vario 12-32mm f/3.5-5.6 ASPH Lens Black From JAPAN",
-  "[Exc+5 w/ Case] Mamiya 6 Six Model IVB D.Zuiko F.C. 7.5cm f/3.5 From JAPAN",
-  "READ [Exc+5] Mamiya M645 Film Camera Sekor C 210mm f/4 w/80mm AS-IS Lens JAPAN",
-  "All Works [Exc+5] Canon Auto Zoom 814 Electronic Super 8 Movie Film Camera JAPAN",
-  "[Exc+5] Mamiya 6 Six Type IV 6x6 Rangefinder Zuiko F.C. 7.5cm From JAPAN",
-  "[Near MINT] Kyocera TD Yashica T2 Tessar T* 35mm Point & Shoot From JAPAN",
-  "[Near MINT] Olympus XA2 Rangefinder Film Camera From JAPAN",
-  "READ! [Exc+3] Olympus OM-1 35mm SLR Film Camera Body Black From JAPAN",
-  "[Near MINT] Canon EF 75-300mm f/4-5.6 IS USM Image Stabilizer Zoom Lens JAPAN",
-  "[Exc+5] Nikon 1 J1 Pink Mirrorless Digital Camera w/ 10-30mm VR Lens From JAPAN",
-  "[Exc+5] Nikon F80 35mm SLR Film Camera Body Only From JAPAN",
-  "[MINT] Panasonic Lumix G X Vario PZ 45-175mm f/4-5.6 ASPH OIS Black From JAPAN",
-  "Rare [MINT] SMC Pentax-M 20mm f/4 Wide Angle Lens K Mount From JAPAN",
-  "[Exc+5] Olympus OM-2N 35mm SLR Film Camera G.Zuiko Auto-S 50mm f/1.4 From JAPAN",
-  "READ! [Exc+5] Olympus PEN E-P2 14-42mm Lens Kit w/ VF-3 EVF Boxed From JAPAN",
-  "[Near MINT] Canon Single-8 518 Auto Zoom 8mm Movie Camera From JAPAN",
-  "[AS-IS] Canon EOS 5D Mark II 21.1MP Digital SLR Camera Body BG-E6 From JAPAN",
-  "[Near MINT] Canon EF-S 18-55mm f/3.5-5.6 IS STM Lens From JAPAN",
-  "[Near MINT] Olympus OM-2N + G.Zuiko Auto-W 28mm f/3.5 From JAPAN",
-  "[MINT] Panasonic LUMIX G 45-200mm f/4-5.6 MEGA OIS Micro 4/3 Lens JAPAN",
-  "[Near MINT] Mamiya 6 Type IV 6x6 Rangefinder Film Camera From JAPAN",
-  "[Exc+5] Sigma APO 170-500mm f/5-6.3 AF Zoom Lens Pentax K Mount JAPAN",
-  "[Exc+5] Olympus OM-2N Black 35mm SLR Film Camera Body From JAPAN",
-  "[Near MINT] FUJI Fujinon W 210mm f/5.6 Large Format Lens Copal Shutter JAPAN",
-  "[MINT] Fujifilm FinePix REAL 3D W1 10.0MP Digital Camera English OK From JAPAN",
-  "[MINT w/ Box] Sigma DP1 Digital Camera Foveon Sensor From JAPAN",
-  "[Near MINT] Minolta AF 28-70mm f/2.8 G Sony/Minolta A-Mount Lens From JAPAN",
-  "[Exc+5] Yashica/Kyocera 230 AF 35mm Film SLR +28/2.8 +35-70 Macro +CS250AF JAPAN",
-  "[Near MINT] Olympus XA2 Black 35mm Rangefinder Film Camera A11 Flash From JAPAN",
-  "[Near MINT] Sony HDR-FX1 HDV 3CCD Handycam Camcorder Carl Zeiss From JAPAN",
-  "[Near MINT] Olympus XA Rangefinder Film Camera + A11 Flash From JAPAN",
-  "[Near MINT] Canon EF 100mm f/2.8 Macro USM Lens for EOS From JAPAN",
-  "READ! [Near MINT] Konica BiG mini BM-201 Point & Shoot 35mm Film Camera JAPAN",
-  "[MINT] Nikon AF-S DX NIKKOR 18-140mm f/3.5-5.6G ED VR Lens From JAPAN",
-  "[Near MINT] Mamiya RB67 Pro S Sekor C 127mm f/3.8 Prism Finder From JAPAN",
-  "[Near MINT] Canon AE-1 Program Camera New FD 50mm f/1.4 Lens Winder A2 JAPAN",
-  "[AS-IS] Minolta XD-s Black 35mm SLR Film Camera Body From JAPAN",
-  "[Exc+5] Super Rare Mamiya Sketch 35mm f/2.8 Rangefinder Film Camera From JAPAN",
-  "[Near MINT] Nikon FE Black 35mm SLR Film Camera Body Only From JAPAN",
-  "[Near MINT] Mamiya RB67 Pro Film Camera Sekor 127mm f/3.8 Lens 120 From JAPAN",
-  "[Near MINT] Nikon F80S F80 S 35mm SLR Film Camera Body + SB-10 Flash From JAPAN",
-  "[MINT w/ Hood] Sigma 20mm f/2 DG DN Contemporary Lens for L Mount From JAPAN",
-  "[Near MINT] Canon Autoboy S Panorama 35mm Point & Shoot Film Camera From JAPAN",
-  "[AS-IS] Kyocera Slim T Yashica T4 Slim 35mm Point & Shoot Film Camera JAPAN",
-  "[MINT] Nikon AF-P DX NIKKOR 70-300mm f/4.5-6.3G ED VR Telephoto Lens From JAPAN",
-  "[Near MINT] Olympus mju II 115 VF Point & Shoot 35mm Film Camera From JAPAN",
-  "[Near MINT] Mamiya Sekor C 180mm f/4.5 Lens for RB67 Pro S Pro SD From JAPAN",
-  "[Exc+5] Nikon AF 600 PANORAMA Black Film Camera Point & Shoot From JAPAN",
-  "[Near MINT] Nikon D200 DSLR Camera Body + MB-D200 Battery Grip S/C 9,514 JAPAN",
-  "[MINT] Olympus mju II 170 VF Point & Shoot 35mm Film Camera From JAPAN",
-  "[Near MINT] Olympus mju II 80 VF Point & Shoot 35mm Film Camera From JAPAN",
-];
+function parseTitleCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else field += ch;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows.map(r => (r[0] || '').trim()).filter(Boolean);
+}
 
-function buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model}) {
-  const withStr = withItems.length > 0 ? ' w/ ' + withItems.join(', ') : '';
-  const condBlock = `[${cond}${withStr}]`;
-  const specialStr = specials.join(' ');
+async function loadTitleSamples() {
+  const res = await fetch('/data/titles.csv', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`titles.csv fetch failed (${res.status})`);
+  return parseTitleCsv(await res.text());
+}
+
+
+function buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model}, titleSamples) {
   const snStr = snType && snValue ? `${snType} ${snValue}` : '';
   const colorStr = color.trim();
 
-  const exampleTitles = SAMPLE_TITLES.slice(0, 30).join('\n');
+  const exampleTitles = titleSamples.join('\n');
 
   return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
 
@@ -320,6 +293,8 @@ function App() {
   const [apiKeyInput, setApiKeyInput] = useState('');
   const [showApiKeyModal, setShowApiKeyModal] = useState(false);
   const [apiKeyErr, setApiKeyErr] = useState(false);
+  const [titleSamples, setTitleSamples] = useState([]);
+  const [titleSampleErr, setTitleSampleErr] = useState('');
 
   const condRef = useRef(null);
   const brandRef = useRef(null);
@@ -328,6 +303,9 @@ function App() {
     const storedKey = localStorage.getItem(API_KEY_STORAGE_KEY) || '';
     setApiKeyInput(storedKey);
     setShowApiKeyModal(!storedKey);
+    loadTitleSamples()
+      .then(titles => { setTitleSamples(titles); setTitleSampleErr(''); })
+      .catch(e => { console.error(e); setTitleSampleErr(e.message); });
   }, []);
 
   const toggleSpecial = (s) => setSpecials(p => p.includes(s) ? p.filter(x=>x!==s) : [...p, s]);
@@ -375,14 +353,14 @@ function App() {
     setSelected(null);
 
     try {
-      const prompt = buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model});
+      const prompt = buildPrompt({cond, specials, withItems, color, snType, snValue, brand, model}, titleSamples);
       const titles = await callClaude(prompt);
       setCandidates(titles);
     } catch(e) {
       setCandidates(['エラーが発生しました: ' + e.message]);
     }
     setLoading(false);
-  }, [cond, specials, withItems, color, snType, snValue, brand, model]);
+  }, [cond, specials, withItems, color, snType, snValue, brand, model, titleSamples]);
 
   const copyTitle = (title, idx) => {
     navigator.clipboard.writeText(title).then(() => {
@@ -433,7 +411,7 @@ function App() {
       <div className="lpanel">
         <div className="hdr">
           <span className="hdr-ttl">eBay タイトル生成</span>
-          <span className="hdr-sub">過去62件の実績タイトルを参考に生成</span>
+          <span className="hdr-sub">実績タイトル {titleSamples.length}件読み込み</span>
         </div>
         <div className="lscroll">
 
@@ -584,7 +562,7 @@ function App() {
               <div className="empty-sub">
                 左のフォームを入力して<br />
                 「タイトル候補を生成」を押してください<br />
-                <span style={{color:'var(--acc)'}}>過去62件の実績タイトルを参考に3件生成します</span>
+                <span style={{color:'var(--acc)'}}>実績タイトル {titleSamples.length}件を参考に3件生成します{titleSampleErr ? ` (${titleSampleErr})` : ''}</span>
               </div>
             </div>
           )}

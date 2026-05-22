@@ -162,6 +162,38 @@ const CONDITIONS = ['Top MINT','MINT','Near MINT','EXC+5','EXC+4','EXC+3','AS-IS
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
 const API_KEY_STORAGE_KEY = 'anthropic_api_key';
+
+function parseTitleCsv(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (inQuotes) {
+      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
+      else if (ch === '"') inQuotes = false;
+      else field += ch;
+    } else if (ch === '"') inQuotes = true;
+    else if (ch === ',') { row.push(field); field = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(field);
+      rows.push(row);
+      row = [];
+      field = '';
+    } else field += ch;
+  }
+  if (field || row.length) { row.push(field); rows.push(row); }
+  return rows.map(r => (r[0] || '').trim()).filter(Boolean);
+}
+
+async function loadTitleSamples() {
+  const res = await fetch('/data/titles.csv', { cache: 'no-store' });
+  if (!res.ok) throw new Error(`titles.csv fetch failed (${res.status})`);
+  return parseTitleCsv(await res.text());
+}
+
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
 const OVERALL_OPTS = [
@@ -373,42 +405,10 @@ Return ONLY valid JSON: {"lensNotes":{"fungus":"","haze":"","scratch":"","dust":
 }
 
 // ── OpBox ──
-const SAMPLE_TITLES = [
-  "[Exc+5 w/Hood] Mamiya RB67 Pro S CdS Prism Finder Sekor C 127mm f/3.8 From JAPAN",
-  "[Near MINT] Konica Lexio 70 BLACK Limited 35mm Point & Shoot Film Camera JAPAN",
-  "[MINT] Panasonic Lumix G Vario 12-32mm f/3.5-5.6 ASPH Lens Black From JAPAN",
-  "[Exc+5 w/ Case] Mamiya 6 Six Model IVB D.Zuiko F.C. 7.5cm f/3.5 From JAPAN",
-  "READ [Exc+5] Mamiya M645 Film Camera Sekor C 210mm f/4 w/80mm AS-IS Lens JAPAN",
-  "All Works [Exc+5] Canon Auto Zoom 814 Electronic Super 8 Movie Film Camera JAPAN",
-  "[Exc+5] Mamiya 6 Six Type IV 6x6 Rangefinder Zuiko F.C. 7.5cm From JAPAN",
-  "[Near MINT] Kyocera TD Yashica T2 Tessar T* 35mm Point & Shoot From JAPAN",
-  "[Near MINT] Olympus XA2 Rangefinder Film Camera From JAPAN",
-  "READ! [Exc+3] Olympus OM-1 35mm SLR Film Camera Body Black From JAPAN",
-  "[Near MINT] Canon EF 75-300mm f/4-5.6 IS USM Image Stabilizer Zoom Lens JAPAN",
-  "[Exc+5] Nikon 1 J1 Pink Mirrorless Digital Camera w/ 10-30mm VR Lens From JAPAN",
-  "[Exc+5] Nikon F80 35mm SLR Film Camera Body Only From JAPAN",
-  "[MINT] Panasonic Lumix G X Vario PZ 45-175mm f/4-5.6 ASPH OIS Black From JAPAN",
-  "Rare [MINT] SMC Pentax-M 20mm f/4 Wide Angle Lens K Mount From JAPAN",
-  "[Exc+5] Olympus OM-2N 35mm SLR Film Camera G.Zuiko Auto-S 50mm f/1.4 From JAPAN",
-  "READ! [Exc+5] Olympus PEN E-P2 14-42mm Lens Kit w/ VF-3 EVF Boxed From JAPAN",
-  "[Near MINT] Canon Single-8 518 Auto Zoom 8mm Movie Camera From JAPAN",
-  "[AS-IS] Canon EOS 5D Mark II 21.1MP Digital SLR Camera Body BG-E6 From JAPAN",
-  "[Near MINT] Canon EF-S 18-55mm f/3.5-5.6 IS STM Lens From JAPAN",
-  "[Near MINT] Olympus OM-2N + G.Zuiko Auto-W 28mm f/3.5 From JAPAN",
-  "[MINT] Panasonic LUMIX G 45-200mm f/4-5.6 MEGA OIS Micro 4/3 Lens JAPAN",
-  "[Near MINT] Mamiya 6 Type IV 6x6 Rangefinder Film Camera From JAPAN",
-  "[Exc+5] Sigma APO 170-500mm f/5-6.3 AF Zoom Lens Pentax K Mount JAPAN",
-  "[Exc+5] Olympus OM-2N Black 35mm SLR Film Camera Body From JAPAN",
-  "[Near MINT] FUJI Fujinon W 210mm f/5.6 Large Format Lens Copal Shutter JAPAN",
-  "[MINT] Fujifilm FinePix REAL 3D W1 10.0MP Digital Camera English OK From JAPAN",
-  "[MINT w/ Box] Sigma DP1 Digital Camera Foveon Sensor From JAPAN",
-  "[Near MINT] Minolta AF 28-70mm f/2.8 G Sony/Minolta A-Mount Lens From JAPAN",
-  "[Exc+5] Yashica/Kyocera 230 AF 35mm Film SLR +28/2.8 +35-70 Macro +CS250AF JAPAN"
-];
-
-function buildTitlePrompt({cond, specials, withItems, color, snType, snValue, brand, model}) {
+function buildTitlePrompt({cond, specials, withItems, color, snType, snValue, brand, model}, titleSamples) {
   const snStr = snType && snValue ? `${snType} ${snValue}` : '';
   const colorStr = color.trim();
+  const exampleTitles = titleSamples.join('\n');
   return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
 
 ## Strict Rules
@@ -439,7 +439,7 @@ Never remove: Special keywords, Condition, Brand/Model, JAPAN
 - Brand & Model: ${brand} ${model}
 
 ## Reference titles (your past successful sales):
-${SAMPLE_TITLES.join('\n')}
+${exampleTitles}
 
 ## Output format
 Return ONLY 3 titles, one per line, no numbering, no explanation, no quotes.`;
@@ -541,6 +541,8 @@ function App() {
   const [snValue,setSnValue]=useState('');
   const [brand,setBrand]=useState('');
   const [model,setModel]=useState('');
+  const [titleSamples,setTitleSamples]=useState([]);
+  const [titleSampleErr,setTitleSampleErr]=useState('');
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -549,6 +551,12 @@ function App() {
   const [photos,setPhotos]=useState([]);
   const [procBusy,setProcBusy]=useState(false);
   const fileRef=useRef();
+
+  useEffect(()=>{
+    loadTitleSamples()
+      .then(titles=>{setTitleSamples(titles);setTitleSampleErr('');})
+      .catch(e=>{console.error(e);setTitleSampleErr(e.message);});
+  },[]);
 
   useEffect(()=>{
     if(['Top MINT','MINT'].includes(cond)) setAppChoice('beautiful');
@@ -575,7 +583,7 @@ function App() {
     }
     setTitleBusy(true); setTitleCandidates([]); setSelectedTitleIdx(null);
     try{
-      const prompt=buildTitlePrompt({cond,specials,withItems,color,snType,snValue,brand,model});
+      const prompt=buildTitlePrompt({cond,specials,withItems,color,snType,snValue,brand,model},titleSamples);
       const titles=await callTitleClaude(prompt);
       setTitleCandidates(titles);
     }catch(e){console.error(e);setTitleCandidates(['Error: '+e.message]);}
@@ -641,7 +649,7 @@ function App() {
       {/* ── Form panel ── */}
       <div className="fpanel">
         <div className="fpanel-header">
-          <span className="fhtxt">Listing Generator</span>
+          <span className="fhtxt">Listing Generator - 実績タイトル {titleSamples.length}件読み込み{titleSampleErr ? ` (${titleSampleErr})` : ''}</span>
         </div>
         <div className="fcontent">
 
