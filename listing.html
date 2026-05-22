@@ -161,38 +161,6 @@ const TYPES = ['Film Camera','Digital Camera','Movie Camera','Camcorder','Lens',
 const CONDITIONS = ['Top MINT','MINT','Near MINT','EXC+5','EXC+4','EXC+3','AS-IS / For parts or repair'];
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
-const API_KEY_STORAGE_KEY = 'anthropic_api_key';
-
-function parseTitleCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let inQuotes = false;
-  for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    if (inQuotes) {
-      if (ch === '"' && text[i + 1] === '"') { field += '"'; i++; }
-      else if (ch === '"') inQuotes = false;
-      else field += ch;
-    } else if (ch === '"') inQuotes = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n' || ch === '\r') {
-      if (ch === '\r' && text[i + 1] === '\n') i++;
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else field += ch;
-  }
-  if (field || row.length) { row.push(field); rows.push(row); }
-  return rows.map(r => (r[0] || '').trim()).filter(Boolean);
-}
-
-async function loadTitleSamples() {
-  const res = await fetch('/data/titles.csv', { cache: 'no-store' });
-  if (!res.ok) throw new Error(`titles.csv fetch failed (${res.status})`);
-  return parseTitleCsv(await res.text());
-}
 
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
@@ -405,75 +373,38 @@ Return ONLY valid JSON: {"lensNotes":{"fungus":"","haze":"","scratch":"","dust":
 }
 
 // ── OpBox ──
-function buildTitlePrompt({cond, specials, withItems, color, snType, snValue, brand, model}, titleSamples) {
-  const snStr = snType && snValue ? `${snType} ${snValue}` : '';
-  const colorStr = color.trim();
-  const tokens = [brand, model].map(v=>v.trim().toLowerCase()).filter(Boolean);
-  const shuffled = arr => [...arr].sort(()=>Math.random()-0.5);
-  const isHit = title => {
-    const lower = title.toLowerCase();
-    return tokens.some(token=>lower.includes(token));
+function buildTitleAuto({cond, specials, withItems, color, snType, snValue, brand, model}) {
+  const makeTitle = ({keepFrom=true, compactF=false, keepColor=true, keepItems=true, keepSn=true}={}) => {
+    const condition = keepItems && withItems.length
+      ? `[${cond} w/ ${withItems.join(', ')}]`
+      : `[${cond}]`;
+    const sn = keepSn && snType && snValue.trim() ? `${snType} ${snValue.trim()}` : '';
+    const parts = [
+      specials.length ? specials.join(' ') : '',
+      condition,
+      brand.trim(),
+      model.trim(),
+      keepColor ? color.trim() : '',
+      sn,
+      keepFrom ? 'From JAPAN' : 'JAPAN'
+    ].filter(Boolean);
+    const title = parts.join(' ').replace(/\s+/g,' ').trim();
+    return compactF ? title.replace(/\bf\/(?=\d)/gi,'f') : title;
   };
-  const hitTitles = titleSamples.filter(isHit);
-  const selectedHits = hitTitles.length > 15 ? shuffled(hitTitles).slice(0,15) : hitTitles;
-  const remainingCount = 15 - selectedHits.length;
-  const fillerTitles = remainingCount > 0
-    ? shuffled(titleSamples.filter(t=>!selectedHits.includes(t))).slice(0,remainingCount)
-    : [];
-  const exampleTitles = [...selectedHits, ...fillerTitles].join('\n');
-  return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
 
-## Strict Rules
-- Use HALF-WIDTH SPACES only (critical for search)
-- Max 80 characters per title
-- F-value format: f/4.5 (if 1 char over limit, use f4.5 without slash)
-- Title structure: {Special} {ConditionBlock} Brand Model {Color} Specs {SN} JAPAN
-  - ConditionBlock format: [Condition{w/ Item1, Item2}]  e.g. [Near MINT w/ Hood]
-  - Special keywords go BEFORE the condition block
-  - Color goes AFTER model name, BEFORE specs
-  - JAPAN is REQUIRED at the end
-  - "From" before JAPAN is optional (lower priority)
-
-## If title exceeds 80 chars, remove in this order:
-1. Remove "From" (keep JAPAN)
-2. Remove slash from f-value (f/4.5 -> f4.5)
-3. Remove color
-4. Remove w/ accessories from condition block
-5. Remove S/N or S/C value
-Never remove: Special keywords, Condition, Brand/Model, JAPAN
-
-## Inputs
-- Condition: ${cond}
-- Special keywords: ${specials.length > 0 ? specials.join(', ') : 'none'}
-- Accessories (w/): ${withItems.length > 0 ? withItems.join(', ') : 'none'}
-- Color: ${colorStr || 'none'}
-- ${snStr || 'No S/N or S/C'}
-- Brand & Model: ${brand} ${model}
-
-## Reference titles (your past successful sales):
-${exampleTitles}
-
-## Output format
-Return ONLY 3 titles, one per line, no numbering, no explanation, no quotes.`;
-}
-
-async function callTitleClaude(prompt) {
-  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-  if (!apiKey) throw new Error('API key is not set');
-  const res = await fetch('/api/claude', {
-    method: 'POST',
-    headers: {'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01'},
-    body: JSON.stringify({model:'claude-sonnet-4-5',max_tokens:1000,messages:[{role:'user',content:prompt}]})
-  });
-  const rawText = await res.text();
-  let data = {};
-  try { data = rawText ? JSON.parse(rawText) : {}; } catch(e) { data = {}; }
-  if(!res.ok) {
-    const upstreamMessage = data.error?.message || data.message || '';
-    throw new Error(`Claude request failed (${res.status})${upstreamMessage ? ': ' + upstreamMessage : ''}`);
+  const steps = [
+    {},
+    {keepFrom:false},
+    {keepFrom:false, compactF:true},
+    {keepFrom:false, compactF:true, keepColor:false},
+    {keepFrom:false, compactF:true, keepColor:false, keepItems:false},
+    {keepFrom:false, compactF:true, keepColor:false, keepItems:false, keepSn:false}
+  ];
+  for(const opts of steps) {
+    const title = makeTitle(opts);
+    if(title.length <= 80) return title;
   }
-  const text = data.content?.[0]?.text || '';
-  return text.trim().split('\n').map(l=>l.trim()).filter(Boolean).slice(0,3);
+  return makeTitle(steps[steps.length - 1]);
 }
 
 function highlightTitle(title) {
@@ -543,7 +474,6 @@ function App() {
   const [funcCus,setFuncCus]=useState('');
   const [bundles,setBundles]=useState([]);
   const [ebayTitle,setEbayTitle]=useState('');
-  const [titleBusy,setTitleBusy]=useState(false);
   const [titleCandidates,setTitleCandidates]=useState([]);
   const [selectedTitleIdx,setSelectedTitleIdx]=useState(null);
   const [specials,setSpecials]=useState([]);
@@ -553,8 +483,6 @@ function App() {
   const [snValue,setSnValue]=useState('');
   const [brand,setBrand]=useState('');
   const [model,setModel]=useState('');
-  const [titleSamples,setTitleSamples]=useState([]);
-  const [titleSampleErr,setTitleSampleErr]=useState('');
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -563,12 +491,6 @@ function App() {
   const [photos,setPhotos]=useState([]);
   const [procBusy,setProcBusy]=useState(false);
   const fileRef=useRef();
-
-  useEffect(()=>{
-    loadTitleSamples()
-      .then(titles=>{setTitleSamples(titles);setTitleSampleErr('');})
-      .catch(e=>{console.error(e);setTitleSampleErr(e.message);});
-  },[]);
 
   useEffect(()=>{
     if(['Top MINT','MINT'].includes(cond)) setAppChoice('beautiful');
@@ -581,25 +503,33 @@ function App() {
   const toggleWith=w=>setWithItems(p=>p.includes(w)?p.filter(x=>x!==w):[...p,w]);
   const toggleSnType=t=>{ setSnType(p=>p===t?'':t); setSnValue(''); };
 
-  const handleGenTitle=async()=>{
+  const handleGenTitle=()=>{
     setRtab('html');
     if(!brand.trim() || !model.trim()) {
       setTitleCandidates(['Brand and Model are required.']);
       setSelectedTitleIdx(null);
       return;
     }
-    if(!localStorage.getItem(API_KEY_STORAGE_KEY)) {
-      setTitleCandidates(['API key is not set in localStorage: anthropic_api_key']);
-      setSelectedTitleIdx(null);
-      return;
+    const title=buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
+    setTitleCandidates([title]);
+    setSelectedTitleIdx(null);
+  };
+
+  const handleConsultChatGPT=()=>{
+    const title=titleCandidates[0] || '';
+    const text=`タイトル候補：${title}`;
+    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(console.error);
+    else {
+      const ta=document.createElement('textarea');
+      ta.value=text;
+      ta.style.position='fixed';
+      ta.style.opacity='0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
     }
-    setTitleBusy(true); setTitleCandidates([]); setSelectedTitleIdx(null);
-    try{
-      const prompt=buildTitlePrompt({cond,specials,withItems,color,snType,snValue,brand,model},titleSamples);
-      const titles=await callTitleClaude(prompt);
-      setTitleCandidates(titles);
-    }catch(e){console.error(e);setTitleCandidates(['Error: '+e.message]);}
-    finally{setTitleBusy(false);}
+    window.open('https://chatgpt.com/g/g-p-6a10eac4e4308191bfbee3e42f4b93b8/project?tab=sources','_blank','noopener');
   };
 
   const handleGenerate=async()=>{
@@ -661,7 +591,7 @@ function App() {
       {/* ── Form panel ── */}
       <div className="fpanel">
         <div className="fpanel-header">
-          <span className="fhtxt">Listing Generator - 実績タイトル {titleSamples.length}件読み込み{titleSampleErr ? ` (${titleSampleErr})` : ''}</span>
+          <span className="fhtxt">Listing Generator</span>
         </div>
         <div className="fcontent">
 
@@ -729,8 +659,8 @@ function App() {
               )}
             </div>
 
-            <button className="btn bprim bfull" onClick={handleGenTitle} disabled={titleBusy} style={{marginTop:12}}>
-              {titleBusy?<><span className="spin"></span>生成中...</>:'タイトル生成'}
+            <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>
+              タイトルを組み立てる
             </button>
             {ebayTitle&&(
               <div className="aapp" style={{marginTop:8,marginBottom:0}}>
@@ -808,15 +738,10 @@ function App() {
 
           {rtab==='html'&&(
             <div className="html-area">
-              {(titleBusy||titleCandidates.length>0)&&(
+              {titleCandidates.length>0&&(
                 <div className="title-cands">
-                  {titleBusy&&(
-                    <div className="cand">
-                      <div className="cand-title"><span className="spin"></span> タイトル生成中...</div>
-                    </div>
-                  )}
-                  {!titleBusy&&titleCandidates.map((t,i)=>{
-                    const isError=t.startsWith('Error:')||t.startsWith('API key')||t.startsWith('Brand and Model');
+                  {titleCandidates.map((t,i)=>{
+                    const isError=t.startsWith('Error:')||t.startsWith('Brand and Model');
                     const chars=t.length;
                     return (
                       <div
@@ -837,6 +762,11 @@ function App() {
                       </div>
                     );
                   })}
+                  {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
+                    <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
+                      ChatGPTで相談
+                    </button>
+                  )}
                 </div>
               )}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
