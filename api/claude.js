@@ -1,26 +1,39 @@
-export default async function handler(req, res) {
-  if (req.method !== "POST") return res.status(405).end();
+export default {
+  async fetch(request) {
+    if (request.method === "GET") {
+      return Response.json({ ok: true, route: "/api/claude" });
+    }
 
-  const apiKey = req.headers["x-api-key"];
-  if (!apiKey) return res.status(400).json({ error: "Missing x-api-key header" });
+    if (request.method !== "POST") {
+      return new Response(null, { status: 405 });
+    }
 
-  try {
-    const response = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": apiKey,
-        "anthropic-version": req.headers["anthropic-version"] || "2023-06-01",
-      },
-      body: typeof req.body === "string" ? req.body : JSON.stringify(req.body),
-    });
+    const apiKey = request.headers.get("x-api-key");
+    if (!apiKey) {
+      return Response.json({ error: "Missing x-api-key header" }, { status: 400 });
+    }
 
-    const contentType = response.headers.get("content-type");
-    const body = await response.text();
+    try {
+      const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": request.headers.get("content-type") || "application/json",
+          "x-api-key": apiKey,
+          "anthropic-version": request.headers.get("anthropic-version") || "2023-06-01",
+        },
+        body: await request.text(),
+      });
 
-    if (contentType) res.setHeader("Content-Type", contentType);
-    res.status(response.status).send(body);
-  } catch (e) {
-    res.status(500).json({ error: e.message });
-  }
-}
+      const headers = new Headers();
+      const contentType = response.headers.get("content-type");
+      if (contentType) headers.set("Content-Type", contentType);
+
+      return new Response(await response.text(), {
+        status: response.status,
+        headers,
+      });
+    } catch (e) {
+      return Response.json({ error: e.message }, { status: 500 });
+    }
+  },
+};
