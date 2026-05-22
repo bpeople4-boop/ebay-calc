@@ -408,7 +408,19 @@ Return ONLY valid JSON: {"lensNotes":{"fungus":"","haze":"","scratch":"","dust":
 function buildTitlePrompt({cond, specials, withItems, color, snType, snValue, brand, model}, titleSamples) {
   const snStr = snType && snValue ? `${snType} ${snValue}` : '';
   const colorStr = color.trim();
-  const exampleTitles = titleSamples.join('\n');
+  const tokens = [brand, model].map(v=>v.trim().toLowerCase()).filter(Boolean);
+  const shuffled = arr => [...arr].sort(()=>Math.random()-0.5);
+  const isHit = title => {
+    const lower = title.toLowerCase();
+    return tokens.some(token=>lower.includes(token));
+  };
+  const hitTitles = titleSamples.filter(isHit);
+  const selectedHits = hitTitles.length > 15 ? shuffled(hitTitles).slice(0,15) : hitTitles;
+  const remainingCount = 15 - selectedHits.length;
+  const fillerTitles = remainingCount > 0
+    ? shuffled(titleSamples.filter(t=>!selectedHits.includes(t))).slice(0,remainingCount)
+    : [];
+  const exampleTitles = [...selectedHits, ...fillerTitles].join('\n');
   return `You are an expert eBay camera seller from Japan. Generate exactly 3 eBay item titles based on the inputs below.
 
 ## Strict Rules
