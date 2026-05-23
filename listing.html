@@ -221,6 +221,12 @@ function buildOpSection(op, type, showBalsam) {
 
 function genHTML(d) {
   const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,bundles} = d;
+  const htmlConditionMap = {
+    "Exc+5": "EXCELLENT+++++",
+    "Exc+4": "EXCELLENT++++",
+    "Exc+3": "EXCELLENT+++",
+  };
+  const htmlCondition = htmlConditionMap[cond] || cond;
   const serialTxt = hasLensSerial
     ? `Body:${serialBody||'—'}<br>\n&nbsp; &nbsp; Lens:${serialLens||'—'}`
     : `Body:${serialBody||'—'}`;
@@ -263,7 +269,7 @@ function genHTML(d) {
     <div>No additional charges will be required at delivery.</div><div><br></div>
     <div><span style="color:rgb(255,0,16);">&lt; For Buyers Outside the U.S. &gt;</span></div>
     <div>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</div><div><br></div>
-    <h3>Total Condition<br><span style="color:rgb(255,0,16);">${cond}</span></h3><div><br></div>
+    <h3>Total Condition<br><span style="color:rgb(255,0,16);">${htmlCondition}</span></h3><div><br></div>
     <h3>Serial Number</h3>&nbsp; &nbsp; ${serialTxt}
   </section>
   <section class="product_dec">
