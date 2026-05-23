@@ -486,7 +486,7 @@ function App() {
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
   const [copied,setCopied]=useState(false);
-  const [titleCopied,setTitleCopied]=useState(false);
+  const [copiedTitleIndex,setCopiedTitleIndex]=useState(null);
 
   const [photos,setPhotos]=useState([]);
   const [procBusy,setProcBusy]=useState(false);
@@ -529,8 +529,11 @@ function App() {
     });
   };
 
-  const handleCopyTitle=title=>{
-    copyText(title).then(()=>{setTitleCopied(true);setTimeout(()=>setTitleCopied(false),2000);}).catch(console.error);
+  const handleCopyTitle=(title,index)=>{
+    copyText(title).then(()=>{
+      setCopiedTitleIndex(index);
+      setTimeout(()=>setCopiedTitleIndex(null),1200);
+    }).catch(console.error);
   };
 
   const handleConfirmTitle=()=>{
@@ -541,7 +544,7 @@ function App() {
   const handleConsultChatGPT=()=>{
     const title=titleCandidates[0] || '';
     const chatText=`【Sold履歴URL】
-（ここにURLを貼ってください）
+☜ここにURLを貼ってください
 
 【タイトル候補】
 ${title}
@@ -702,11 +705,6 @@ ${title}
             <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>
               タイトルを組み立てる
             </button>
-            {ebayTitle&&(
-              <div className="aapp" style={{marginTop:8,marginBottom:0}}>
-                確定タイトル: <span style={{color:'var(--txt)',fontFamily:'var(--mono)'}}>{ebayTitle}</span>
-              </div>
-            )}
             <label>シリアルナンバー（ボディ）</label>
             <input type="text" value={serialBody} onChange={e=>setSerialBody(e.target.value)} placeholder="1234567" />
             <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
@@ -791,8 +789,10 @@ ${title}
                         <div className="cand-title">{isError?t:highlightTitle(t)}</div>
                         {!isError&&(
                           <div className="cand-foot">
-                            <button className="btn bblu bsm" onClick={()=>handleCopyTitle(t)}>コピー</button>
                             <span className={`cand-chars ${chars>80?'over':''}`}>{chars} / 80</span>
+                            <button className="btn bblu bsm" onClick={()=>handleCopyTitle(t,i)}>
+                              {copiedTitleIndex===i?'✓':'コピー'}
+                            </button>
                           </div>
                         )}
                       </div>
@@ -800,10 +800,9 @@ ${title}
                   })}
                   {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
                     <>
-                      {titleCopied&&<div className="ok" style={{textAlign:'right'}}>コピー完了</div>}
                       <div className="input-label">確定タイトル入力欄</div>
                       <div className="final-title-box">
-                        <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="確定タイトルを貼り付け" />
+                        <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="ChatGPTの回答をここに貼り付けて確定" />
                         <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
                       </div>
                       <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
