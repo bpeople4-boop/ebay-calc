@@ -136,15 +136,14 @@
     .sn-input-row{display:flex;gap:6px;align-items:center;padding-top:4px}
     .sn-input-row .prefix{font-size:12px;color:var(--acc);font-weight:700;font-family:var(--mono);white-space:nowrap}
     .title-cands{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;flex-shrink:0}
-    .cand{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:10px;cursor:pointer;transition:all .15s}
+    .cand{background:var(--surf);border:1px solid var(--bdr);border-radius:7px;padding:10px;transition:all .15s}
     .cand:hover{border-color:var(--acc);background:var(--surf2)}
-    .cand.selected{border-color:var(--grn);background:rgba(63,185,80,.07)}
     .cand-num{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--mut);margin-bottom:6px;display:flex;align-items:center;gap:6px}
-    .sel-badge{background:var(--grn);color:#000;font-size:9px;font-weight:700;padding:1px 5px;border-radius:3px}
     .cand-title{font-size:12px;font-weight:600;color:var(--txt);line-height:1.5;font-family:var(--mono);word-break:break-all}
-    .cand-foot{display:flex;justify-content:flex-end;margin-top:5px}
+    .cand-foot{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:8px}
     .cand-chars{font-size:11px;font-family:var(--mono);color:var(--grn)}
     .cand-chars.over{color:var(--red)}
+    .final-title-box{display:flex;gap:8px;align-items:center;margin-top:2px}
     .genbar{position:sticky;bottom:0;padding:12px 16px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:0 -16px}
     .note{font-size:11px;color:var(--mut);margin-top:6px;text-align:center}
   </style>
@@ -475,7 +474,7 @@ function App() {
   const [bundles,setBundles]=useState([]);
   const [ebayTitle,setEbayTitle]=useState('');
   const [titleCandidates,setTitleCandidates]=useState([]);
-  const [selectedTitleIdx,setSelectedTitleIdx]=useState(null);
+  const [finalTitleInput,setFinalTitleInput]=useState('');
   const [specials,setSpecials]=useState([]);
   const [withItems,setWithItems]=useState([]);
   const [color,setColor]=useState('');
@@ -487,6 +486,7 @@ function App() {
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [titleCopied,setTitleCopied]=useState(false);
 
   const [photos,setPhotos]=useState([]);
   const [procBusy,setProcBusy]=useState(false);
@@ -507,19 +507,16 @@ function App() {
     setRtab('html');
     if(!brand.trim() || !model.trim()) {
       setTitleCandidates(['Brand and Model are required.']);
-      setSelectedTitleIdx(null);
       return;
     }
     const title=buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
     setTitleCandidates([title]);
-    setSelectedTitleIdx(null);
+    setFinalTitleInput(title);
   };
 
-  const handleConsultChatGPT=()=>{
-    const title=titleCandidates[0] || '';
-    const text=`タイトル候補：${title}`;
-    if(navigator.clipboard?.writeText) navigator.clipboard.writeText(text).catch(console.error);
-    else {
+  const copyText=text=>{
+    if(navigator.clipboard?.writeText) return navigator.clipboard.writeText(text);
+    return new Promise(resolve=>{
       const ta=document.createElement('textarea');
       ta.value=text;
       ta.style.position='fixed';
@@ -528,8 +525,51 @@ function App() {
       ta.select();
       document.execCommand('copy');
       document.body.removeChild(ta);
-    }
-    window.open('https://chatgpt.com/g/g-p-6a10eac4e4308191bfbee3e42f4b93b8/project?tab=sources','_blank','noopener');
+      resolve();
+    });
+  };
+
+  const handleCopyTitle=title=>{
+    copyText(title).then(()=>{setTitleCopied(true);setTimeout(()=>setTitleCopied(false),2000);}).catch(console.error);
+  };
+
+  const handleConfirmTitle=()=>{
+    const title=finalTitleInput.trim();
+    if(title) setEbayTitle(title);
+  };
+
+  const handleConsultChatGPT=()=>{
+    const title=titleCandidates[0] || '';
+    const chatText=`【Sold履歴URL】
+（ここにURLを貼ってください）
+
+【タイトル候補】
+${title}
+
+【指示】
+あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのタイトル最適化アシスタントです。
+
+上記のSold履歴URLを実際に開いて売れたタイトルを分析し、タイトル候補と照合したうえで最適なタイトルを1つ提案してください。
+
+タイトルルール：
+- 最大80文字（半角スペースのみ使用）
+- 構造：{Special} [{Condition}{w/ 付属品}] {Brand} {Model} {Color} {スペック} {S/N or S/C} From JAPAN
+- Specialキーワード（READ / Rare / Meter Works / All Works）はConditionの前
+- 80文字超えた場合の短縮順：
+  1. Fromを削除（JAPANは残す）
+  2. f/数値→f数値（スラッシュ削除）
+  3. Colorを削除
+  4. [Near MINT w/ Hood]→[Near MINT]（付属品削除）
+  5. S/NまたはS/Cをまるごと削除
+- 絶対に削除しない：Special・Condition・Brand・Model・JAPAN
+- Brand・Modelは入力文字列をそのまま使用（補完・変更禁止）
+
+出力形式：
+- 最終タイトル1行のみ
+- 文字数を併記
+- Sold履歴から参考にした特徴2〜3点
+- 候補からの変更点`;
+    window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
   };
 
   const handleGenerate=async()=>{
@@ -744,18 +784,14 @@ function App() {
                     const isError=t.startsWith('Error:')||t.startsWith('Brand and Model');
                     const chars=t.length;
                     return (
-                      <div
-                        key={i}
-                        className={`cand ${selectedTitleIdx===i?'selected':''}`}
-                        onClick={()=>{if(!isError){setEbayTitle(t);setSelectedTitleIdx(i);}}}
-                      >
+                      <div key={i} className="cand">
                         <div className="cand-num">
                           {isError?'MESSAGE':`TITLE ${i+1}`}
-                          {selectedTitleIdx===i&&<span className="sel-badge">確定</span>}
                         </div>
                         <div className="cand-title">{isError?t:highlightTitle(t)}</div>
                         {!isError&&(
                           <div className="cand-foot">
+                            <button className="btn bblu bsm" onClick={()=>handleCopyTitle(t)}>コピー</button>
                             <span className={`cand-chars ${chars>80?'over':''}`}>{chars} / 80</span>
                           </div>
                         )}
@@ -763,9 +799,17 @@ function App() {
                     );
                   })}
                   {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
-                    <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
-                      ChatGPTで相談
-                    </button>
+                    <>
+                      {titleCopied&&<div className="ok" style={{textAlign:'right'}}>コピー完了</div>}
+                      <div className="input-label">確定タイトル入力欄</div>
+                      <div className="final-title-box">
+                        <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="確定タイトルを貼り付け" />
+                        <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
+                      </div>
+                      <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
+                        ChatGPTで相談
+                      </button>
+                    </>
                   )}
                 </div>
               )}
