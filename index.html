@@ -2408,6 +2408,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const findListingLinkedItem = (listing) =>
     localItems.find(i =>
       (i.ebayListingLinked && listing.itemId && i.ebayListingItemId === listing.itemId) ||
+      (i.ebayListingLinked && listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId)) ||
       (i.ebaySynced && listing.itemId && i.ebayUrl && i.ebayUrl.includes(listing.itemId))
     );
   const unlinkedActiveListings = activeListings.filter(listing => !findListingLinkedItem(listing));
