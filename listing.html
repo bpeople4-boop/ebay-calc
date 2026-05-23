@@ -183,12 +183,25 @@ const BUNDLE_LIST = [
 
 const API_KEY_STORAGE_KEY = 'anthropic_api_key';
 const ITEM_SPEC_FIELDS = {
-  'Film Camera': ['C:Brand','C:Type','C:Model','C:Format','C:Color','C:Focus Type','C:Series','C:Features','C:MPN'],
-  'Lens': ['C:Brand','C:Focal Length','C:Type','C:Focus Type','C:Maximum Aperture','C:Mount','C:Series','C:Compatible Filter Size','C:Compatible Lens Front','C:Compatible Brand','C:Model','C:Exterior Material','C:MPN'],
-  'Digital Camera': ['C:Brand','C:Type','C:Model','C:Series','C:Color','C:Optical Zoom','C:Features','C:Maximum Resolution','C:Battery Type','C:Digital Zoom','C:Maximum Aperture','C:MPN','C:Charger Included','C:Device Charging Range'],
-  'Camcorder': ['C:Brand','C:Type','C:Model','C:Features','C:Color','C:Media Format','C:Recording Definition','C:Optical Zoom','C:Digital Zoom'],
-  'Movie Camera': ['C:Brand','C:Model','C:Type','C:Color','C:Series','C:Format','C:Focus Type','C:Features','C:MPN'],
-  'Binoculars': ['C:Brand','C:Type','C:Maximum Magnification','C:Application','C:Features','C:Size','C:Objective Lens Diameter','C:Model','C:MPN'],
+  'Film Camera':    ['Brand','Type','Model','Format','Color','Focus Type','Series','Features','Country of Origin','Year Manufactured'],
+  'Digital Camera': ['Brand','Type','Model','Series','Color','Optical Zoom','Features','Maximum Resolution','Battery Type','Digital Zoom','Maximum Aperture','Charger Included','Device Charging Range','Screen Size','Country of Origin','Connectivity'],
+  'Movie Camera':   ['Brand','Type','Model','Film Format','Color','Country of Origin'],
+  'Camcorder':      ['Brand','Type','Model','Features','Color','Media Format','Recording Definition','Optical Zoom','Digital Zoom','Series','Screen Size','Storage Type','Country of Origin','Connectivity'],
+  'Lens':           ['Brand','Focal Length','Type','Focus Type','Maximum Aperture','Mount','Series','Compatible Filter Size','Compatible Lens Front','Compatible Brand','Model','Exterior Material','Country of Origin','Year Manufactured'],
+  'Binoculars':     ['Brand','Type','Maximum Magnification','Application','Features','Size','Objective Lens Diameter','Model','Country of Origin','Color','Optical Design','Lens Coating'],
+};
+
+const ITEM_SPEC_FIXED = {
+  'UPC': 'N/A',
+  'MPN': 'Does Not Apply',
+  'Unit Quantity': '1',
+  'Unit Type': 'Unit',
+  'Item Weight': 'N/A',
+  'Item Height': 'N/A',
+  'Item Length': 'N/A',
+  'Item Width': 'N/A',
+  'Manufacturer Warranty': 'None',
+  'California Prop 65 Warning': '',
 };
 
 const initOp = () => ({
@@ -416,7 +429,53 @@ ${fields.join(', ')}`;
     body:JSON.stringify({
       model:'claude-haiku-4-5-20251001',
       max_tokens:500,
-      system:'You are an eBay listing assistant for vintage Japanese cameras. Generate Item Specifics values for eBay CSV upload. Return ONLY valid JSON with the fields appropriate for the product type.',
+      system:`You are an eBay listing assistant for vintage Japanese cameras.
+Generate Item Specifics for eBay CSV upload based on the product info provided.
+Return ONLY valid JSON with exactly the keys requested. No explanation, no markdown.
+
+=== Film Camera rules ===
+- Brand: Use brand name exactly as provided
+- Type: Choose from: 35mm, Box, Compact, Disc, Field, Folding, Half Frame, Instant, Large Format, Medium Format, Monorail, Non-Reflex, Panoramic, Pinhole, Point & Shoot, Press, Rangefinder, Single Use, SLR, Stereo, Subminiature, TLR, Underwater, Zoom Reflex
+- Model: Exact model name only, no brand prefix
+- Format: Choose from: 35 mm, 120 mm, 127mm, 6x4.5 cm, 6x6 cm, 6x7 cm, 6x8 cm, 6x9 cm, Half-frame 35mm (18x24), 110 film (13x17mm), 4x5 in, 8x10 in, Instax Mini, Instax Square, Type 600, Disc, APS. Infer from model name. Default to "35 mm" if unknown.
+- Color: Choose from: Beige, Black, Blue, Bronze, Brown, Clear, Gold, Gray, Green, Multicolor, Orange, Pink, Purple, Red, Silver, White, Yellow. Use provided color or infer.
+- Focus Type: Choose from: Auto, Auto & Manual, Eye-Controlled, Fixed, Manual
+- Series: Leave blank if unknown
+- Features: Choose all applicable from: Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater. Comma-separated string.
+- Country of Origin: Always "Japan" for Japanese cameras. Use "Germany" for Leica/Rollei/Zeiss/Voigtlander etc.
+- Year Manufactured: Infer decade range from model name if possible (e.g. "1970s"). Leave blank if unknown.
+
+=== Digital Camera rules ===
+- Type: Choose from: Action, Bridge, Children's, Compact, Digital SLR, Instant, Light field camera, Medium Format, Mirrorless Interchangeable Lens, Spy Miniature, Ultra-Compact, Underwater, VR Camera, Wildlife
+- Features: Choose all applicable from: 1080p HD Video Recording, 4K Video Recording, Auto Focus, Built-in Flash, Built-in GPS, Built-in Wi-Fi, Bluetooth, CMOS Sensor, CCD Sensor, Date/Time Stamp, Dioptric Adjustment, Face Detection, Image Stabilization, Red-Eye Reduction, Time Lapse, Touch Screen, Viewfinder, Waterproof, Wi-Fi. Comma-separated string.
+- Charger Included: "Yes" if charger is in accessories, otherwise "No"
+- Country of Origin: Always "Japan"
+
+=== Movie Camera rules ===
+- Type: Choose from: Non Reflex, Reflex, Zoom Reflex
+- Film Format: Choose from: Standard 8 mm, Super 8, 9.5mm, 16mm, Super 16, 35mm, 65/70mm. Infer from model name.
+- Color: Choose from: Beige, Black, Blue, Brown, Clear, Gold, Gray, Green, Multi-Color, Orange, Pink, Purple, Red, Silver, White, Yellow
+- Country of Origin: Always "Japan" for Japanese cameras
+
+=== Camcorder rules ===
+- Type: Choose from: Compact, Dash, Handheld, Helmet/Action, Pocket, Professional, Spy Camera
+- Features: Choose all applicable from: Bluetooth, Built-in GPS, Built-in Microphone, Built-in Wi-Fi, Dual Memory Slot, Dustproof, Face Detection, High Dynamic Range (HDR), Image Stabilization, LCD Screen, Night Vision, Shock Resistant, Slow Motion, Time Lapse, Touch Screen, Waterproof, Wind Noise Reduction. Comma-separated string.
+- Media Format: Choose from: MiniDV, MiniDV HDV, Digital8, Hi8, VHS, VHS-C, Super VHS, DVD, SDHC/SD, SDXC/SDHC/SD, MicroSD, MicroSDHC, microSDXC, Flash Drive (SSD), Hard Disk Drive (HDD). Infer from model name.
+- Recording Definition: Choose from: High Definition, Standard Definition, Ultra High Definition
+- Connectivity: Choose from: Component, HDMI, USB, USB-C
+
+=== Lens rules ===
+- Type: Choose from: Anamorphic, Apochromatic, Aspherical, Fisheye, Full Frame, Macro/Close Up, Pancake, Perspective Control, Petzval, Portrait, Soft Focus, Special Effects, Standard, Teleconverter, Telephoto, Ultra Wide Angle, Wide Angle, Zoom lens
+- Focus Type: Choose from: Auto, Auto & Manual, Fixed/Prime, Manual, Motorized, Zoom
+- Compatible Brand: Choose from: For Canon, For Nikon, For Minolta, For Olympus, For Pentax, For Leica, For Contax, For Hasselblad, For Mamiya, For Yashica, For Konica, For Rollei, For Bronica, For Fujifilm, For Voigtlander, For Ricoh, For Sony, For Sigma, For Tamron, For Zeiss, For Zenit, For Praktica, For Exakta, For Linhof, For Horseman, For Sinar, For Arri. Infer from mount name.
+- Exterior Material: Choose from: Aluminum, Brass, Plastic. Infer from era (pre-1980s tend to be Aluminum or Brass).
+- Country of Origin: "Japan" for Japanese lenses, "Germany" for German lenses
+
+=== Binoculars rules ===
+- Type: Choose from: Binoculars, Monoculars, Spotting Scope
+- Application: Choose from: Astronomy, Birding, General Purpose, Hunting, Marine, Military, Opera Glasses. Default to "General Purpose" if unknown.
+- Features: Choose all applicable from: Anti-Reflection Coating, Dustproof, Fogproof, Image Stabilization, Lightweight, Long Eye Relief, Night Vision, UV Protection, Waterproof, Water-Resistant, Weather Resistant, Wide-Field Lens, Zoom Lens. Comma-separated string.
+- Size: Choose from: Compact, Mid-Size, Full-Size. Infer from model specs if possible.`,
       messages:[{role:'user',content:prompt}]
     })
   });
@@ -697,7 +756,9 @@ ${title}
 
   const copyItemSpecificsRow=()=>{
     const fields=ITEM_SPEC_FIELDS[pType] || Object.keys(itemSpecifics);
-    const row=fields.map(k=>(itemSpecifics[k] || '').replace(/\t|\r?\n/g,' ')).join('\t');
+    const aiRow=fields.map(k=>(itemSpecifics[k] || '').replace(/\t|\r?\n/g,' ')).join('\t');
+    const fixedRow=Object.entries(ITEM_SPEC_FIXED).map(([,v])=>v.replace(/\t|\r?\n/g,' ')).join('\t');
+    const row=aiRow+'\t'+fixedRow;
     copyText(row).then(()=>{setItemSpecCopied(true);setTimeout(()=>setItemSpecCopied(false),2500);});
   };
 
