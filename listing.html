@@ -753,11 +753,11 @@ ${title}
               <div className={`fopt ${appChoice==='beautiful'?'on':''}`} onClick={()=>setAppChoice('beautiful')}>
                 Appearance is beautiful. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Mint以上</span>
               </div>
-              <div className={`fopt ${appChoice==='signs'?'on':''}`} onClick={()=>setAppChoice('signs')}>
-                It shows signs of use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Exc+5以下の時</span>
-              </div>
               <div className={`fopt ${appChoice==='scuffs'?'on':''}`} onClick={()=>setAppChoice('scuffs')}>
                 Tiny scuffs from normal use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Near MINTの時</span>
+              </div>
+              <div className={`fopt ${appChoice==='signs'?'on':''}`} onClick={()=>setAppChoice('signs')}>
+                It shows signs of use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Exc+5以下の時</span>
               </div>
             </div>
           </div>
@@ -797,10 +797,8 @@ ${title}
           <div className="sec">
             <div className="sttl">Functional</div>
             <div className="frow">
-              <div className={`fopt ${funcDef?'on':''}`} onClick={()=>setFuncDef(true)}>✓ It works properly.</div>
-              <div className={`fopt ${!funcDef?'on':''}`} onClick={()=>setFuncDef(false)}>✎ カスタム</div>
+              <div className="fopt on">✓ It works properly.</div>
             </div>
-            {!funcDef&&<textarea value={funcCus} onChange={e=>setFuncCus(e.target.value)} placeholder="例: Shutter works but the self-timer is not functioning." />}
             <div style={{marginTop:8}}>
               <button className="btn bsec bsm" onClick={()=>setFuncExtraOpen(p=>!p)}>
                 {funcExtraOpen ? '▲ 閉じる' : '+ 詳細を追加（Functional）'}
