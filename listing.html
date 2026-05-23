@@ -181,6 +181,16 @@ const BUNDLE_LIST = [
   'HDMI Cable','Mini HDMI Cable','Micro HDMI Cable'
 ];
 
+const API_KEY_STORAGE_KEY = 'anthropic_api_key';
+const ITEM_SPEC_FIELDS = {
+  'Film Camera': ['C:Brand','C:Type','C:Model','C:Format','C:Color','C:Focus Type','C:Series','C:Features','C:MPN'],
+  'Lens': ['C:Brand','C:Focal Length','C:Type','C:Focus Type','C:Maximum Aperture','C:Mount','C:Series','C:Compatible Filter Size','C:Compatible Lens Front','C:Compatible Brand','C:Model','C:Exterior Material','C:MPN'],
+  'Digital Camera': ['C:Brand','C:Type','C:Model','C:Series','C:Color','C:Optical Zoom','C:Features','C:Maximum Resolution','C:Battery Type','C:Digital Zoom','C:Maximum Aperture','C:MPN','C:Charger Included','C:Device Charging Range'],
+  'Camcorder': ['C:Brand','C:Type','C:Model','C:Features','C:Color','C:Media Format','C:Recording Definition','C:Optical Zoom','C:Digital Zoom'],
+  'Movie Camera': ['C:Brand','C:Model','C:Type','C:Color','C:Series','C:Format','C:Focus Type','C:Features','C:MPN'],
+  'Binoculars': ['C:Brand','C:Type','C:Maximum Magnification','C:Application','C:Features','C:Size','C:Objective Lens Diameter','C:Model','C:MPN'],
+};
+
 const initOp = () => ({
   fungus:'none',fungusNote:'',haze:'none',hazeNote:'',
   scratch:'none',scratchNote:'',dust:'none',dustNote:'',
@@ -380,6 +390,45 @@ Return ONLY valid JSON: {"lensNotes":{"fungus":"","haze":"","scratch":"","dust":
 }
 
 // ── OpBox ──
+async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle}) {
+  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
+  if(!apiKey) throw new Error('Anthropic API key is not set.');
+  const fields = ITEM_SPEC_FIELDS[pType] || [];
+  const prompt = `Product type: ${pType}
+Brand: ${brand || ''}
+Model: ${model || ''}
+Condition: ${cond || ''}
+Color: ${color || ''}
+Accessories: ${bundles.length ? bundles.join(', ') : 'none'}
+Confirmed title: ${ebayTitle || ''}
+
+Return JSON with exactly these keys:
+${fields.join(', ')}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{
+      'Content-Type':'application/json',
+      'x-api-key':apiKey,
+      'anthropic-version':'2023-06-01',
+      'anthropic-dangerous-direct-browser-access':'true'
+    },
+    body:JSON.stringify({
+      model:'claude-haiku-4-5-20251001',
+      max_tokens:500,
+      system:'You are an eBay listing assistant for vintage Japanese cameras. Generate Item Specifics values for eBay CSV upload. Return ONLY valid JSON with the fields appropriate for the product type.',
+      messages:[{role:'user',content:prompt}]
+    })
+  });
+  const raw = await res.text();
+  let data = {};
+  try{ data = raw ? JSON.parse(raw) : {}; }catch{}
+  if(!res.ok) throw new Error(data.error?.message || data.error || `Anthropic request failed: ${res.status}`);
+  const text = data.content?.[0]?.text || '';
+  const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+  return fields.reduce((acc,key)=>({...acc,[key]:parsed[key] || ''}),{});
+}
+
 function buildTitleAuto({cond, specials, withItems, color, snType, snValue, brand, model}) {
   const makeTitle = ({keepFrom=true, compactF=false, keepColor=true, keepItems=true, keepSn=true}={}) => {
     const condition = keepItems && withItems.length
@@ -503,6 +552,10 @@ function App() {
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [itemSpecifics,setItemSpecifics]=useState({});
+  const [itemSpecBusy,setItemSpecBusy]=useState(false);
+  const [itemSpecError,setItemSpecError]=useState('');
+  const [itemSpecCopied,setItemSpecCopied]=useState(false);
 
   const [photos,setPhotos]=useState([]);
   const [procBusy,setProcBusy]=useState(false);
@@ -625,6 +678,27 @@ ${title}
 
   const handleCopy=()=>{
     navigator.clipboard.writeText(html).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});
+  };
+
+  const handleGenerateItemSpecifics=async()=>{
+    setItemSpecBusy(true);
+    setItemSpecError('');
+    try{
+      const specs=await generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle});
+      setItemSpecifics(specs);
+    }catch(e){
+      setItemSpecError(e.message || 'Item Specifics generation failed.');
+    }finally{
+      setItemSpecBusy(false);
+    }
+  };
+
+  const setItemSpecificValue=(key,value)=>setItemSpecifics(p=>({...p,[key]:value}));
+
+  const copyItemSpecificsRow=()=>{
+    const fields=ITEM_SPEC_FIELDS[pType] || Object.keys(itemSpecifics);
+    const row=fields.map(k=>(itemSpecifics[k] || '').replace(/\t|\r?\n/g,' ')).join('\t');
+    copyText(row).then(()=>{setItemSpecCopied(true);setTimeout(()=>setItemSpecCopied(false),2500);});
   };
 
   const handleFiles=async files=>{
@@ -872,6 +946,27 @@ ${title}
                       <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
                         ChatGPTで相談
                       </button>
+                      <button className="btn bsec bfull" onClick={handleGenerateItemSpecifics} disabled={itemSpecBusy||!ebayTitle} style={{marginTop:8}}>
+                        {itemSpecBusy?<><span className="spin"></span> Item Specifics生成中...</>:'Item Specifics生成'}
+                      </button>
+                      {itemSpecError&&<div className="aapp" style={{color:'var(--red)',marginTop:8}}>{itemSpecError}</div>}
+                      {Object.keys(itemSpecifics).length>0&&(
+                        <div className="sec" style={{marginTop:10,marginBottom:0}}>
+                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
+                            <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
+                            <div style={{display:'flex',gap:7,alignItems:'center'}}>
+                              {itemSpecCopied&&<span className="ok">Copied</span>}
+                              <button className="btn bblu bsm" onClick={copyItemSpecificsRow}>コピー（CSV行）</button>
+                            </div>
+                          </div>
+                          {(ITEM_SPEC_FIELDS[pType]||Object.keys(itemSpecifics)).map(k=>(
+                            <div key={k} style={{marginBottom:8}}>
+                              <div className="input-label" style={{marginTop:0}}>{k}</div>
+                              <input type="text" value={itemSpecifics[k]||''} onChange={e=>setItemSpecificValue(k,e.target.value)} placeholder="N/A" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
