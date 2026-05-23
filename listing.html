@@ -189,7 +189,7 @@ const initOp = () => ({
 });
 
 // ── HTML Generation ──
-function buildOpSection(op, type, showBalsam) {
+function buildOpSection(op, type, showBalsam, extra) {
   const isLens = type==='lens';
   const label = isLens?'Lens':'Finder';
   const summary = isLens?'No problem in the shooting.':'No problem in the view.';
@@ -215,12 +215,13 @@ function buildOpSection(op, type, showBalsam) {
   h += line(op.scratch,'There is no scratch.','There is a scratch.',op.scratchNote);
   h += line(op.dust,'There is no dust.','There is a little dust.',op.dustNote);
   if(showBalsam) h += line(op.balsam,'There is no balsam separation.','There is balsam separation.',op.balsamNote);
+  if(extra && extra.trim()) h += extra.trim() + '<br>\n';
   h += `<strong>${summary}</strong>`;
   return h;
 }
 
 function genHTML(d) {
-  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,bundles} = d;
+  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtra,finExtra,funcExtra,bundles} = d;
   const htmlConditionMap = {
     "Exc+5": "EXCELLENT+++++",
     "Exc+4": "EXCELLENT++++",
@@ -236,12 +237,13 @@ function genHTML(d) {
   else if(appChoice==='scuffs') appH = '<div>Tiny scuffs from normal use.</div>\n<div>* Please check photos.</div>';
   else appH = '<div>It shows signs of use.</div>\n<div>* Please check photos.</div>';
 
-  let opH = buildOpSection(lensOp,'lens',true);
+  let opH = buildOpSection(lensOp,'lens',true,lensExtra);
   if(HAS_FINDER.has(pType)) {
-    opH += `\n</section><section class="product_dec">\n` + buildOpSection(finOp,'finder',true);
+    opH += `\n</section><section class="product_dec">\n` + buildOpSection(finOp,'finder',true,finExtra);
   }
 
   const funcTxt = funcDef?'It works properly.':(funcCus.trim()||'It works properly.');
+  const funcTxtFull = funcExtra && funcExtra.trim() ? funcTxt + '<br>\n' + funcExtra.trim() : funcTxt;
   const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
 
@@ -280,7 +282,7 @@ function genHTML(d) {
     ${opH}
   </section>
   <section class="product_dec">
-    <h3>Functional</h3><b><span style="color:rgb(255,0,16);">${funcTxt}</span></b>
+    <h3>Functional</h3><b><span style="color:rgb(255,0,16);">${funcTxtFull}</span></b>
   </section>
   <section class="product_dec">
     <h3>Bundled Items</h3>
@@ -477,6 +479,15 @@ function App() {
   const [finOp,setFinOp]=useState(initOp());
   const [funcDef,setFuncDef]=useState(true);
   const [funcCus,setFuncCus]=useState('');
+  const [lensExtra, setLensExtra] = useState('');
+  const [finExtra, setFinExtra] = useState('');
+  const [funcExtra, setFuncExtra] = useState('');
+  const [lensExtraOpen, setLensExtraOpen] = useState(false);
+  const [finExtraOpen, setFinExtraOpen] = useState(false);
+  const [funcExtraOpen, setFuncExtraOpen] = useState(false);
+  const [lensJp, setLensJp] = useState('');
+  const [finJp, setFinJp] = useState('');
+  const [funcJp, setFuncJp] = useState('');
   const [bundles,setBundles]=useState([]);
   const [ebayTitle,setEbayTitle]=useState('');
   const [titleCandidates,setTitleCandidates]=useState([]);
@@ -575,6 +586,26 @@ ${title}
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
   };
 
+  const handleChatOptics = (section, jpText) => {
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+以下の日本語のカメラ状態説明を、eBayバイヤー向けの自然な英語1文に変換してください。
+「There is ～.」または「There are ～.」の形式で出力してください。
+1文のみ出力し、余計な説明は不要です。
+
+【対象セクション】${section}
+【日本語説明】${jpText}`;
+    window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`, '_blank', 'noopener');
+  };
+
+  const handleChatFunctional = (jpText) => {
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+以下の日本語のカメラ機能状態説明を、eBayバイヤー向けの自然な英語1文に変換してください。
+1文のみ出力し、余計な説明は不要です。
+
+【日本語説明】${jpText}`;
+    window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`, '_blank', 'noopener');
+  };
+
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
@@ -588,7 +619,7 @@ ${title}
           if(r.functionalNote) fc=r.functionalNote;
         }
       }
-      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp:lo,finOp:fo,funcDef,funcCus:fc,bundles}));
+      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp:lo,finOp:fo,funcDef,funcCus:fc,lensExtra,finExtra,funcExtra,bundles}));
     }finally{setGenBusy(false);}
   };
 
@@ -734,7 +765,33 @@ ${title}
           <div className="sec">
             <div className="sttl">Optics</div>
             <OpBox title="Lens" op={lensOp} setOp={setLensOp} showBalsam={true} />
+            <div style={{marginTop:8}}>
+              <button className="btn bsec bsm" onClick={()=>setLensExtraOpen(p=>!p)}>
+                {lensExtraOpen ? '▲ 閉じる' : '+ 詳細を追加（Lens）'}
+              </button>
+              {lensExtraOpen && (
+                <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:6}}>
+                  <textarea value={lensJp} onChange={e=>setLensJp(e.target.value)} placeholder="日本語で状態を入力（例：前玉に1mmのコート剥げ1点）" style={{minHeight:48}} />
+                  <button className="btn bblu bsm" onClick={()=>handleChatOptics('Lens', lensJp)} disabled={!lensJp.trim()}>ChatGPTで相談</button>
+                  <input type="text" value={lensExtra} onChange={e=>setLensExtra(e.target.value)} placeholder="ChatGPTの英文をここに貼り付け" />
+                </div>
+              )}
+            </div>
             {hasFinder&&<OpBox title="Finder" op={finOp} setOp={setFinOp} showBalsam={true} />}
+            {hasFinder&&(
+              <div style={{marginTop:8}}>
+                <button className="btn bsec bsm" onClick={()=>setFinExtraOpen(p=>!p)}>
+                  {finExtraOpen ? '▲ 閉じる' : '+ 詳細を追加（Finder）'}
+                </button>
+                {finExtraOpen && (
+                  <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:6}}>
+                    <textarea value={finJp} onChange={e=>setFinJp(e.target.value)} placeholder="日本語で状態を入力（例：ファインダー内に黒い点あり）" style={{minHeight:48}} />
+                    <button className="btn bblu bsm" onClick={()=>handleChatOptics('Finder', finJp)} disabled={!finJp.trim()}>ChatGPTで相談</button>
+                    <input type="text" value={finExtra} onChange={e=>setFinExtra(e.target.value)} placeholder="ChatGPTの英文をここに貼り付け" />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="sec">
@@ -744,6 +801,18 @@ ${title}
               <div className={`fopt ${!funcDef?'on':''}`} onClick={()=>setFuncDef(false)}>✎ カスタム</div>
             </div>
             {!funcDef&&<textarea value={funcCus} onChange={e=>setFuncCus(e.target.value)} placeholder="例: Shutter works but the self-timer is not functioning." />}
+            <div style={{marginTop:8}}>
+              <button className="btn bsec bsm" onClick={()=>setFuncExtraOpen(p=>!p)}>
+                {funcExtraOpen ? '▲ 閉じる' : '+ 詳細を追加（Functional）'}
+              </button>
+              {funcExtraOpen && (
+                <div style={{marginTop:8,display:'flex',flexDirection:'column',gap:6}}>
+                  <textarea value={funcJp} onChange={e=>setFuncJp(e.target.value)} placeholder="日本語で状態を入力（例：セルフタイマー不動）" style={{minHeight:48}} />
+                  <button className="btn bblu bsm" onClick={()=>handleChatFunctional(funcJp)} disabled={!funcJp.trim()}>ChatGPTで相談</button>
+                  <input type="text" value={funcExtra} onChange={e=>setFuncExtra(e.target.value)} placeholder="ChatGPTの英文をここに貼り付け" />
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="sec">
