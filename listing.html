@@ -316,9 +316,8 @@ function genHTML(d) {
     opH += `\n</section><section class="product_dec">\n` + buildOpSection(finOp,'finder',true,extrasHtml(finExtras));
   }
 
-  const funcTxt = funcDef?'It works properly.':(funcCus.trim()||'It works properly.');
   const funcExtra = extrasHtml(funcExtras);
-  const funcTxtFull = funcExtra ? funcTxt + '<br>\n' + funcExtra : funcTxt;
+  const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
   const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
 
@@ -1256,7 +1255,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
           <div className="sec">
             <div className="sttl">Functional</div>
             <div className="frow">
-              <div className="fopt on">✓ It works properly.</div>
+              <div className={`fopt ${funcDef?'on':''}`} onClick={()=>setFuncDef(p=>!p)}>✓ It works properly.</div>
             </div>
             <ExtraEditor
               extras={funcExtras}
