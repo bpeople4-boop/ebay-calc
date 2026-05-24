@@ -571,7 +571,7 @@ function OpBox({title,op,setOp,showBalsam}) {
               <button className={`tgbtn pp ${op[k]==='present'?'on':''}`} onClick={()=>set(k,'present')}>あり</button>
             </div>
             <input type="text" className="opni"
-              placeholder={op[k]==='present'?'補足（任意）':''}
+              placeholder={op[k]==='present'?'日本語で状態を入力、またはChatGPTに相談':''}
               value={op[k+'Note']||''}
               disabled={op[k]==='none'}
               style={{opacity:op[k]==='present'?1:0.3}}
@@ -595,7 +595,7 @@ function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat}) {
             <textarea
               value={x.jp}
               onChange={e=>onUpdate(x.id,'jp',e.target.value)}
-              placeholder="日本語で状態を入力"
+              placeholder="日本語で状態を入力、またはChatGPTに相談"
             />
             <button className="xbtn" onClick={()=>onRemove(x.id)}>✕</button>
           </div>
@@ -766,35 +766,56 @@ ${title}
       ...extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean),
     ];
     const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
-以下の日本語の状態説明を、それぞれeBayバイヤー向けの自然な英語1文に変換してください。
-各項目を以下の形式で出力してください。コピペしやすいよう項目ごとに改行で区切ること。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
-【${section}】
-[項目名]: [英文]
+以下の入力内容に応じて対応してください。
 
-出力例：
-Fungus: There is a small fungus spot near the center of the front element.
-Extra 1: There is minor coating wear on the rear element.
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
 
-【日本語入力】
-${inputs.length ? inputs.join('\n') : '（入力なし）'}`;
+■ 質問・迷っている場合（「どこのカビか」「どう書けばいい」など）
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【${section}の状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文のみを出力すること。説明・前置き・補足は一切不要。
+- 各項目を以下の形式で1行ずつ出力する：
+  項目名: 英文
+- 複数項目は改行で区切る
+- コードブロック（\`\`\`）は使わない
+- 日本語は一切含めない
+- 提案が複数ある場合は番号をつけて改行で並べる（例：案1: ... 案2: ...）`;
     openChatGPT(chatText);
   };
 
   const handleChatFunctional = extras => {
     const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
     const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
-以下の日本語の状態説明を、それぞれeBayバイヤー向けの自然な英語1文に変換してください。
-各項目を以下の形式で出力してください。コピペしやすいよう項目ごとに改行で区切ること。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
-【Functional】
-[項目名]: [英文]
+以下の入力内容に応じて対応してください。
 
-出力例：
-Extra 1: The self-timer does not work.
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
 
-【日本語入力】
-${inputs.length ? inputs.join('\n') : '（入力なし）'}`;
+■ 質問・迷っている場合
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【Functionalの状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文のみを出力すること。説明・前置き・補足は一切不要。
+- 各項目を以下の形式で1行ずつ出力する：
+  項目名: 英文
+- 複数項目は改行で区切る
+- コードブロック（\`\`\`）は使わない
+- 日本語は一切含めない
+- 提案が複数ある場合は番号をつけて改行で並べる（例：案1: ... 案2: ...）`;
     openChatGPT(chatText);
   };
 
