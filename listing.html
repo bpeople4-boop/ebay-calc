@@ -1274,11 +1274,11 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
 
           {rtab==='html'&&(
             <div className="html-area">
-              <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8,flexShrink:0}}>
+              {itemSpecificsPanel}
+              <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8,flexShrink:0,marginTop:12}}>
                 {genBusy&&<span style={{display:'flex',alignItems:'center',gap:5,color:'var(--mut)',fontSize:12}}><span className="spin"></span>AI処理中...</span>}
                 <button className="btn bprim" onClick={handleGenerate} disabled={genBusy}>🤖 HTML生成</button>
               </div>
-              {itemSpecificsPanel}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
                 <span style={{fontSize:11,color:'var(--mut)'}}>eBayの説明欄（HTMLモード）に貼り付け</span>
                 <div style={{display:'flex',gap:7,alignItems:'center'}}>
