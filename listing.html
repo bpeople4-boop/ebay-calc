@@ -145,6 +145,13 @@
     .cand-chars{font-size:11px;font-family:var(--mono);color:var(--grn)}
     .cand-chars.over{color:var(--red)}
     .final-title-box{display:flex;gap:8px;align-items:center;margin-top:2px}
+    .final-title-box input{flex:1;min-width:0}
+    .spec-input-wrap{position:relative}
+    .spec-input-wrap input{padding-right:34px}
+    .spec-copy-btn{position:absolute;right:5px;top:50%;transform:translateY(-50%);width:24px;height:24px;border:1px solid var(--bdr);border-radius:5px;background:var(--surf2);color:var(--mut);font-size:11px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center}
+    .spec-copy-btn:hover{border-color:var(--blu);color:var(--blu)}
+    .spec-copy-btn.done{border-color:var(--grn);color:var(--grn);background:rgba(63,185,80,.1)}
+    .title-copy-status{min-width:92px}
     .genbar{position:sticky;bottom:0;padding:12px 16px;background:linear-gradient(to top,var(--bg) 70%,transparent);display:flex;justify-content:flex-end;gap:8px;align-items:center;margin:0 -16px}
     .note{font-size:11px;color:var(--mut);margin-top:6px;text-align:center}
   </style>
@@ -184,13 +191,13 @@ const API_KEY_STORAGE_KEY = 'anthropic_api_key';
 const ITEM_SPEC_FIELDS = {
   'Film Camera':    ['Brand','Type','Model','Format','Color','Focus Type','Series','Features','Country of Origin','Year Manufactured'],
   'Digital Camera': ['Brand','Type','Model','Series','Color','Optical Zoom','Features','Maximum Resolution','Battery Type','Digital Zoom','Maximum Aperture','Charger Included','Device Charging Range','Screen Size','Country of Origin','Connectivity'],
-  'Movie Camera':   ['Brand','Type','Model','Film Format','Color','Country of Origin'],
+  'Movie Camera':   ['Brand','Film Format','Type','Color','Model','Country of Origin'],
   'Camcorder':      ['Brand','Type','Model','Features','Color','Media Format','Recording Definition','Optical Zoom','Digital Zoom','Series','Screen Size','Storage Type','Country of Origin','Connectivity'],
   'Lens':           ['Brand','Focal Length','Type','Focus Type','Maximum Aperture','Mount','Series','Compatible Filter Size','Compatible Lens Front','Compatible Brand','Model','Exterior Material','Country of Origin','Year Manufactured'],
   'Binoculars':     ['Brand','Type','Maximum Magnification','Application','Features','Size','Objective Lens Diameter','Model','Country of Origin','Color','Optical Design','Lens Coating'],
 };
 
-const ITEM_SPEC_FIXED = {
+const ITEM_SPEC_FIXED_VALUES = {
   'UPC': 'N/A',
   'MPN': 'Does Not Apply',
   'Unit Quantity': '1',
@@ -202,6 +209,18 @@ const ITEM_SPEC_FIXED = {
   'Manufacturer Warranty': 'None',
   'California Prop 65 Warning': '',
 };
+
+const ITEM_SPEC_FIXED = {
+  'Film Camera':    ['UPC','MPN','Unit Quantity','Unit Type','Manufacturer Warranty','Item Weight','California Prop 65 Warning','Item Height','Item Length','Item Width'],
+  'Digital Camera': ['UPC','MPN','Unit Quantity','Unit Type','Manufacturer Warranty','Item Weight','California Prop 65 Warning','Item Height','Item Length','Item Width'],
+  'Movie Camera':   ['UPC','California Prop 65 Warning'],
+  'Camcorder':      ['UPC','Unit Quantity','Unit Type','Manufacturer Warranty','California Prop 65 Warning','MPN'],
+  'Lens':           ['UPC','MPN','Unit Quantity','Unit Type','Manufacturer Warranty','California Prop 65 Warning','Item Height','Item Length','Item Weight','Item Width'],
+  'Binoculars':     ['UPC','MPN','Unit Quantity','Unit Type','Manufacturer Warranty','Item Weight','California Prop 65 Warning','Item Height','Item Length','Item Width'],
+};
+
+const getItemSpecFixedEntries = type =>
+  (ITEM_SPEC_FIXED[type] || []).map(k => [k, ITEM_SPEC_FIXED_VALUES[k] ?? '']);
 
 const initOp = () => ({
   fungus:'none',fungusNote:'',haze:'none',hazeNote:'',
@@ -592,10 +611,12 @@ function App() {
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
   const [copied,setCopied]=useState(false);
+  const [finalTitleCopied,setFinalTitleCopied]=useState(false);
   const [itemSpecifics,setItemSpecifics]=useState({});
   const [itemSpecBusy,setItemSpecBusy]=useState(false);
   const [itemSpecError,setItemSpecError]=useState('');
   const [itemSpecCopied,setItemSpecCopied]=useState(false);
+  const [copiedSpecKey,setCopiedSpecKey]=useState('');
 
   const [photos,setPhotos]=useState([]);
   const fileRef=useRef();
@@ -639,6 +660,15 @@ function App() {
   const handleConfirmTitle=()=>{
     const title=finalTitleInput.trim();
     if(title) setEbayTitle(title);
+  };
+
+  const handleCopyFinalTitle=()=>{
+    const title=(ebayTitle || finalTitleInput).trim();
+    if(!title) return;
+    copyText(title).then(()=>{
+      setFinalTitleCopied(true);
+      setTimeout(()=>setFinalTitleCopied(false),2500);
+    });
   };
 
   const handleConsultChatGPT=()=>{
@@ -761,9 +791,16 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
   const copyItemSpecificsRow=()=>{
     const fields=ITEM_SPEC_FIELDS[pType] || Object.keys(itemSpecifics);
     const aiRow=fields.map(k=>(itemSpecifics[k] || '').replace(/\t|\r?\n/g,' ')).join('\t');
-    const fixedRow=Object.entries(ITEM_SPEC_FIXED).map(([,v])=>v.replace(/\t|\r?\n/g,' ')).join('\t');
+    const fixedRow=getItemSpecFixedEntries(pType).map(([,v])=>v.replace(/\t|\r?\n/g,' ')).join('\t');
     const row=aiRow+'\t'+fixedRow;
     copyText(row).then(()=>{setItemSpecCopied(true);setTimeout(()=>setItemSpecCopied(false),2500);});
+  };
+
+  const copyItemSpecificValue=(key,value)=>{
+    copyText(value || '').then(()=>{
+      setCopiedSpecKey(key);
+      setTimeout(()=>setCopiedSpecKey(p=>p===key?'':p),2000);
+    });
   };
 
   const handleDownloadCsv = () => {
@@ -1132,6 +1169,9 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                       <div className="input-label">確定タイトル入力欄</div>
                       <div className="final-title-box">
                         <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="" />
+                        <button className="btn bsec bsm title-copy-status" onClick={handleCopyFinalTitle} disabled={!(ebayTitle || finalTitleInput).trim()}>
+                          {finalTitleCopied?'✓ コピー完了':'コピー'}
+                        </button>
                         <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
                       </div>
                       <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
@@ -1163,13 +1203,33 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                                   </button>
                                 )}
                               </div>
-                              <input type="text" value={itemSpecifics[k]||''} onChange={e=>setItemSpecificValue(k,e.target.value)} placeholder="N/A" />
+                              <div className="spec-input-wrap">
+                                <input type="text" value={itemSpecifics[k]||''} onChange={e=>setItemSpecificValue(k,e.target.value)} placeholder="N/A" />
+                                <button
+                                  type="button"
+                                  className={`spec-copy-btn ${copiedSpecKey===`ai:${k}`?'done':''}`}
+                                  onClick={()=>copyItemSpecificValue(`ai:${k}`,itemSpecifics[k]||'')}
+                                  title="コピー"
+                                >
+                                  {copiedSpecKey===`ai:${k}`?'✓':'⧉'}
+                                </button>
+                              </div>
                             </div>
                           ))}
-                          {Object.entries(ITEM_SPEC_FIXED).map(([k,v])=>(
+                          {getItemSpecFixedEntries(pType).map(([k,v])=>(
                             <div key={k} style={{marginBottom:8}}>
                               <div className="input-label" style={{marginTop:0}}>{k}</div>
-                              <input type="text" value={v} readOnly />
+                              <div className="spec-input-wrap">
+                                <input type="text" value={v} readOnly />
+                                <button
+                                  type="button"
+                                  className={`spec-copy-btn ${copiedSpecKey===`fixed:${k}`?'done':''}`}
+                                  onClick={()=>copyItemSpecificValue(`fixed:${k}`,v)}
+                                  title="コピー"
+                                >
+                                  {copiedSpecKey===`fixed:${k}`?'✓':'⧉'}
+                                </button>
+                              </div>
                             </div>
                           ))}
                         </div>
