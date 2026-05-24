@@ -734,6 +734,24 @@ ${title}
 
   const setItemSpecificValue=(key,value)=>setItemSpecifics(p=>({...p,[key]:value}));
 
+  const handleVerifyFeatures = () => {
+    const features = itemSpecifics['Features'] || '';
+    const chatText = `あなたはカメラのスペックに詳しい専門家です。
+以下のカメラのFeatures（機能）リストを実際のスペックと照合して、間違っている項目を削除し、正しいリストだけを返してください。
+
+【カメラ】${ebayTitle}
+【現在のFeatures】${features}
+
+【eBayの選択肢リスト】
+Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater
+
+出力形式：
+- 正しいFeaturesのみをカンマ区切りで1行で出力
+- 削除した項目とその理由を箇条書きで説明
+- 追加すべき項目があれば提案`;
+    window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`, '_blank', 'noopener');
+  };
+
   const copyItemSpecificsRow=()=>{
     const fields=ITEM_SPEC_FIELDS[pType] || Object.keys(itemSpecifics);
     const aiRow=fields.map(k=>(itemSpecifics[k] || '').replace(/\t|\r?\n/g,' ')).join('\t');
@@ -1047,7 +1065,14 @@ ${title}
                           </div>
                           {(ITEM_SPEC_FIELDS[pType]||Object.keys(itemSpecifics)).map(k=>(
                             <div key={k} style={{marginBottom:8}}>
-                              <div className="input-label" style={{marginTop:0}}>{k}</div>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div className="input-label" style={{marginTop:0}}>{k}</div>
+                                {k==='Features' && itemSpecifics['Features'] && (
+                                  <button className="rfbtn" onClick={handleVerifyFeatures} style={{marginBottom:4}}>
+                                    ChatGPTで検証
+                                  </button>
+                                )}
+                              </div>
                               <input type="text" value={itemSpecifics[k]||''} onChange={e=>setItemSpecificValue(k,e.target.value)} placeholder="N/A" />
                             </div>
                           ))}
