@@ -293,7 +293,7 @@ function buildOpSection(op, type, showBalsam, extra) {
 }
 
 function genHTML(d) {
-  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles} = d;
+  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlConditionMap = {
     "Exc+5": "EXCELLENT+++++",
@@ -310,10 +310,10 @@ function genHTML(d) {
   else if(appChoice==='scuffs') appH = '<div>Tiny scuffs from normal use.</div>\n<div>* Please check photos.</div>';
   else appH = '<div>It shows signs of use.</div>\n<div>* Please check photos.</div>';
 
-  let opH = buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras));
-  if(HAS_FINDER.has(pType)) {
-    opH += `\n</section><section class="product_dec">\n` + buildOpSection(finOp,'finder',true,extrasHtml(finExtras));
-  }
+  const opSections = [];
+  if(lensOpen) opSections.push(buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras)));
+  if(finderOpen && HAS_FINDER.has(pType)) opSections.push(buildOpSection(finOp,'finder',false,extrasHtml(finExtras)));
+  const opH = opSections.join(`\n</section><section class="product_dec">\n`);
 
   const funcExtra = extrasHtml(funcExtras);
   const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
@@ -548,12 +548,14 @@ function highlightTitle(title) {
   return parts;
 }
 
-function OpBox({title,op,setOp,showBalsam}) {
+function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
   const items=[...OP_ITEMS,...(showBalsam?['Balsam']:[])];
   const set=(f,v)=>setOp(p=>({...p,[f]:v}));
   return (
     <div className="opbox">
-      <div className="opbtl">— {title}</div>
+      <div className="opbtl" onClick={onToggle} style={{cursor:onToggle?'pointer':'default'}}>— {title} {isOpen?'▼':'▶'}</div>
+      {isOpen&&(
+        <>
       <div className="overall-row">
         {OVERALL_OPTS.map(o=>(
           <button key={o.val} className={`ovbtn ${op.overall===o.val?'on':''}`} onClick={()=>set('overall',o.val)}>{o.lbl}</button>
@@ -589,6 +591,8 @@ function OpBox({title,op,setOp,showBalsam}) {
           </div>
         );
       })}
+        </>
+      )}
     </div>
   );
 }
@@ -632,6 +636,8 @@ function App() {
   const [appChoice,setAppChoice]=useState('scuffs');
   const [lensOp,setLensOp]=useState(initOp());
   const [finOp,setFinOp]=useState(initOp());
+  const [lensOpen,setLensOpen]=useState(true);
+  const [finderOpen,setFinderOpen]=useState(true);
   const [funcDef,setFuncDef]=useState(true);
   const [funcCus,setFuncCus]=useState('');
   const [lensExtras, setLensExtras] = useState([]);
@@ -829,7 +835,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
-      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles}));
+      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
 
@@ -1118,7 +1124,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                 value={finalTitleInput}
                 onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}}
                 placeholder=""
-                style={finalTitleConfirmed ? {borderColor:'var(--acc)',backgroundColor:'rgba(245,166,35,0.15)'} : undefined}
+                style={{borderColor:'var(--acc)',...(finalTitleConfirmed ? {backgroundColor:'rgba(245,166,35,0.15)'} : {})}}
               />
               <button
                 type="button"
@@ -1242,23 +1248,27 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
 
           <div className="sec">
             <div className="sttl">Optics</div>
-            <OpBox title="Lens" op={lensOp} setOp={setLensOp} showBalsam={true} />
-            <ExtraEditor
-              extras={lensExtras}
-              onAdd={()=>addExtra(setLensExtras)}
-              onUpdate={(id,field,value)=>updateExtra(setLensExtras,id,field,value)}
-              onRemove={id=>removeExtra(setLensExtras,id)}
-              onChat={()=>handleChatOptics('Lens', lensOp, lensExtras)}
-            />
-            {hasFinder&&<OpBox title="Finder" op={finOp} setOp={setFinOp} showBalsam={true} />}
-            {hasFinder&&(
+            <OpBox title="Lens" op={lensOp} setOp={setLensOp} showBalsam={true} isOpen={lensOpen} onToggle={()=>setLensOpen(p=>!p)} />
+            {lensOpen&&(
               <ExtraEditor
-                extras={finExtras}
-                onAdd={()=>addExtra(setFinExtras)}
-                onUpdate={(id,field,value)=>updateExtra(setFinExtras,id,field,value)}
-                onRemove={id=>removeExtra(setFinExtras,id)}
-                onChat={()=>handleChatOptics('Finder', finOp, finExtras)}
+                extras={lensExtras}
+                onAdd={()=>addExtra(setLensExtras)}
+                onUpdate={(id,field,value)=>updateExtra(setLensExtras,id,field,value)}
+                onRemove={id=>removeExtra(setLensExtras,id)}
+                onChat={()=>handleChatOptics('Lens', lensOp, lensExtras)}
               />
+            )}
+            {hasFinder&&<OpBox title="Finder" op={finOp} setOp={setFinOp} showBalsam={false} isOpen={finderOpen} onToggle={()=>setFinderOpen(p=>!p)} />}
+            {hasFinder&&(
+              finderOpen&&(
+                <ExtraEditor
+                  extras={finExtras}
+                  onAdd={()=>addExtra(setFinExtras)}
+                  onUpdate={(id,field,value)=>updateExtra(setFinExtras,id,field,value)}
+                  onRemove={id=>removeExtra(setFinExtras,id)}
+                  onChat={()=>handleChatOptics('Finder', finOp, finExtras)}
+                />
+              )
             )}
           </div>
 
