@@ -256,7 +256,7 @@ const getItemSpecEntries = type =>
 
 const initOp = () => ({
   fungus:'none',fungusNote:'',haze:'none',hazeNote:'',
-  scratch:'none',scratchNote:'',dust:'none',dustNote:'',
+  scratch:'none',scratchNote:'',dust:'small',dustNote:'',
   balsam:'none',balsamNote:'',
   overall:'auto',
 });
@@ -269,11 +269,10 @@ function buildOpSection(op, type, showBalsam, extra) {
 
   // Determine overall text
   let overallTxt = null;
+  const dustLevel = op.dust==='large' ? 'large' : 'small';
   if(op.overall==='auto') {
     const hasIssue = op.fungus==='present'||op.haze==='present'||op.scratch==='present'||(showBalsam&&op.balsam==='present');
-    const hasDust = op.dust==='present';
-    if(!hasIssue&&!hasDust) overallTxt='Very beautiful condition.';
-    else if(!hasIssue&&hasDust) overallTxt='Beautiful condition.';
+    if(!hasIssue) overallTxt='Beautiful condition.';
   } else {
     overallTxt = OVERALL_TEXT[op.overall] ?? null;
   }
@@ -286,7 +285,7 @@ function buildOpSection(op, type, showBalsam, extra) {
   h += line(op.fungus,'There is no fungus.','There is fungus.',op.fungusNote);
   h += line(op.haze,'There is no haze.','There is haze.',op.hazeNote);
   h += line(op.scratch,'There is no scratch.','There is a scratch.',op.scratchNote);
-  h += line(op.dust,'There is no dust.','There is a little dust.',op.dustNote);
+  h += (dustLevel==='large' ? 'There is some dust.' : 'There is a little dust.') + '<br>\n';
   if(showBalsam) h += line(op.balsam,'There is no balsam separation.','There is balsam separation.',op.balsamNote);
   if(extra && extra.trim()) h += extra.trim() + '<br>\n';
   h += `<strong>${summary}</strong>`;
@@ -562,6 +561,17 @@ function OpBox({title,op,setOp,showBalsam}) {
       </div>
       {items.map(item=>{
         const k=item.toLowerCase();
+        if(k==='dust') {
+          return (
+            <div key={item} className="oprow">
+              <div className="oplbl">{item}</div>
+              <div className="tg">
+                <button className={`tgbtn nn ${op.dust!=='large'?'on':''}`} onClick={()=>set('dust','small')}>小</button>
+                <button className={`tgbtn pp ${op.dust==='large'?'on':''}`} onClick={()=>set('dust','large')}>大</button>
+              </div>
+            </div>
+          );
+        }
         return (
           <div key={item} className="oprow">
             <div className="oplbl">{item}</div>
