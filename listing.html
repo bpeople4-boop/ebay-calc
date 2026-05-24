@@ -765,6 +765,15 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
   };
 
   const handleDownloadCsv = () => {
+    const CATEGORY_ID = {
+      'Film Camera':    '4836',
+      'Digital Camera': '31388',
+      'Movie Camera':   '11709',
+      'Camcorder':      '11724',
+      'Lens':           '3323',
+      'Binoculars':     '28179',
+    };
+
     const esc = v => {
       const s = String(v ?? '');
       return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -819,7 +828,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
     const fixedValues = [
       'Add',           // Action
       '',              // Custom Label (SKU)
-      '',              // Category ID
+      CATEGORY_ID[pType] || '',  // Category ID
       '',              // Category Name
       ebayTitle,       // Title
       '',              // Relationship
