@@ -1006,6 +1006,87 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
 
   const hasFinder=HAS_FINDER.has(pType);
   const bOpts=BUNDLE_LIST;
+  const titleTools = titleCandidates.length>0 && (
+    <div className="title-cands" style={{marginTop:12}}>
+      {titleCandidates.map((t,i)=>{
+        const isError=t.startsWith('Error:')||t.startsWith('Brand and Model');
+        const chars=t.length;
+        return (
+          <div key={i} className="cand">
+            <div className="cand-num">
+              {isError?'MESSAGE':`TITLE ${i+1}`}
+            </div>
+            <div className="cand-title">{isError?t:highlightTitle(t)}</div>
+            {!isError&&(
+              <div className="cand-foot">
+                <span className={`cand-chars ${chars>80?'over':''}`}>{chars} / 80</span>
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
+        <>
+          <div className="input-label">確定タイトル入力欄</div>
+          <div className="final-title-box">
+            <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="" />
+            <button className="btn bsec bsm title-copy-status" onClick={handleCopyFinalTitle} disabled={!(ebayTitle || finalTitleInput).trim()}>
+              {finalTitleCopied?'✓':'⧉'}
+            </button>
+            <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
+          </div>
+          <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
+            ChatGPTで相談
+          </button>
+          <button className="btn bsec bfull" onClick={handleGenerateItemSpecifics} disabled={itemSpecBusy||!ebayTitle} style={{marginTop:8}}>
+            {itemSpecBusy?<><span className="spin"></span> Item Specifics生成中...</>:'Item Specifics生成'}
+          </button>
+          {itemSpecError&&<div className="aapp" style={{color:'var(--red)',marginTop:8}}>{itemSpecError}</div>}
+          {Object.keys(itemSpecifics).length>0&&(
+            <div className="sec" style={{marginTop:10,marginBottom:0}}>
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
+                <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
+                <div style={{display:'flex',gap:7,alignItems:'center'}}>
+                  {ebayTitle && Object.keys(itemSpecifics).length > 0 && (
+                    <button className="btn bprim bsm" onClick={handleDownloadCsv}>⬇ CSV</button>
+                  )}
+                </div>
+              </div>
+              {getItemSpecEntries(pType).map(({ key:k, kind })=>(
+                <div key={`${kind}:${k}`} style={{marginBottom:8}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div className="input-label" style={{marginTop:0}}>{k}</div>
+                    {kind==='AI' && k==='Features' && itemSpecifics['Features'] && (
+                      <button className="rfbtn" onClick={handleVerifyFeatures} style={{marginBottom:4}}>
+                        ChatGPTで検証
+                      </button>
+                    )}
+                  </div>
+                  <div className="spec-input-wrap">
+                    <input
+                      type="text"
+                      value={kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? '')}
+                      onChange={kind==='AI' ? e=>setItemSpecificValue(k,e.target.value) : undefined}
+                      readOnly={kind==='FIXED'}
+                      placeholder="N/A"
+                    />
+                    <button
+                      type="button"
+                      className={`spec-copy-btn ${copiedSpecKey===`${kind}:${k}`?'done':''}`}
+                      onClick={()=>copyItemSpecificValue(`${kind}:${k}`,kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? ''))}
+                      title="コピー"
+                    >
+                      {copiedSpecKey===`${kind}:${k}`?'✓':'⧉'}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 
   return (
     <div id="root">
@@ -1083,6 +1164,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>
               タイトルを組み立てる
             </button>
+            {titleTools}
             <label>シリアルナンバー（ボディ）</label>
             <input type="text" value={serialBody} onChange={e=>setSerialBody(e.target.value)} placeholder="1234567" />
             <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
@@ -1175,87 +1257,6 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
 
           {rtab==='html'&&(
             <div className="html-area">
-              {titleCandidates.length>0&&(
-                <div className="title-cands">
-                  {titleCandidates.map((t,i)=>{
-                    const isError=t.startsWith('Error:')||t.startsWith('Brand and Model');
-                    const chars=t.length;
-                    return (
-                      <div key={i} className="cand">
-                        <div className="cand-num">
-                          {isError?'MESSAGE':`TITLE ${i+1}`}
-                        </div>
-                        <div className="cand-title">{isError?t:highlightTitle(t)}</div>
-                        {!isError&&(
-                          <div className="cand-foot">
-                            <span className={`cand-chars ${chars>80?'over':''}`}>{chars} / 80</span>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
-                    <>
-                      <div className="input-label">確定タイトル入力欄</div>
-                      <div className="final-title-box">
-                        <input type="text" value={finalTitleInput} onChange={e=>setFinalTitleInput(e.target.value)} placeholder="" />
-                        <button className="btn bsec bsm title-copy-status" onClick={handleCopyFinalTitle} disabled={!(ebayTitle || finalTitleInput).trim()}>
-                          {finalTitleCopied?'✓':'⧉'}
-                        </button>
-                        <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
-                      </div>
-                      <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
-                        ChatGPTで相談
-                      </button>
-                      <button className="btn bsec bfull" onClick={handleGenerateItemSpecifics} disabled={itemSpecBusy||!ebayTitle} style={{marginTop:8}}>
-                        {itemSpecBusy?<><span className="spin"></span> Item Specifics生成中...</>:'Item Specifics生成'}
-                      </button>
-                      {itemSpecError&&<div className="aapp" style={{color:'var(--red)',marginTop:8}}>{itemSpecError}</div>}
-                      {Object.keys(itemSpecifics).length>0&&(
-                        <div className="sec" style={{marginTop:10,marginBottom:0}}>
-                          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
-                            <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
-                            <div style={{display:'flex',gap:7,alignItems:'center'}}>
-                              {ebayTitle && Object.keys(itemSpecifics).length > 0 && (
-                                <button className="btn bprim bsm" onClick={handleDownloadCsv}>⬇ CSV</button>
-                              )}
-                            </div>
-                          </div>
-                          {getItemSpecEntries(pType).map(({ key:k, kind })=>(
-                            <div key={`${kind}:${k}`} style={{marginBottom:8}}>
-                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <div className="input-label" style={{marginTop:0}}>{k}</div>
-                                {kind==='AI' && k==='Features' && itemSpecifics['Features'] && (
-                                  <button className="rfbtn" onClick={handleVerifyFeatures} style={{marginBottom:4}}>
-                                    ChatGPTで検証
-                                  </button>
-                                )}
-                              </div>
-                              <div className="spec-input-wrap">
-                                <input
-                                  type="text"
-                                  value={kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? '')}
-                                  onChange={kind==='AI' ? e=>setItemSpecificValue(k,e.target.value) : undefined}
-                                  readOnly={kind==='FIXED'}
-                                  placeholder="N/A"
-                                />
-                                <button
-                                  type="button"
-                                  className={`spec-copy-btn ${copiedSpecKey===`${kind}:${k}`?'done':''}`}
-                                  onClick={()=>copyItemSpecificValue(`${kind}:${k}`,kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? ''))}
-                                  title="コピー"
-                                >
-                                  {copiedSpecKey===`${kind}:${k}`?'✓':'⧉'}
-                                </button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              )}
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
                 <span style={{fontSize:11,color:'var(--mut)'}}>eBayの説明欄（HTMLモード）に貼り付け</span>
                 <div style={{display:'flex',gap:7,alignItems:'center'}}>
