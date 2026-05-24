@@ -422,13 +422,13 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 - Color: Choose from: Beige, Black, Blue, Bronze, Brown, Clear, Gold, Gray, Green, Multicolor, Orange, Pink, Purple, Red, Silver, White, Yellow. Use provided color or infer.
 - Focus Type: Choose from: Auto, Auto & Manual, Eye-Controlled, Fixed, Manual
 - Series: Leave blank if unknown
-- Features: Choose all applicable from: Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater. Comma-separated string.
+- Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater. Comma-separated string.
 - Country of Origin: Always "Japan" for Japanese cameras. Use "Germany" for Leica/Rollei/Zeiss/Voigtlander etc.
 - Year Manufactured: Infer decade range from model name if possible (e.g. "1970s"). Leave blank if unknown.
 
 === Digital Camera rules ===
 - Type: Choose from: Action, Bridge, Children's, Compact, Digital SLR, Instant, Light field camera, Medium Format, Mirrorless Interchangeable Lens, Spy Miniature, Ultra-Compact, Underwater, VR Camera, Wildlife
-- Features: Choose all applicable from: 1080p HD Video Recording, 4K Video Recording, Auto Focus, Built-in Flash, Built-in GPS, Built-in Wi-Fi, Bluetooth, CMOS Sensor, CCD Sensor, Date/Time Stamp, Dioptric Adjustment, Face Detection, Image Stabilization, Red-Eye Reduction, Time Lapse, Touch Screen, Viewfinder, Waterproof, Wi-Fi. Comma-separated string.
+- Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: 1080p HD Video Recording, 4K Video Recording, Auto Focus, Built-in Flash, Built-in GPS, Built-in Wi-Fi, Bluetooth, CMOS Sensor, CCD Sensor, Date/Time Stamp, Dioptric Adjustment, Face Detection, Image Stabilization, Red-Eye Reduction, Time Lapse, Touch Screen, Viewfinder, Waterproof, Wi-Fi. Comma-separated string.
 - Charger Included: "Yes" if charger is in accessories, otherwise "No"
 - Country of Origin: Always "Japan"
 
@@ -440,7 +440,7 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 
 === Camcorder rules ===
 - Type: Choose from: Compact, Dash, Handheld, Helmet/Action, Pocket, Professional, Spy Camera
-- Features: Choose all applicable from: Bluetooth, Built-in GPS, Built-in Microphone, Built-in Wi-Fi, Dual Memory Slot, Dustproof, Face Detection, High Dynamic Range (HDR), Image Stabilization, LCD Screen, Night Vision, Shock Resistant, Slow Motion, Time Lapse, Touch Screen, Waterproof, Wind Noise Reduction. Comma-separated string.
+- Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: Bluetooth, Built-in GPS, Built-in Microphone, Built-in Wi-Fi, Dual Memory Slot, Dustproof, Face Detection, High Dynamic Range (HDR), Image Stabilization, LCD Screen, Night Vision, Shock Resistant, Slow Motion, Time Lapse, Touch Screen, Waterproof, Wind Noise Reduction. Comma-separated string.
 - Media Format: Choose from: MiniDV, MiniDV HDV, Digital8, Hi8, VHS, VHS-C, Super VHS, DVD, SDHC/SD, SDXC/SDHC/SD, MicroSD, MicroSDHC, microSDXC, Flash Drive (SSD), Hard Disk Drive (HDD). Infer from model name.
 - Recording Definition: Choose from: High Definition, Standard Definition, Ultra High Definition
 - Connectivity: Choose from: Component, HDMI, USB, USB-C
@@ -455,7 +455,7 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 === Binoculars rules ===
 - Type: Choose from: Binoculars, Monoculars, Spotting Scope
 - Application: Choose from: Astronomy, Birding, General Purpose, Hunting, Marine, Military, Opera Glasses. Default to "General Purpose" if unknown.
-- Features: Choose all applicable from: Anti-Reflection Coating, Dustproof, Fogproof, Image Stabilization, Lightweight, Long Eye Relief, Night Vision, UV Protection, Waterproof, Water-Resistant, Weather Resistant, Wide-Field Lens, Zoom Lens. Comma-separated string.
+- Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: Anti-Reflection Coating, Dustproof, Fogproof, Image Stabilization, Lightweight, Long Eye Relief, Night Vision, UV Protection, Waterproof, Water-Resistant, Weather Resistant, Wide-Field Lens, Zoom Lens. Comma-separated string.
 - Size: Choose from: Compact, Mid-Size, Full-Size. Infer from model specs if possible.`,
       messages:[{role:'user',content:prompt}]
     })
@@ -740,7 +740,8 @@ ${title}
   const handleVerifyFeatures = () => {
     const features = itemSpecifics['Features'] || '';
     const chatText = `あなたはカメラのスペックに詳しい専門家です。
-以下のカメラのFeatures（機能）リストを実際のスペックと照合して、間違っている項目を削除し、正しいリストだけを返してください。
+以下のカメラのFeatures（機能）リストを実際のスペックと厳密に照合してください。
+「このカメラが確実にこの機能を持っている」と言えるものだけを残し、少しでも不確かなものは削除してください。迷ったら削除を優先してください。
 
 【カメラ】${ebayTitle}
 【現在のFeatures】${features}
