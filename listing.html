@@ -389,13 +389,11 @@ async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayT
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
   if(!apiKey) throw new Error('Anthropic API key is not set.');
   const fields = ITEM_SPEC_FIELDS[pType] || [];
-  const prompt = `Product type: ${pType}
-Brand: ${brand || ''}
-Model: ${model || ''}
+  const prompt = `Confirmed eBay title (primary source): ${ebayTitle || ''}
+Product type: ${pType}
 Condition: ${cond || ''}
-Color: ${color || ''}
 Accessories: ${bundles.length ? bundles.join(', ') : 'none'}
-Confirmed title: ${ebayTitle || ''}
+Supplementary info (use only if not inferrable from title) - Brand: ${brand || ''}, Model: ${model || ''}, Color: ${color || ''}
 
 Return JSON with exactly these keys:
 ${fields.join(', ')}`;
@@ -412,6 +410,7 @@ ${fields.join(', ')}`;
       model:'claude-haiku-4-5-20251001',
       max_tokens:500,
       system:`You are an eBay listing assistant for vintage Japanese cameras.
+The confirmed eBay title is the primary source of truth. Extract Brand, Model, Color, and other specs from the title first. Use supplementary info only when the title alone is insufficient.
 Generate Item Specifics for eBay CSV upload based on the product info provided.
 Return ONLY valid JSON with exactly the keys requested. No explanation, no markdown.
 
