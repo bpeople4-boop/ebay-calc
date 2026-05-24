@@ -769,32 +769,100 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
       const s = String(v ?? '');
       return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
     };
+
     const aiFields = ITEM_SPEC_FIELDS[pType] || [];
-    const headers = [
-      'Action(SiteID=Japan|Country=JP|Currency=JPY|Version=1193)',
+
+    // eBay公式フォーマットのヘッダー（固定列）
+    const fixedHeaders = [
+      '*Action(SiteID=US|Country=US|Currency=USD|Version=1193)',
+      'Custom Label (SKU)',
       'Category ID',
+      'Category Name',
       'Title',
-      ...aiFields,
-      ...Object.keys(ITEM_SPEC_FIXED),
+      'Relationship',
+      'Relationship details',
+      'Schedule Time',
+      'P:UPC',
+      'P:EPID',
+      'Start price',
+      'Quantity',
+      'Item photo URL',
+      'VideoID',
+      'Condition ID',
       'Description',
-      'Start Price',
-      'Buy It Now Price',
-      'PicURL',
-      ...Array(11).fill('AdditionalPicURL'),
+      'Format',
+      'Duration',
+      'Buy It Now price',
+      'Best Offer Enabled',
+      'Best Offer Auto Accept Price',
+      'Minimum Best Offer Price',
+      'Immediate pay required',
+      'Location',
+      'Shipping profile name',
+      'Return profile name',
+      'Payment profile name',
     ];
-    const pics = Array.from({length: 12}, (_, i) => photos[i]?.cloudinaryUrl || '');
-    const row = [
-      'Add',
-      '',
-      ebayTitle,
-      ...aiFields.map(k => itemSpecifics[k] || ''),
-      ...Object.values(ITEM_SPEC_FIXED),
-      html,
-      '',
-      '',
-      ...pics,
+
+    // Item SpecificsはC:プレフィックスをつける
+    const specHeaders = aiFields.map(k => 'C:' + k);
+
+    const headers = [...fixedHeaders, ...specHeaders];
+
+    // 写真URLをパイプ区切りで結合（最大12枚）
+    const picUrls = photos
+      .map(p => p.cloudinaryUrl || '')
+      .filter(u => u)
+      .slice(0, 12)
+      .join('|');
+
+    // 固定列の値
+    const fixedValues = [
+      'Add',           // Action
+      '',              // Custom Label (SKU)
+      '',              // Category ID
+      '',              // Category Name
+      ebayTitle,       // Title
+      '',              // Relationship
+      '',              // Relationship details
+      '',              // Schedule Time
+      'N/A',           // P:UPC
+      '',              // P:EPID
+      '',              // Start price
+      '1',             // Quantity
+      picUrls,         // Item photo URL（パイプ区切り）
+      '',              // VideoID
+      '',              // Condition ID
+      html,            // Description
+      'FixedPrice',    // Format
+      'GTC',           // Duration
+      '',              // Buy It Now price
+      '',              // Best Offer Enabled
+      '',              // Best Offer Auto Accept Price
+      '',              // Minimum Best Offer Price
+      '',              // Immediate pay required
+      '',              // Location
+      '',              // Shipping profile name
+      '',              // Return profile name
+      '',              // Payment profile name
     ];
-    const csv = [headers, row].map(r => r.map(esc).join(',')).join('\r\n');
+
+    // Item Specificsの値
+    const specValues = aiFields.map(k => itemSpecifics[k] || '');
+
+    const row = [...fixedValues, ...specValues];
+
+    // #INFO行（eBay公式フォーマットの必須ヘッダー）
+    const info1 = '#INFO\tCreated=';
+    const info2 = '#INFO\tVersion=1.0\t\t\tTemplate=fx_multi_category_template_EBAY_US';
+    const info3 = '#INFO';
+
+    // CSVはタブ区切りではなくカンマ区切りで出力
+    const csvRows = [
+      headers.map(esc).join(','),
+      row.map(esc).join(','),
+    ];
+
+    const csv = csvRows.join('\r\n');
     const blob = new Blob([csv], {type: 'text/csv'});
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
