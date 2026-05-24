@@ -49,6 +49,7 @@
     label:first-of-type{margin-top:0}
     input[type=text],textarea,select{width:100%;background:var(--bg);border:1px solid var(--bdr);border-radius:6px;color:var(--txt);font-family:var(--ui);font-size:13px;padding:6px 10px;outline:none;transition:border-color .15s}
     input[type=text]:focus,textarea:focus,select:focus{border-color:var(--acc)}
+    input[type=text][readonly]{background:var(--surf2);color:var(--mut);cursor:not-allowed}
     select option{background:var(--surf2)}
     textarea{resize:vertical;min-height:60px}
 
@@ -1024,6 +1025,12 @@ ${title}
                             <div key={k} style={{marginBottom:8}}>
                               <div className="input-label" style={{marginTop:0}}>{k}</div>
                               <input type="text" value={itemSpecifics[k]||''} onChange={e=>setItemSpecificValue(k,e.target.value)} placeholder="N/A" />
+                            </div>
+                          ))}
+                          {Object.entries(ITEM_SPEC_FIXED).map(([k,v])=>(
+                            <div key={k} style={{marginBottom:8}}>
+                              <div className="input-label" style={{marginTop:0}}>{k}</div>
+                              <input type="text" value={v} readOnly />
                             </div>
                           ))}
                         </div>
