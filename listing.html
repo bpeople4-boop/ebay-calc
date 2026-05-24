@@ -586,6 +586,33 @@ function OpBox({title,op,setOp,showBalsam}) {
 }
 
 // ── App ──
+function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat}) {
+  return (
+    <div className="extra-list">
+      <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>＋ 詳細を追加</button>
+      {extras.map(x=>(
+        <div key={x.id} className="extra-card">
+          <div className="extra-head">
+            <textarea
+              value={x.jp}
+              onChange={e=>onUpdate(x.id,'jp',e.target.value)}
+              placeholder="日本語で状態を入力"
+            />
+            <button className="xbtn" onClick={()=>onRemove(x.id)}>✕</button>
+          </div>
+          <input
+            type="text"
+            value={x.en}
+            onChange={e=>onUpdate(x.id,'en',e.target.value)}
+            placeholder="ChatGPTの英文をここに貼り付け"
+          />
+        </div>
+      ))}
+      <button className="btn bblu bsm" onClick={onChat}>ChatGPTで相談</button>
+    </div>
+  );
+}
+
 function App() {
   const [rtab,setRtab]=useState('html');
 
@@ -628,6 +655,7 @@ function App() {
 
   const [photos,setPhotos]=useState([]);
   const fileRef=useRef();
+  const extraIdRef=useRef(1);
 
   useEffect(()=>{
     if(['Top MINT','MINT'].includes(cond)) setAppChoice('beautiful');
@@ -720,7 +748,7 @@ ${title}
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
   };
 
-  const addExtra = setter => setter(p => p.length >= 5 ? p : [...p, { id: Date.now() + Math.random(), jp:'', en:'' }]);
+  const addExtra = setter => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp:'', en:'' }]);
   const updateExtra = (setter, id, field, value) => setter(p => p.map(x => x.id === id ? { ...x, [field]: value } : x));
   const removeExtra = (setter, id) => setter(p => p.filter(x => x.id !== id));
   const presentOpticNotes = op => ([
@@ -976,31 +1004,6 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
     });
   };
 
-  const ExtraEditor = ({extras,setExtras,onChat}) => (
-    <div className="extra-list">
-      <button className="btn bsec bsm" onClick={()=>addExtra(setExtras)} disabled={extras.length>=5}>＋ 詳細を追加</button>
-      {extras.map((x,i)=>(
-        <div key={x.id} className="extra-card">
-          <div className="extra-head">
-            <textarea
-              value={x.jp}
-              onChange={e=>updateExtra(setExtras,x.id,'jp',e.target.value)}
-              placeholder="日本語で状態を入力"
-            />
-            <button className="xbtn" onClick={()=>removeExtra(setExtras,x.id)}>✕</button>
-          </div>
-          <input
-            type="text"
-            value={x.en}
-            onChange={e=>updateExtra(setExtras,x.id,'en',e.target.value)}
-            placeholder="ChatGPTの英文をここに貼り付け"
-          />
-        </div>
-      ))}
-      <button className="btn bblu bsm" onClick={onChat}>ChatGPTで相談</button>
-    </div>
-  );
-
   const hasFinder=HAS_FINDER.has(pType);
   const bOpts=BUNDLE_LIST;
 
@@ -1109,10 +1112,22 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
           <div className="sec">
             <div className="sttl">Optics</div>
             <OpBox title="Lens" op={lensOp} setOp={setLensOp} showBalsam={true} />
-            <ExtraEditor extras={lensExtras} setExtras={setLensExtras} onChat={()=>handleChatOptics('Lens', lensOp, lensExtras)} />
+            <ExtraEditor
+              extras={lensExtras}
+              onAdd={()=>addExtra(setLensExtras)}
+              onUpdate={(id,field,value)=>updateExtra(setLensExtras,id,field,value)}
+              onRemove={id=>removeExtra(setLensExtras,id)}
+              onChat={()=>handleChatOptics('Lens', lensOp, lensExtras)}
+            />
             {hasFinder&&<OpBox title="Finder" op={finOp} setOp={setFinOp} showBalsam={true} />}
             {hasFinder&&(
-              <ExtraEditor extras={finExtras} setExtras={setFinExtras} onChat={()=>handleChatOptics('Finder', finOp, finExtras)} />
+              <ExtraEditor
+                extras={finExtras}
+                onAdd={()=>addExtra(setFinExtras)}
+                onUpdate={(id,field,value)=>updateExtra(setFinExtras,id,field,value)}
+                onRemove={id=>removeExtra(setFinExtras,id)}
+                onChat={()=>handleChatOptics('Finder', finOp, finExtras)}
+              />
             )}
           </div>
 
@@ -1121,7 +1136,13 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             <div className="frow">
               <div className="fopt on">✓ It works properly.</div>
             </div>
-            <ExtraEditor extras={funcExtras} setExtras={setFuncExtras} onChat={()=>handleChatFunctional(funcExtras)} />
+            <ExtraEditor
+              extras={funcExtras}
+              onAdd={()=>addExtra(setFuncExtras)}
+              onUpdate={(id,field,value)=>updateExtra(setFuncExtras,id,field,value)}
+              onRemove={id=>removeExtra(setFuncExtras,id)}
+              onChat={()=>handleChatFunctional(funcExtras)}
+            />
           </div>
 
           <div className="sec">
