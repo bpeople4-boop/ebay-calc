@@ -293,7 +293,7 @@ function buildOpSection(op, type, showBalsam, extra) {
 }
 
 function genHTML(d) {
-  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,lensOpen=true,finderOpen=true} = d;
+  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlConditionMap = {
     "Exc+5": "EXCELLENT+++++",
@@ -306,9 +306,12 @@ function genHTML(d) {
     : `Body:${serialBody||'—'}`;
 
   let appH = '';
-  if(appChoice==='beautiful') appH = '<div><b><span style="color:rgb(255,0,16);">Appearance is beautiful.</span></b></div>\n<div>* Please check photos.</div>';
-  else if(appChoice==='scuffs') appH = '<div>Tiny scuffs from normal use.</div>\n<div>* Please check photos.</div>';
-  else appH = '<div>It shows signs of use.</div>\n<div>* Please check photos.</div>';
+  if(appChoice==='beautiful') appH = '<div><b><span style="color:rgb(255,0,16);">Appearance is beautiful.</span></b></div>';
+  else if(appChoice==='scuffs') appH = '<div>Tiny scuffs from normal use.</div>';
+  else appH = '<div>It shows signs of use.</div>';
+  const appExtra = extrasHtml(appExtras);
+  if(appExtra) appH += '\n' + appExtra;
+  appH += '\n<div>* Please check photos.</div>';
 
   const opSections = [];
   if(lensOpen) opSections.push(buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras)));
@@ -634,6 +637,7 @@ function App() {
   const [serialLens,setSerialLens]=useState('');
   const [hasLensSerial,setHasLensSerial]=useState(false);
   const [appChoice,setAppChoice]=useState('scuffs');
+  const [appExtras, setAppExtras] = useState([]);
   const [lensOp,setLensOp]=useState(initOp());
   const [finOp,setFinOp]=useState(initOp());
   const [lensOpen,setLensOpen]=useState(true);
@@ -832,10 +836,36 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     openChatGPT(chatText);
   };
 
+  const handleChatAppearance = extras => {
+    const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
+
+以下の入力内容に応じて対応してください。
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
+
+■ 質問・迷っている場合
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【Appearanceの状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文はコードブロック（\`\`\`）で囲んでコピペしやすく出力すること
+- 英文の直後に日本語で翻訳を1行添える
+- さらに1〜2文で簡単な解説（なぜその表現か・部位名の根拠など）を日本語で添える
+- 提案が複数ある場合は案1・案2の形で並べる
+- 前置きや締めの挨拶は不要
+- 出力の英文部分は「Fungus: 」などの項目名プレフィックスは含めず、英文本体のみをコードブロックに入れる`;
+    openChatGPT(chatText);
+  };
+
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
-      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,lensOpen,finderOpen}));
+      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
 
@@ -1244,6 +1274,13 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                 It shows signs of use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Exc+5以下の時</span>
               </div>
             </div>
+            <ExtraEditor
+              extras={appExtras}
+              onAdd={()=>addExtra(setAppExtras)}
+              onUpdate={(id,field,value)=>updateExtra(setAppExtras,id,field,value)}
+              onRemove={id=>removeExtra(setAppExtras,id)}
+              onChat={()=>handleChatAppearance(appExtras)}
+            />
           </div>
 
           <div className="sec">
