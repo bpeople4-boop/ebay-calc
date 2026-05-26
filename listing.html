@@ -31,6 +31,8 @@
     .fpanel{flex:1.1;min-width:380px;display:flex;flex-direction:column;border-right:1px solid var(--bdr)}
     .fpanel-header{padding:9px 18px;border-bottom:1px solid var(--bdr);background:var(--surf);display:flex;align-items:center;gap:10px;flex-shrink:0;min-height:40px}
     .fhtxt{font-size:13px;font-weight:600;color:var(--acc);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hbtn{width:30px;height:30px;border:1px solid var(--bdr);border-radius:6px;background:var(--surf2);color:var(--txt);cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .hbtn:hover{border-color:var(--acc);color:var(--acc)}
     .fcontent{flex:1;overflow-y:auto;padding:16px}
 
     /* ── Right panel (output) ── */
@@ -159,6 +161,18 @@
     .spec-copy-btn.done{border-color:var(--grn);color:var(--grn);background:rgba(63,185,80,.1)}
     .title-copy-status{width:34px;min-width:34px;padding-left:0!important;padding-right:0!important}
     .note{font-size:11px;color:var(--mut);margin-top:6px;text-align:center}
+    .toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:1100;background:var(--grn);color:#fff;padding:9px 18px;border-radius:7px;font-weight:700;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    .draft-overlay{position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.68);display:flex;align-items:flex-start;justify-content:center;padding:48px 16px}
+    .draft-modal{width:min(680px,100%);max-height:calc(100vh - 96px);background:var(--surf);border:1px solid var(--bdr);border-radius:8px;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.45)}
+    .draft-head{display:flex;gap:8px;align-items:center;padding:14px;border-bottom:1px solid var(--bdr)}
+    .draft-head input{flex:1;min-width:0}
+    .draft-list{overflow:auto;padding:8px 14px;display:flex;flex-direction:column;gap:8px}
+    .draft-row{border:1px solid var(--bdr);border-radius:7px;background:var(--bg);padding:10px;display:flex;align-items:center;gap:10px}
+    .draft-meta{flex:1;min-width:0}
+    .draft-label{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .draft-date{font-size:11px;color:var(--mut);margin-top:3px}
+    .draft-actions{display:flex;gap:6px;flex-shrink:0}
+    .draft-foot{padding:14px;border-top:1px solid var(--bdr);display:flex;justify-content:space-between;gap:8px}
   </style>
 </head>
 <body>
@@ -193,6 +207,7 @@ const BUNDLE_LIST = [
 ];
 
 const API_KEY_STORAGE_KEY = 'anthropic_api_key';
+const LISTING_DRAFTS_STORAGE_KEY = 'listing_drafts';
 const ITEM_SPEC_FIELDS = {
   'Film Camera':    ['Brand','Type','Model','Format','Color','Focus Type','Series','Features','Country of Origin','Year Manufactured'],
   'Digital Camera': ['Brand','Type','Model','Series','Color','Optical Zoom','Features','Maximum Resolution','Battery Type','Digital Zoom','Maximum Aperture','Charger Included','Device Charging Range','Screen Size','Country of Origin','Connectivity'],
@@ -671,6 +686,11 @@ function App() {
   const [itemSpecBusy,setItemSpecBusy]=useState(false);
   const [itemSpecError,setItemSpecError]=useState('');
   const [copiedSpecKey,setCopiedSpecKey]=useState('');
+  const [currentDraftId,setCurrentDraftId]=useState(null);
+  const [savedToast,setSavedToast]=useState(false);
+  const [showDraftModal,setShowDraftModal]=useState(false);
+  const [draftSearch,setDraftSearch]=useState('');
+  const [draftList,setDraftList]=useState([]);
 
   const [photos,setPhotos]=useState([]);
   const fileRef=useRef();
@@ -686,6 +706,144 @@ function App() {
   const toggleSpecial=s=>setSpecials(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]);
   const toggleWith=w=>setWithItems(p=>p.includes(w)?p.filter(x=>x!==w):[...p,w]);
   const toggleSnType=t=>{ setSnType(p=>p===t?'':t); setSnValue(''); };
+
+  const readDrafts=()=>{
+    try{
+      const parsed=JSON.parse(localStorage.getItem(LISTING_DRAFTS_STORAGE_KEY) || '[]');
+      return Array.isArray(parsed) ? parsed : [];
+    }catch(e){
+      return [];
+    }
+  };
+
+  const writeDrafts=drafts=>{
+    localStorage.setItem(LISTING_DRAFTS_STORAGE_KEY, JSON.stringify(drafts));
+    setDraftList(drafts);
+  };
+
+  const collectDraftState=(id=currentDraftId)=>({
+    id,
+    savedAt:new Date().toISOString(),
+    label:`${brand} ${model}`.trim() || '（未入力）',
+    pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
+    funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,ebayTitle,titleCandidates,finalTitleInput,
+    specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
+  });
+
+  const updateExtraIdRefFromDraft=draft=>{
+    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[])]
+      .reduce((m,x)=>Math.max(m, Number(x.id)||0), 0);
+    extraIdRef.current=Math.max(extraIdRef.current, maxId + 1);
+  };
+
+  const applyDraft=draft=>{
+    setPType(draft.pType ?? 'Film Camera');
+    setCond(draft.cond ?? 'Near MINT');
+    setSerialBody(draft.serialBody ?? '');
+    setSerialLens(draft.serialLens ?? '');
+    setHasLensSerial(!!draft.hasLensSerial);
+    setAppChoice(draft.appChoice ?? 'scuffs');
+    setAppExtras(draft.appExtras ?? []);
+    setLensOp(draft.lensOp ?? initOp());
+    setFinOp(draft.finOp ?? initOp());
+    setLensOpen(draft.lensOpen ?? true);
+    setFinderOpen(draft.finderOpen ?? true);
+    setFuncDef(draft.funcDef ?? true);
+    setFuncCus(draft.funcCus ?? '');
+    setLensExtras(draft.lensExtras ?? []);
+    setFinExtras(draft.finExtras ?? []);
+    setFuncExtras(draft.funcExtras ?? []);
+    setBundles(draft.bundles ?? []);
+    setEbayTitle(draft.ebayTitle ?? '');
+    setTitleCandidates(draft.titleCandidates ?? []);
+    setFinalTitleInput(draft.finalTitleInput ?? '');
+    setSpecials(draft.specials ?? []);
+    setWithItems(draft.withItems ?? []);
+    setColor(draft.color ?? '');
+    setSnType(draft.snType ?? '');
+    setSnValue(draft.snValue ?? '');
+    setBrand(draft.brand ?? '');
+    setModel(draft.model ?? '');
+    setItemSpecifics(draft.itemSpecifics ?? {});
+    setHtml(draft.html ?? '');
+    setFinalTitleConfirmed(!!draft.finalTitleConfirmed);
+    updateExtraIdRefFromDraft(draft);
+    setTimeout(()=>setAppChoice(draft.appChoice ?? 'scuffs'),0);
+  };
+
+  const handleSave=()=>{
+    const id=currentDraftId ?? Date.now();
+    const draft=collectDraftState(id);
+    const drafts=readDrafts();
+    const exists=drafts.some(x=>x.id===id);
+    const next=exists ? drafts.map(x=>x.id===id ? draft : x) : [draft, ...drafts];
+    writeDrafts(next);
+    setCurrentDraftId(id);
+    setSavedToast('保存しました');
+    setTimeout(()=>setSavedToast(null),2000);
+  };
+
+  const handleClear=()=>{
+    setPType('Film Camera');
+    setCond('Near MINT');
+    setSerialBody('');
+    setSerialLens('');
+    setHasLensSerial(false);
+    setAppChoice('scuffs');
+    setAppExtras([]);
+    setLensOp(initOp());
+    setFinOp(initOp());
+    setLensOpen(true);
+    setFinderOpen(true);
+    setFuncDef(true);
+    setFuncCus('');
+    setLensExtras([]);
+    setFinExtras([]);
+    setFuncExtras([]);
+    setBundles([]);
+    setEbayTitle('');
+    setTitleCandidates([]);
+    setFinalTitleInput('');
+    setSpecials([]);
+    setWithItems([]);
+    setColor('');
+    setSnType('');
+    setSnValue('');
+    setBrand('');
+    setModel('');
+    setItemSpecifics({});
+    setHtml('');
+    setFinalTitleConfirmed(false);
+    setCurrentDraftId(null);
+    extraIdRef.current=1;
+  };
+
+  const openDraftModal=()=>{
+    setDraftList(readDrafts());
+    setShowDraftModal(true);
+  };
+
+  const handleSelectDraft=draft=>{
+    if(currentDraftId===draft.id) {
+      alert('すでに開かれています');
+      return;
+    }
+    if(!confirm('入力中の内容が失われます。続けますか？')) return;
+    applyDraft(draft);
+    setCurrentDraftId(draft.id);
+    setShowDraftModal(false);
+  };
+
+  const handleDeleteDraft=id=>{
+    writeDrafts(readDrafts().filter(x=>x.id!==id));
+    if(currentDraftId===id) setCurrentDraftId(null);
+  };
+
+  const handleDeleteAllDrafts=()=>{
+    localStorage.removeItem(LISTING_DRAFTS_STORAGE_KEY);
+    setDraftList([]);
+    setCurrentDraftId(null);
+  };
 
   const handleGenTitle=()=>{
     setRtab('html');
@@ -1173,12 +1331,58 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
     </div>
   );
 
+  const filteredDrafts=draftList.filter(d=>{
+    const q=draftSearch.trim().toLowerCase();
+    if(!q) return true;
+    return [d.brand,d.model,d.label].some(v=>String(v || '').toLowerCase().includes(q));
+  });
+
   return (
     <div id="root">
+      {savedToast&&<div className="toast">{savedToast}</div>}
+      {showDraftModal&&(
+        <div className="draft-overlay">
+          <div className="draft-modal">
+            <div className="draft-head">
+              <input
+                type="text"
+                value={draftSearch}
+                onChange={e=>setDraftSearch(e.target.value)}
+                placeholder="検索"
+                autoFocus
+              />
+              <button className="btn bsec bsm" onClick={()=>setShowDraftModal(false)}>閉じる</button>
+            </div>
+            <div className="draft-list">
+              {filteredDrafts.length ? filteredDrafts.map(d=>(
+                <div key={d.id} className="draft-row">
+                  <div className="draft-meta">
+                    <div className="draft-label">{d.label || '（未入力）'}</div>
+                    <div className="draft-date">{d.savedAt || ''}</div>
+                  </div>
+                  <div className="draft-actions">
+                    <button className="btn bblu bsm" onClick={()=>handleSelectDraft(d)}>選択</button>
+                    <button className="btn bsec bsm" onClick={()=>handleDeleteDraft(d.id)}>削除</button>
+                  </div>
+                </div>
+              )) : (
+                <div className="empty"><h3>保存データがありません</h3></div>
+              )}
+            </div>
+            <div className="draft-foot">
+              <button className="btn bsec bsm" onClick={handleDeleteAllDrafts}>全件削除</button>
+              <span style={{fontSize:11,color:'var(--mut)',alignSelf:'center'}}>{filteredDrafts.length} 件</span>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Form panel ── */}
       <div className="fpanel">
         <div className="fpanel-header">
           <span className="fhtxt">Listing Generator</span>
+          <button className="hbtn" onClick={handleSave} title="保存">💾</button>
+          <button className="hbtn" onClick={handleClear} title="クリア">C</button>
+          <button className="hbtn" onClick={openDraftModal} title="検索">⌕</button>
         </div>
         <div className="fcontent">
 
