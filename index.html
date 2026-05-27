@@ -4078,6 +4078,7 @@ function App() {
               refundDate: i.refundDate || "",
               refundRateLocked: i.refundRateLocked || false,
               refundRateNotFetched: i.refundRateNotFetched || false,
+              originalCategory: i.isBundleLeader===true && i.category==="bundle" && !i.originalCategory ? "camera" : i.originalCategory,
             };
             if (hasSaleDate && i.status !== "returned") return { ...base, status: "sold" };
             if (!hasSaleDate && i.status === "sold") return { ...base, status: "unsold" };
