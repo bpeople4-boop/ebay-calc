@@ -3361,7 +3361,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       if (d.getFullYear()!==fy || d.getMonth()+1!==fm) return false;
     }
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
-    else if (fCat!=="all" && (i.category||"") !== fCat) return false;
+    else if (fCat!=="all") {
+      const cat = i.category==="bundle" ? (i.originalCategory||"") : (i.category||"");
+      if (cat !== fCat) return false;
+    }
     if (search) { const q=search.toLowerCase(); if(!i.productName?.toLowerCase().includes(q)&&!i.source?.toLowerCase().includes(q)&&!String(i.managementNumber||"").includes(q)&&!i.auctRevoId?.toLowerCase().includes(q)&&!i.serialNumber?.toLowerCase().includes(q)) return false; }
     return true;
   });
@@ -3429,7 +3432,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       const [fy,fm] = fYearMonth.split("-").map(Number);
       base = base.filter(i => { const d=new Date(i.junkDate); return d.getFullYear()===fy && d.getMonth()+1===fm; });
     }
-    if (fCat !== "all") base = base.filter(i => fCat==="bundle" ? !!i.bundleGroupId : (i.category||"")===fCat);
+    if (fCat !== "all") base = base.filter(i => fCat==="bundle" ? !!i.bundleGroupId : (i.category==="bundle" ? (i.originalCategory||"") : (i.category||""))===fCat);
     return base.reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
   })();
   // 返品損失:
@@ -3444,7 +3447,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       if (d.getFullYear()!==fy||d.getMonth()+1!==fm) return false;
     }
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
-    else if (fCat!=="all"&&(i.category||"")!==fCat) return false;
+    else if (fCat!=="all") {
+      const cat = i.category==="bundle" ? (i.originalCategory||"") : (i.category||"");
+      if (cat !== fCat) return false;
+    }
     return true;
   }) : fStatus==="all" ? filtered.filter(i => i.status==="returned" && (!i.bundleGroupId||i.isBundleLeader)) : [];
   const returnedLossDisplay = _returnedBase.reduce((s,i) => {
