@@ -3446,6 +3446,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
       const d=new Date(i.saleDate);
       if (d.getFullYear()!==fy||d.getMonth()+1!==fm) return false;
     }
+    if (i.bundleGroupId && !i.isBundleLeader) return false;
     if (fCat==="bundle") { if (!i.bundleGroupId) return false; }
     else if (fCat!=="all") {
       const cat = i.category==="bundle" ? (i.originalCategory||"") : (i.category||"");
