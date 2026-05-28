@@ -57,6 +57,7 @@ body{font-family:'Helvetica Neue','Hiragino Sans','Yu Gothic',sans-serif;backgro
 .result-jpy{font-size:28px;font-weight:800;color:#8dca8d}
 .result-bottom{padding:16px 20px}
 .result-usd{font-size:36px;font-weight:800;color:#4ade80;line-height:1}
+.result-profit{font-size:28px;font-weight:800;line-height:1;margin-bottom:2px}
 .tags{margin-top:12px;display:flex;gap:6px;flex-wrap:wrap}
 .tag{font-size:10px;color:#6a6;background:rgba(100,200,100,.1);border:1px solid rgba(100,200,100,.15);border-radius:6px;padding:3px 8px}
 .hint{margin-top:24px;padding:14px 16px;border-radius:10px;background:rgba(212,168,83,.06);border:1px dashed rgba(212,168,83,.2);font-size:12px;color:#888;line-height:1.6;text-align:center}
@@ -158,6 +159,7 @@ const names=useMemo(()=>brand&&cat?[...new Set(products.filter(p=>p.brand===bran
 const sel=useMemo(()=>name?products.find(p=>p.brand===brand&&p.cat===cat&&p.name===name)||null:null,[products,brand,cat,name]);
 const price=useMemo(()=>sel&&cond?sel[cond]:null,[sel,cond]);
 const usd=useMemo(()=>price&&rate?Math.round((price+ship)/(rate*(1-fee/100-prof/100))):null,[price,rate,fee,ship,prof]);
+const profit=useMemo(()=>usd!=null?usd*rate*(1-fee/100)-ship-price:null,[usd,rate,fee,ship,price]);
 
 const reset=()=>{setBrand("");setCat("");setName("");setCond("")};
 
@@ -276,6 +278,8 @@ return e("div",null,
       e("div",{className:"result-bottom"},
         e("div",{className:"result-label"},"販売価格（送料込）"),
         e("div",{className:"result-usd"},"$"+(usd!=null?usd.toLocaleString():"—")),
+        e("div",{className:"result-label",style:{marginTop:16}},"利益"),
+        e("div",{className:"result-profit",style:{color:profit>=0?"#4ade80":"#ff6b6b"}},"¥"+(profit!=null?Math.round(profit).toLocaleString():"—")),
         e("div",{className:"tags"},
           [`¥${rate}/USD`,`手数料${fee}%`,`送料¥${ship.toLocaleString()}`,`利益${prof}%`].map(t=>
             e("span",{className:"tag",key:t},t)
