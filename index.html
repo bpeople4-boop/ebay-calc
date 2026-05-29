@@ -4175,8 +4175,16 @@ function App() {
   },[ebayAuth.tokenExpiry]);
 
   const handleSave = (form) => {
-    if (form.id) { setItems(p => p.map(i => i.id===form.id ? form : i)); }
-    else { setItems(p => [{ ...form, id:genId(), managementNumber:nextNo(p) }, ...p]); }
+    setItems(p => {
+      const saved = form.id ? form : { ...form, id:genId(), managementNumber:nextNo(p) };
+      const next = form.id ? p.map(i => i.id===form.id ? saved : i) : [saved, ...p];
+      if (!saved.bundleGroupId || saved.isBundleLeader!==true) return next;
+      return next.map(i => (
+        i.bundleGroupId===saved.bundleGroupId && i.isBundleLeader!==true && !["sold","returned"].includes(i.status)
+          ? { ...i, status:saved.status }
+          : i
+      ));
+    });
   };
   const handleClearSoldListingLinks = () => {
     const count = items.filter(i => i.ebaySynced && i.ebayListingLinked).length;
@@ -4235,7 +4243,7 @@ function App() {
                  salePrice:"", saleShipping:"", status:"unsold" };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
-                 salePrice:"", saleShipping:"", status:"unsold" };
+                 salePrice:"", saleShipping:"", status:selectedItems[0].status };
       }
     }));
   };
