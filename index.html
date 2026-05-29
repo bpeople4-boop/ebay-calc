@@ -4080,6 +4080,7 @@ function App() {
               refundRateNotFetched: i.refundRateNotFetched || false,
               originalCategory: i.isBundleLeader===true && i.category==="bundle" && !i.originalCategory ? "camera" : i.originalCategory,
             };
+            if (base.bundleGroupId && base.isBundleLeader===false && !["unsold","sold","returned"].includes(base.status)) return { ...base, status: "unsold" };
             if (hasSaleDate && i.status !== "returned") return { ...base, status: "sold" };
             if (!hasSaleDate && i.status === "sold") return { ...base, status: "unsold" };
             return base;
@@ -4234,7 +4235,7 @@ function App() {
                  salePrice:"", saleShipping:"", status:"unsold" };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
-                 salePrice:"", saleShipping:"" };
+                 salePrice:"", saleShipping:"", status:"unsold" };
       }
     }));
   };
