@@ -44,8 +44,9 @@ body{font-family:'Helvetica Neue','Hiragino Sans','Yu Gothic',sans-serif;backgro
 .info-card{margin-top:14px;border-radius:12px;overflow:hidden;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03)}
 .info-header{padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.06);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .info-name{font-size:13px;font-weight:700;color:#e0e0e0;flex:1;line-height:1.4}
-.photo-btn{padding:6px 10px;border-radius:7px;background:rgba(66,133,244,.15);border:1px solid rgba(66,133,244,.3);color:#8ab4f8;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0}
+.photo-btn{padding:6px 10px;border-radius:7px;background:rgba(212,168,83,.15);border:1px solid rgba(212,168,83,.4);color:#d4a853;font-size:11px;font-weight:600;text-decoration:none;white-space:nowrap;flex-shrink:0}
 .note-bar{padding:10px 14px;background:rgba(212,168,83,.06);font-size:12px;color:#d4a853;line-height:1.6}
+.accordion-badge{width:100%;display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-radius:10px;border:1px solid rgba(212,168,83,.35);background:rgba(212,168,83,.1);color:#d4a853;font-size:14px;font-weight:700;cursor:pointer;text-align:left}
 .cond-row{display:flex;gap:8px}
 .cond-btn{flex:1;padding:14px 6px;border-radius:10px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:#bbb;font-size:13px;font-weight:600;cursor:pointer;text-align:center;line-height:1.3}
 .cond-btn.active{border:2px solid #d4a853;background:rgba(212,168,83,.15);color:#d4a853}
@@ -100,7 +101,7 @@ const CONDS=[{key:"mint",label:"MINT"},{key:"near",label:"Near Mint"},{key:"exc"
 
 function parseNum(v){if(!v||v==="-"||v===""||v==="–")return null;const s=String(v).replace(/[^0-9.]/g,"");if(!s)return null;const n=Number(s);return isNaN(n)||n===0?null:n}
 
-function parseCSV(t){const l=t.split("\n").filter(x=>x.trim());if(l.length<2)return[];let start=0;for(let i=0;i<l.length;i++){if(l[i].includes("ブランド")||l[i].includes("MINT")){start=i+1;break}}if(start===0){for(let i=0;i<Math.min(3,l.length);i++){const cols=l[i].split(",");const num=parseNum(cols[3]);if(num!==null){start=i;break}}}const p=[];for(let i=start;i<l.length;i++){const c=[];let cur="",q=false;for(let j=0;j<l[i].length;j++){const ch=l[i][j];if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur=""}else cur+=ch}c.push(cur.trim());const[brand,cat,name,mint,near,exc,note]=c;if(!brand||!cat||!name)continue;const mv=parseNum(mint),nv=parseNum(near),ev=parseNum(exc);if(mv===null&&nv===null&&ev===null)continue;p.push({brand,cat,name,mint:mv,near:nv,exc:ev,note:note||""})}return p}
+function parseCSV(t){const l=t.split("\n").filter(x=>x.trim());if(l.length<2)return[];let start=0;for(let i=0;i<l.length;i++){if(l[i].includes("ブランド")||l[i].includes("MINT")){start=i+1;break}}if(start===0){for(let i=0;i<Math.min(3,l.length);i++){const cols=l[i].split(",");const num=parseNum(cols[3]);if(num!==null){start=i;break}}}const p=[];for(let i=start;i<l.length;i++){const c=[];let cur="",q=false;for(let j=0;j<l[i].length;j++){const ch=l[i][j];if(ch==='"')q=!q;else if(ch===','&&!q){c.push(cur.trim());cur=""}else cur+=ch}c.push(cur.trim());const[brand,cat,name,mint,near,exc,note,ebay]=c;if(!brand||!cat||!name)continue;const mv=parseNum(mint),nv=parseNum(near),ev=parseNum(exc);if(mv===null&&nv===null&&ev===null)continue;p.push({brand,cat,name,mint:mv,near:nv,exc:ev,note:note||"",ebay:ebay||""})}return p}
 
 function load(){try{const r=localStorage.getItem("arigato-v2");return r?JSON.parse(r):null}catch(e){return null}}
 function save(d){try{localStorage.setItem("arigato-v2",JSON.stringify(d))}catch(e){}}
@@ -112,6 +113,9 @@ const[brand,setBrand]=useState("");
 const[cat,setCat]=useState("");
 const[name,setName]=useState("");
 const[cond,setCond]=useState("");
+const[openBrand,setOpenBrand]=useState(true);
+const[openCat,setOpenCat]=useState(true);
+const[openName,setOpenName]=useState(true);
 const[rate,setRate]=useState(saved?.rate||158);
 const[fee,setFee]=useState(saved?.fee||14);
 const[ship,setShip]=useState(saved?.ship||6000);
@@ -144,14 +148,14 @@ if(!url)return;setSyncSt("loading");
 try{const r=await fetch(url);if(!r.ok)throw 0;const t=await r.text();const p=parseCSV(t);
 if(!p.length){setSyncSt("empty");return}
 setProducts(p);setLastSync(new Date().toLocaleTimeString("ja-JP"));setSyncSt("success");
-persist({products:p,sheetUrl:url});setBrand("");setCat("");setName("");setCond("")}
+persist({products:p,sheetUrl:url});setBrand("");setCat("");setName("");setCond("");setOpenBrand(true);setOpenCat(true);setOpenName(true)}
 catch(e){setSyncSt("error")}
 },[persist]);
 
 useEffect(()=>{if(sheetUrl)syncSheet(sheetUrl);fetchRate()},[]);
 
 const connect=()=>{const u=urlIn.trim();if(!u)return;setSheetUrl(u);persist({sheetUrl:u});syncSheet(u)};
-const disconnect=()=>{setSheetUrl("");setUrlIn("");setProducts(INIT);setSyncSt(null);setLastSync(null);setBrand("");setCat("");setName("");setCond("");persist({sheetUrl:"",products:INIT})};
+const disconnect=()=>{setSheetUrl("");setUrlIn("");setProducts(INIT);setSyncSt(null);setLastSync(null);setBrand("");setCat("");setName("");setCond("");setOpenBrand(true);setOpenCat(true);setOpenName(true);persist({sheetUrl:"",products:INIT})};
 
 const brands=useMemo(()=>[...new Set(products.map(p=>p.brand))].sort(),[products]);
 const cats=useMemo(()=>brand?[...new Set(products.filter(p=>p.brand===brand).map(p=>p.cat))].sort():[],[products,brand]);
@@ -161,7 +165,7 @@ const price=useMemo(()=>sel&&cond?sel[cond]:null,[sel,cond]);
 const usd=useMemo(()=>price&&rate?Math.round((price+ship)/(rate*(1-fee/100-prof/100))):null,[price,rate,fee,ship,prof]);
 const profit=useMemo(()=>usd!=null?usd*rate*(1-fee/100)-ship-price:null,[usd,rate,fee,ship,price]);
 
-const reset=()=>{setBrand("");setCat("");setName("");setCond("")};
+const reset=()=>{setBrand("");setCat("");setName("");setCond("");setOpenBrand(true);setOpenCat(true);setOpenName(true)};
 
 const imgUrl=(b,n)=>"https://www.google.com/search?tbm=isch&q="+encodeURIComponent(b+" "+n+" camera");
 
@@ -227,33 +231,38 @@ return e("div",null,
       e("span",{className:"section-text"},"ブランド"),
       brand&&e("button",{className:"reset-btn",onClick:reset},"リセット")
     ),
-    e("div",{className:"chips"},brands.map(b=>
-      e("button",{key:b,className:"chip"+(brand===b?" active":""),onClick:()=>{setBrand(b);setCat("");setName("");setCond("")}},b)
-    )),
+    brand&&!openBrand
+      ? e("button",{className:"accordion-badge",onClick:()=>setOpenBrand(true)},"✅ "+brand+" ▼")
+      : e("div",{className:"chips"},brands.map(b=>
+          e("button",{key:b,className:"chip"+(brand===b?" active":""),onClick:()=>{setBrand(b);setCat("");setName("");setCond("");setOpenBrand(false);setOpenCat(true);setOpenName(true)}},b)
+        )),
 
     // Category
     brand&&e(React.Fragment,null,
       e("div",{className:"section-label"},e("span",{className:"section-num"},"2"),e("span",{className:"section-text"},"カテゴリー")),
-      e("div",{className:"chips"},cats.map(c=>
-        e("button",{key:c,className:"chip"+(cat===c?" active":""),onClick:()=>{setCat(c);setName("");setCond("")}},c)
-      ))
+      cat&&!openCat
+        ? e("button",{className:"accordion-badge",onClick:()=>setOpenCat(true)},"✅ "+cat+" ▼")
+        : e("div",{className:"chips"},cats.map(c=>
+            e("button",{key:c,className:"chip"+(cat===c?" active":""),onClick:()=>{setCat(c);setName("");setCond("");setOpenCat(false);setOpenName(true)}},c)
+          ))
     ),
 
     // Name
     cat&&e(React.Fragment,null,
       e("div",{className:"section-label"},e("span",{className:"section-num"},"3"),e("span",{className:"section-text"},"品名")),
-      e("div",{className:"name-list"},names.map(n=>
-        e("button",{key:n,className:"name-chip"+(name===n?" active":""),onClick:()=>{setName(n);setCond("")}},n)
-      ))
+      name&&!openName
+        ? e("button",{className:"accordion-badge",onClick:()=>setOpenName(true)},"✅ "+name+" ▼")
+        : e("div",{className:"name-list"},names.map(n=>
+            e("button",{key:n,className:"name-chip"+(name===n?" active":""),onClick:()=>{setName(n);setCond("");setOpenName(false)}},n)
+          ))
     ),
 
     // Info card
     sel&&e("div",{className:"info-card"},
       e("div",{className:"info-header"},
         e("div",{className:"info-name"},sel.brand+" "+sel.name),
-        e("a",{className:"photo-btn",href:imgUrl(sel.brand,sel.name),target:"_blank",rel:"noopener noreferrer"},"📷 写真")
-      ),
-      sel.note&&e("div",{className:"note-bar"},"📝 "+sel.note)
+        sel.ebay&&e("a",{className:"photo-btn",href:sel.ebay,target:"_blank",rel:"noopener noreferrer"}," eBay相場")
+      )
     ),
 
     // Condition
@@ -286,6 +295,11 @@ return e("div",null,
           )
         )
       )
+    ),
+
+    sel&&sel.note&&e("div",{style:{marginTop:16,padding:16,borderRadius:12,background:"rgba(212,168,83,.06)",border:"1px dashed rgba(212,168,83,.3)"}},
+      e("div",{style:{fontSize:11,color:"#d4a853",letterSpacing:2,marginBottom:8}}," メモ"),
+      e("div",{style:{whiteSpace:"pre-wrap",color:"#ccc",fontSize:13,lineHeight:1.8}},sel.note)
     ),
 
     // Hint
