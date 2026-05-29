@@ -4067,7 +4067,7 @@ function App() {
         const r=await window.storage.get("ebay_v2_items");
         if(r?.value) {
           const loaded = JSON.parse(r.value);
-          const corrected = loaded.map(i => {
+          const normalized = loaded.map(i => {
             const hasSaleDate = !!(i.saleDate && i.saleDate !== "" && !i.saleDate.startsWith("1900"));
             // 為替レートが不正値（NaN・0・負数）の場合のみ補正
             const rate = +i.exchangeRate;
@@ -4080,12 +4080,20 @@ function App() {
               refundRateNotFetched: i.refundRateNotFetched || false,
               originalCategory: i.isBundleLeader===true && i.category==="bundle" && !i.originalCategory ? "camera" : i.originalCategory,
             };
+            if (base.bundleGroupId && base.isBundleLeader===false && ["sold","returned"].includes(base.status)) return base;
             if (base.bundleGroupId && base.isBundleLeader===false && !["unsold","sold","returned"].includes(base.status)) return { ...base, status: "unsold" };
             if (hasSaleDate && i.status !== "returned") return { ...base, status: "sold" };
             if (!hasSaleDate && i.status === "sold") return { ...base, status: "unsold" };
             return base;
           });
+          const corrected = normalized.map(i => {
+            if (!i.bundleGroupId || i.isBundleLeader || i.status==="sold" || i.status==="returned") return i;
+            const leader = normalized.find(l => l.bundleGroupId===i.bundleGroupId && l.isBundleLeader);
+            if (!leader || leader.status===i.status) return i;
+            return { ...i, status:leader.status };
+          });
           setItems(corrected);
+          await window.storage.set("ebay_v2_items", JSON.stringify(corrected));
         }
       } catch(_){}
 
