@@ -3598,7 +3598,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         <td style={{ padding:sz.pad, width:88 }} onClick={e=>e.stopPropagation()}>
           <div style={{ display:"flex", gap:1, justifyContent:"flex-end" }}>
             <button onClick={()=>onRowClick(item)} title="編集" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Pencil size={13}/></button>
-            {item.status==="unsold"&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
+            {(item.status==="unsold"||item.status==="stored")&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
             {item.status==="sold"&&!item.bundleGroupId&&<button onClick={()=>onReturn(item)} title="返品" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}><RotateCcw size={13}/></button>}
             {item.status==="returned"&&<button onClick={()=>{if(window.confirm("再出品しますか？"))onRelist(item);}} title="再出品" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Plus size={13}/></button>}
             <button onClick={()=>{if(window.confirm("削除しますか？"))onDelete(item.id);}} title="削除" style={{ background:"none", border:"none", cursor:"pointer", color:C.red, padding:"4px 5px", borderRadius:5 }}><Trash2 size={13}/></button>
