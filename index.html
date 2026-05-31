@@ -4248,7 +4248,7 @@ function App() {
       const isLeader = sel.id===selectedItems[0].id;
       if (isLeader) {
         return { ...i, bundleGroupId:gid, isBundleLeader:true, category:"bundle", originalCategory:i.category,
-                 salePrice:"", saleShipping:"", status:"unsold" };
+                 salePrice:"", saleShipping:"", status:i.status };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
                  salePrice:"", saleShipping:"", status:selectedItems[0].status };
