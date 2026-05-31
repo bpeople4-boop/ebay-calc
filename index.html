@@ -3286,7 +3286,7 @@ function ReportModal({ items, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundleHeaderClick, onDelete, onReturn, onRelist, onBundleSale, onSplit }) {
   const [selecting, setSelecting] = useState(false);
-  const [selSet, setSelSet]       = useState(new Set());
+  const [selSet, setSelSet]       = useState([]);
   const [search, setSearch]       = useState("");
   const [fStatus, setFStatus]     = useState("all");
   const [fYearMonth, setFYearMonth] = useState("all");
@@ -3493,10 +3493,10 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   }, 0);
 
   const startBundle = () => {
-    const sel=items.filter(i=>selSet.has(i.id));
+    const sel=selSet.map(id=>items.find(i=>i.id===id)).filter(Boolean);
     if(sel.length<2){alert("2点以上選択してください");return;}
     const savedScroll = scrollRef.current?.scrollTop ?? 0;
-    onBundleSale(sel); setSelecting(false); setSelSet(new Set());
+    onBundleSale(sel); setSelecting(false); setSelSet([]);
     requestAnimationFrame(() => { if(scrollRef.current) scrollRef.current.scrollTop = savedScroll; });
   };
 
@@ -3518,12 +3518,12 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const TR = ({item, bundleCalc, indent=false, isLastInBundle=false}) => {
     const [thumbLightbox, setThumbLightbox] = useState(null);
     const c = bundleCalc!==undefined ? bundleCalc : (item.isJunk&&!item.salePrice ? calcJunk(item) : calcFull(item));
-    const isSel=selectedId===item.id, isChk=selSet.has(item.id);
+    const isSel=selectedId===item.id, isChk=selSet.includes(item.id);
     const thumb = item.photos?.[0];
     const bundleBg = indent ? "#f0f1ff" : "transparent";
     const rowBg = isSel ? C.accentLo : isChk ? "#eef3ff" : bundleBg;
     const handleRowClick = (e) => {
-      if (selecting) { e.preventDefault(); setSelSet(prev=>{const n=new Set(prev);n.has(item.id)?n.delete(item.id):n.add(item.id);return n;}); }
+      if (selecting) { e.preventDefault(); setSelSet(prev=>prev.includes(item.id)?prev.filter(id=>id!==item.id):[...prev,item.id]); }
       else if (item.bundleGroupId) { onBundleHeaderClick(item.bundleGroupId); }
       else onRowClick(item);
     };
@@ -3708,7 +3708,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
           </div>
           {!selecting
             ? <button onClick={()=>setSelecting(true)} style={btnS("secondary",{fontSize:11,padding:"4px 10px"})}><Link2 size={11}/>まとめ売り</button>
-            : <><button onClick={startBundle} style={btnS("primary",{fontSize:11,padding:"4px 10px"})} disabled={selSet.size<2}><Link2 size={11}/>{selSet.size}点でまとめ</button><button onClick={()=>{setSelecting(false);setSelSet(new Set());}} style={btnS("ghost",{fontSize:11,padding:"4px 10px"})}>キャンセル</button></>
+            : <><button onClick={startBundle} style={btnS("primary",{fontSize:11,padding:"4px 10px"})} disabled={selSet.length<2}><Link2 size={11}/>{selSet.length}点でまとめ</button><button onClick={()=>{setSelecting(false);setSelSet([]);}} style={btnS("ghost",{fontSize:11,padding:"4px 10px"})}>キャンセル</button></>
           }
         </div>
       </div>
@@ -4251,7 +4251,7 @@ function App() {
                  salePrice:"", saleShipping:"", status:i.status };
       } else {
         return { ...i, bundleGroupId:gid, isBundleLeader:false,
-                 salePrice:"", saleShipping:"", status:selectedItems[0].status };
+                 salePrice:"", saleShipping:"", originalStatus:i.status, status:selectedItems[0].status };
       }
     }));
   };
@@ -4266,7 +4266,7 @@ function App() {
       if (isBundleLeader) {
         return { ...rest, category: rest.originalCategory || (rest.category === "bundle" ? "camera" : rest.category), originalCategory: undefined };
       } else {
-        return { ...rest, salePrice:"", saleShipping:"", saleDate:"", status:"unsold" };
+        return { ...rest, salePrice:"", saleShipping:"", saleDate:"", status:rest.originalStatus||"unsold", originalStatus:undefined };
       }
     }));
   };
