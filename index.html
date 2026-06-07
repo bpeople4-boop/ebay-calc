@@ -2910,6 +2910,7 @@ function SearchModal({ items, onClose }) {
     if (selSources !== null && !selSources.has(item.source || "")) return false;
     if (selCats !== null && item.category !== "bundle" && !selCats.has(item.category || "")) return false;
     if (dateType !== "none") {
+      if (dateType === "junk" && !item.isJunk) return false;
       const dv = getDateVal(item);
       if (!dv || dv.startsWith("1900") || dv === "") return false;
       const ym = dv.substring(0, 7);
