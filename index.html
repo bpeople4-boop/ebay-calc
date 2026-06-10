@@ -4053,6 +4053,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
 // ═══════════════════════════════════════════════════════════════
 function App() {
   const [items,       setItems]       = useState([]);
+  const [hadItemsBefore, setHadItemsBefore] = useState(false);
   const [loaded,      setLoaded]      = useState(false);
   const [settings,    setSettings]    = useState(DEFAULT_SETTINGS);
   const [returnItem,  setReturnItem]  = useState(null);
@@ -4094,6 +4095,7 @@ function App() {
             return { ...i, status:leader.status };
           });
           setItems(corrected);
+          if (corrected.length > 0) setHadItemsBefore(true);
           await window.storage.set("ebay_v2_items", JSON.stringify(corrected));
         }
       } catch(_){}
@@ -4129,7 +4131,12 @@ function App() {
       setLoaded(true);
     })();
   },[]);
-  useEffect(() => { if(!loaded) return; window.storage.set("ebay_v2_items", JSON.stringify(items)).catch(()=>{}); },[items,loaded]);
+  useEffect(() => {
+    if(!loaded) return;
+    if(items.length === 0 && hadItemsBefore) return; // 既存データがあった状態から空配列への変化は保存しない（誤上書き防止）
+    window.storage.set("ebay_v2_items", JSON.stringify(items)).catch(()=>{});
+    if(items.length > 0) setHadItemsBefore(true);
+  },[items,loaded,hadItemsBefore]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_v3_settings", JSON.stringify(settings)).catch(()=>{}); },[settings,loaded]);
   useEffect(() => { if(!loaded) return; window.storage.set("ebay_oauth_config", JSON.stringify(ebayAuth)).catch(()=>{}); },[ebayAuth,loaded]);
 
