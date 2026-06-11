@@ -691,6 +691,8 @@ function App() {
   const [showDraftModal,setShowDraftModal]=useState(false);
   const [draftSearch,setDraftSearch]=useState('');
   const [draftList,setDraftList]=useState([]);
+  const [apiKeyModalOpen,setApiKeyModalOpen]=useState(false);
+  const [apiKeyInput,setApiKeyInput]=useState(localStorage.getItem(API_KEY_STORAGE_KEY) || '');
 
   const [photos,setPhotos]=useState([]);
   const fileRef=useRef();
@@ -1376,6 +1378,35 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
           </div>
         </div>
       )}
+      {apiKeyModalOpen&&(
+        <div className="draft-overlay">
+          <div className="draft-modal">
+            <div className="draft-head">
+              <div style={{fontWeight:700,flex:1}}>Anthropic APIキー設定</div>
+              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>閉じる</button>
+            </div>
+            <div className="draft-list">
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={e=>setApiKeyInput(e.target.value)}
+                placeholder="sk-ant-..."
+                autoFocus
+                style={{width:'100%',background:'var(--bg)',border:'1px solid var(--bdr)',borderRadius:6,color:'var(--txt)',fontFamily:'var(--ui)',fontSize:13,padding:'6px 10px',outline:'none'}}
+              />
+            </div>
+            <div className="draft-foot">
+              <button
+                className="btn bprim bsm"
+                onClick={()=>{localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);setApiKeyModalOpen(false);}}
+              >
+                保存
+              </button>
+              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>閉じる</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Form panel ── */}
       <div className="fpanel">
         <div className="fpanel-header">
@@ -1383,6 +1414,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
           <button className="hbtn" onClick={handleSave} title="保存">💾</button>
           <button className="hbtn" onClick={handleClear} title="クリア">C</button>
           <button className="hbtn" onClick={openDraftModal} title="検索">⌕</button>
+          <button className="hbtn" onClick={()=>setApiKeyModalOpen(true)} title="APIキー設定">⚙</button>
         </div>
         <div className="fcontent">
 
