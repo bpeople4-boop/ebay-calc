@@ -454,7 +454,7 @@ ${fields.join(', ')}`;
     },
     body:JSON.stringify({
       model:'claude-haiku-4-5-20251001',
-      max_tokens:500,
+      max_tokens:1500,
       system:`You are an eBay listing assistant for vintage Japanese cameras.
 The confirmed eBay title is the primary source of truth. Extract Brand, Model, Color, and other specs from the title first. Use supplementary info only when the title alone is insufficient.
 Generate Item Specifics for eBay CSV upload based on the product info provided.
@@ -502,7 +502,9 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 - Type: Choose from: Binoculars, Monoculars, Spotting Scope
 - Application: Choose from: Astronomy, Birding, General Purpose, Hunting, Marine, Military, Opera Glasses. Default to "General Purpose" if unknown.
 - Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: Anti-Reflection Coating, Dustproof, Fogproof, Image Stabilization, Lightweight, Long Eye Relief, Night Vision, UV Protection, Waterproof, Water-Resistant, Weather Resistant, Wide-Field Lens, Zoom Lens. Comma-separated string.
-- Size: Choose from: Compact, Mid-Size, Full-Size. Infer from model specs if possible.`,
+- Size: Choose from: Compact, Mid-Size, Full-Size. Infer from model specs if possible.
+
+Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
       messages:[{role:'user',content:prompt}]
     })
   });
@@ -511,7 +513,10 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
   try{ data = raw ? JSON.parse(raw) : {}; }catch{}
   if(!res.ok) throw new Error(data.error?.message || data.error || `Anthropic request failed: ${res.status}`);
   const text = data.content?.[0]?.text || '';
-  const parsed = JSON.parse(text.replace(/```json|```/g,'').trim());
+  const cleaned = text.replace(/```json|```/g,'').trim();
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+  if(!jsonMatch) throw new Error('JSON not found in response');
+  const parsed = JSON.parse(jsonMatch[0]);
   return fields.reduce((acc,key)=>({...acc,[key]:parsed[key] || ''}),{});
 }
 
@@ -727,6 +732,7 @@ function App() {
     id,
     savedAt:new Date().toISOString(),
     label:`${brand} ${model}`.trim() || '（未入力）',
+    photos:photos.filter(p=>p.cloudinaryUrl).map(p=>({cloudinaryUrl:p.cloudinaryUrl})),
     pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
@@ -769,6 +775,7 @@ function App() {
     setItemSpecifics(draft.itemSpecifics ?? {});
     setHtml(draft.html ?? '');
     setFinalTitleConfirmed(!!draft.finalTitleConfirmed);
+    setPhotos((draft.photos||[]).map(p=>({url:p.cloudinaryUrl, cloudinaryUrl:p.cloudinaryUrl, uploading:false, error:false})));
     updateExtraIdRefFromDraft(draft);
     setTimeout(()=>setAppChoice(draft.appChoice ?? 'scuffs'),0);
   };
@@ -1075,130 +1082,6 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
     });
   };
 
-  const handleDownloadCsv = () => {
-    const CATEGORY_ID = {
-      'Film Camera':    '3115',
-      'Digital Camera': '31388',
-      'Movie Camera':   '11709',
-      'Camcorder':      '11724',
-      'Lens':           '3323',
-      'Binoculars':     '28179',
-    };
-
-    const esc = v => {
-      const s = String(v ?? '');
-      return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
-    };
-
-    const aiFields = ITEM_SPEC_FIELDS[pType] || [];
-
-    // eBay公式フォーマットのヘッダー（固定列）
-    const fixedHeaders = [
-      '*Action(SiteID=US|Country=US|Currency=USD|Version=1193)',
-      'Custom Label (SKU)',
-      'Category ID',
-      'Category Name',
-      'Title',
-      'Relationship',
-      'Relationship details',
-      'Schedule Time',
-      'P:UPC',
-      'P:EPID',
-      'Start price',
-      'Quantity',
-      'Item photo URL',
-      'VideoID',
-      'Condition ID',
-      'Description',
-      'Format',
-      'Duration',
-      'Buy It Now price',
-      'Best Offer Enabled',
-      'Best Offer Auto Accept Price',
-      'Minimum Best Offer Price',
-      'Immediate pay required',
-      'Location',
-      'Shipping profile name',
-      'Return profile name',
-      'Payment profile name',
-    ];
-
-    // Item SpecificsはC:プレフィックスをつける
-    const specHeaders = aiFields.map(k => 'C:' + k);
-
-    const headers = [...fixedHeaders, ...specHeaders];
-
-    // 写真URLをパイプ区切りで結合（最大12枚）
-    const picUrls = photos
-      .map(p => p.cloudinaryUrl || '')
-      .filter(u => u)
-      .slice(0, 12)
-      .join('|');
-
-    // 固定列の値
-    const fixedValues = [
-      'Add',           // Action
-      '',              // Custom Label (SKU)
-      CATEGORY_ID[pType] || '',  // Category ID
-      '',              // Category Name
-      ebayTitle,       // Title
-      '',              // Relationship
-      '',              // Relationship details
-      '',              // Schedule Time
-      'N/A',           // P:UPC
-      '',              // P:EPID
-      '',              // Start price
-      1,               // Quantity
-      picUrls,         // Item photo URL（パイプ区切り）
-      '',              // VideoID
-      '3000',          // Condition ID（Used）
-      html,            // Description
-      'FixedPrice',    // Format
-      'GTC',           // Duration
-      '',              // Buy It Now price
-      '',              // Best Offer Enabled
-      '',              // Best Offer Auto Accept Price
-      '',              // Minimum Best Offer Price
-      '',              // Immediate pay required
-      'Japan',         // Location
-      '',              // Shipping profile name
-      '',              // Return profile name
-      '',              // Payment profile name
-    ];
-
-    // Item Specificsの値
-    const specValues = aiFields.map(k => {
-      const val = itemSpecifics[k] || '';
-      // Features等の複数値項目はカンマ区切りをパイプ区切りに変換
-      if (k === 'Features' || k === 'Connectivity') {
-        return val.split(',').map(v => v.trim()).filter(Boolean).join('|');
-      }
-      return val;
-    });
-
-    const row = [...fixedValues, ...specValues];
-
-    // #INFO行（eBay公式フォーマットの必須ヘッダー）
-    const info1 = '#INFO\tCreated=';
-    const info2 = '#INFO\tVersion=1.0\t\t\tTemplate=fx_multi_category_template_EBAY_US';
-    const info3 = '#INFO';
-
-    // CSVはタブ区切りではなくカンマ区切りで出力
-    const csvRows = [
-      headers.map(esc).join(','),
-      row.map(esc).join(','),
-    ];
-
-    const csv = csvRows.join('\r\n');
-    const blob = new Blob([csv], {type: 'text/csv'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'listing_' + (ebayTitle || 'export').slice(0, 30).replace(/[^\w]/g, '_') + '.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   const handleFiles = async files => {
     const arr=[];
     for (const f of Array.from(files)) {
@@ -1240,15 +1123,10 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
       </button>
       {itemSpecError&&<div className="aapp" style={{color:'var(--red)',marginTop:8}}>{itemSpecError}</div>}
       {Object.keys(itemSpecifics).length>0&&(
-        <div className="sec" style={{marginTop:10,marginBottom:0}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
-            <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
-            <div style={{display:'flex',gap:7,alignItems:'center'}}>
-              {ebayTitle && Object.keys(itemSpecifics).length > 0 && (
-                <button className="btn bprim bsm" onClick={handleDownloadCsv}>⬇ CSV</button>
-              )}
+          <div className="sec" style={{marginTop:10,marginBottom:0}}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
+              <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
             </div>
-          </div>
           {getItemSpecEntries(pType).map(({ key:k, kind })=>(
             <div key={`${kind}:${k}`} style={{marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
@@ -1358,6 +1236,9 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             <div className="draft-list">
               {filteredDrafts.length ? filteredDrafts.map(d=>(
                 <div key={d.id} className="draft-row">
+                  {d.photos && d.photos[0] && (
+                    <img src={d.photos[0].cloudinaryUrl} alt="" style={{width:40,height:40,objectFit:'cover',borderRadius:4,marginRight:8,flexShrink:0}} />
+                  )}
                   <div className="draft-meta">
                     <div className="draft-label">{d.label || '（未入力）'}</div>
                     <div className="draft-date">{d.savedAt || ''}</div>
@@ -1434,6 +1315,40 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
 
           <div className="sec">
             <div className="sttl">基本情報</div>
+            <div className="dz"
+              onClick={() => fileRef.current.click()}
+              onDragOver={e => e.preventDefault()}
+              onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
+            >
+              <div style={{fontSize:24}}></div>
+              <div style={{marginTop:6, fontSize:12, color:'var(--mut)'}}>ドロップ or クリックで写真を追加</div>
+            </div>
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept="image/*"
+              style={{display:'none'}}
+              onChange={e => handleFiles(e.target.files)}
+            />
+            {photos.length > 0 && (
+              <div className="pgrid">
+                {photos.map((p, i) => (
+                  <div key={i} className="pthumb">
+                    <img src={p.url} alt="" />
+                    <div className="pidx">{i + 1}</div>
+                    <div style={{position:'absolute', top:4, right:4, fontSize:11, fontWeight:700, lineHeight:1}}>
+                      {p.uploading && <span style={{color:'var(--acc)'}}>{"\u2b06"}</span>}
+                      {!p.uploading && p.cloudinaryUrl && <span style={{color:'var(--blu)'}}>{"\u2601"}</span>}
+                      {!p.uploading && p.error && <span style={{color:'var(--red)'}}>{"\u26a0"}</span>}
+                    </div>
+                    <div className="pctrl">
+                      <button className="tgbtn" style={{fontSize:10, padding:'2px 5px'}} onClick={() => setPhotos(prev => prev.filter((_, j) => j !== i))}>{"\u2715"}</button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="input-label">Brand</div>
             <input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Canon / Nikon / Mamiya ..." />
             <div className="input-label">Model</div>
@@ -1577,7 +1492,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
       {/* ── Right panel ── */}
       <div className="rpanel">
         <div className="rtabs">
-          {[['html',' HTML'],['photos',' 写真加工']].map(([id,lbl])=>(
+          {[['html',' HTML']].map(([id,lbl])=>(
             <div key={id} className={`rtab ${rtab===id?'on':''}`} onClick={()=>setRtab(id)}>{lbl}</div>
           ))}
         </div>
@@ -1601,62 +1516,6 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                 ?<div className="hout">{html}</div>
                 :<div className="empty" style={{flex:1}}><div style={{fontSize:28,marginBottom:8}}>💻</div><h3>HTMLが未生成</h3><p style={{fontSize:11,marginTop:4}}>左のフォームを入力して<br/>「HTML生成」を押してください</p></div>
               }
-            </div>
-          )}
-
-          {rtab==='photos' && (
-            <div>
-              <div className="dz"
-                onClick={() => fileRef.current.click()}
-                onDragOver={e => e.preventDefault()}
-                onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
-              >
-                <div style={{fontSize:24}}></div>
-                <div style={{marginTop:6, fontSize:12, color:'var(--mut)'}}>
-                  {"\u30c9\u30ed\u30c3\u30d7 or \u30af\u30ea\u30c3\u30af\u3067\u5199\u771f\u3092\u8ffd\u52a0"}
-                </div>
-              </div>
-              <input
-                ref={fileRef}
-                type="file"
-                multiple
-                accept="image/*"
-                style={{display:'none'}}
-                onChange={e => handleFiles(e.target.files)}
-              />
-              {photos.length > 0 && (
-                <>
-                  <div style={{
-                    display:'flex', justifyContent:'flex-end',
-                    fontSize:11, color:'var(--mut)', margin:'8px 0 4px'
-                  }}>
-                    {"\u2601"} {photos.filter(p => p.cloudinaryUrl).length} / {photos.length} {"\u679a\u30a2\u30c3\u30d7\u30ed\u30fc\u30c9\u6e08\u307f"}
-                  </div>
-                  <div className="pgrid">
-                    {photos.map((p, i) => (
-                      <div key={i} className="pthumb">
-                        <img src={p.url} alt="" />
-                        <div className="pidx">{i + 1}</div>
-                        <div style={{
-                          position:'absolute', top:4, right:4,
-                          fontSize:11, fontWeight:700, lineHeight:1
-                        }}>
-                          {p.uploading && <span style={{color:'var(--acc)'}}>{"\u2b06"}</span>}
-                          {!p.uploading && p.cloudinaryUrl && <span style={{color:'var(--blu)'}}>{"\u2601"}</span>}
-                          {!p.uploading && p.error && <span style={{color:'var(--red)'}}>{"\u26a0"}</span>}
-                        </div>
-                        <div className="pctrl">
-                          <button
-                            className="tgbtn"
-                            style={{fontSize:10, padding:'2px 5px'}}
-                            onClick={() => setPhotos(prev => prev.filter((_, j) => j !== i))}
-                          >{"\u2715"}</button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
             </div>
           )}
 
