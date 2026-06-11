@@ -2113,7 +2113,25 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const [tab,      setTab]      = useState("active");
   const [activeListingTab, setActiveListingTab] = useState("unlinked");
   const [soldTab, setSoldTab] = useState("unlinked");
+  const [hiddenOrderIds, setHiddenOrderIds] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("hiddenOrderIds") || "[]"); } catch { return []; }
+  });
   const [toast, setToast] = useState("");
+
+  const hideOrder = (orderId) => {
+    setHiddenOrderIds(prev => {
+      const next = [...prev, orderId];
+      localStorage.setItem("hiddenOrderIds", JSON.stringify(next));
+      return next;
+    });
+  };
+  const unhideOrder = (orderId) => {
+    setHiddenOrderIds(prev => {
+      const next = prev.filter(id => id !== orderId);
+      localStorage.setItem("hiddenOrderIds", JSON.stringify(next));
+      return next;
+    });
+  };
 
   useEffect(() => {
     (async () => {
@@ -2387,7 +2405,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     if (i.ebaySynced && i.ebayOrderId) linkedItemByOrderId[i.ebayOrderId] = i;
   });
 
-  const pendingOrders = orders.filter(o => !linkedItemByOrderId[o.orderId]);
+  const pendingOrdersAll = orders.filter(o => !linkedItemByOrderId[o.orderId]);
+  const pendingOrders = pendingOrdersAll.filter(o => !hiddenOrderIds.includes(o.orderId));
+  const hiddenOrders = pendingOrdersAll.filter(o => hiddenOrderIds.includes(o.orderId));
   const linkedOrders  = orders.filter(o =>  linkedItemByOrderId[o.orderId]);
 
   // 候補: ebaySynced済みを除外
@@ -2815,6 +2835,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
               <div style={{ display:"flex", borderBottom:`1px solid ${C.border}`, marginBottom:4 }}>
                 <button style={tabS(soldTab==="unlinked")} onClick={()=>setSoldTab("unlinked")}>未紐付け（{pendingOrders.length}）</button>
                 <button style={tabS(soldTab==="linked")} onClick={()=>setSoldTab("linked")}>紐付け済み（{linkedOrders.length}）</button>
+                <button style={tabS(soldTab==="hidden")} onClick={()=>setSoldTab("hidden")}>非表示（{hiddenOrders.length}）</button>
               </div>
               {soldTab === "unlinked" && (
                 <TwoColumnLinker
@@ -2828,7 +2849,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                   left={pendingOrders.length === 0
                     ? <EmptyState>未紐づけの注文はありません</EmptyState>
                     : pendingOrders.map(order => (
-                      <OrderCard key={order.orderId} order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} />
+                      <div key={order.orderId} style={{ position:"relative" }}>
+                        <OrderCard order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} />
+                        <button onClick={(e)=>{ e.stopPropagation(); hideOrder(order.orderId); }} style={{ position:"absolute", top:6, right:6, fontSize:10, padding:"2px 6px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer", zIndex:2 }}>非表示</button>
+                      </div>
                     ))}
                   renderCandidate={item => {
                     const parsed = parseOrder(selectedOrder);
@@ -2850,6 +2874,16 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                 linkedOrders.length === 0
                   ? <EmptyState>まだ紐づけした注文はありません</EmptyState>
                   : <ScrollPane>{linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)}</ScrollPane>
+              )}
+              {soldTab === "hidden" && (
+                hiddenOrders.length === 0
+                  ? <EmptyState>非表示の注文はありません</EmptyState>
+                  : <ScrollPane>{hiddenOrders.map(order => (
+                    <div key={order.orderId} style={{ position:"relative" }}>
+                      <OrderCard order={order} linked={false} onApply={handleUnlink} />
+                      <button onClick={()=>unhideOrder(order.orderId)} style={{ position:"absolute", top:6, right:6, fontSize:10, padding:"2px 6px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer", zIndex:2 }}>復元</button>
+                    </div>
+                  ))}</ScrollPane>
               )}
             </div>
           )}
