@@ -2318,6 +2318,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       salePrice:          p.salePrice,
       saleShipping:       p.saleShipping,
       destination:        p.isUS ? "us" : "other",
+      ddpSurcharge:       p.isUS ? ddpCalc(p.salePrice).toFixed(2) : "0",
       ebayUrl:            appItem.ebayListingLinked ? appItem.ebayUrl : (p.itemId ? `https://www.ebay.com/itm/${p.itemId}` : appItem.ebayUrl),
       ebayTitle:          p.title,
       status:             "sold",
@@ -2452,6 +2453,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ebayListingLinked: true,
       status: "unsold",
       destination: "us",
+      ddpSurcharge: ddpCalc(listing.salePrice || appItem.salePrice).toFixed(2),
     };
     onApply(patch);
     setLocalItems(prev => prev.map(i => i.id === patch.id ? patch : i));
