@@ -3579,7 +3579,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave2}>
         <td style={{ padding:sz.pad, fontFamily:C.num, fontSize:11, color:C.muted, ...((indent || item.ebayListingLinked) ? { boxShadow:`inset 4px 0 0 ${item.ebayListingLinked ? C.green : C.accent}` } : {}) }}>
-          {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `#${item.managementNumber||"—"}`}
+          {selecting ? <input type="checkbox" checked={isChk} readOnly style={{ accentColor:C.accent, width:14, height:14 }}/> : `管理番号${item.managementNumber||"—"}`}
         </td>
         {sz.thumb > 0 && (
         <td style={{ padding:sz.imgPad, width:sz.tdW }} onClick={e=>{if(thumb){e.stopPropagation();setThumbLightbox(0);}}}>
