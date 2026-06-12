@@ -1801,7 +1801,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                 }} style={{ padding:"6px 10px", borderRadius:7, cursor:"pointer", display:"flex", gap:8, alignItems:"center", fontFamily:C.jp, fontSize:12, color:C.text, marginBottom:4, background:C.card }}
                   onMouseEnter={e=>e.currentTarget.style.background=C.accentLo}
                   onMouseLeave={e=>e.currentTarget.style.background=C.card}>
-                  <span style={{ color:C.muted, fontFamily:C.num, fontSize:11 }}>#{i.managementNumber}</span>
+                  <span style={{ color:C.muted, fontFamily:C.num, fontSize:11 }}>管理番号{i.managementNumber}</span>
                   <span style={{ flex:1, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{i.productName||"—"}</span>
                   <span style={{ color:C.muted, fontFamily:C.num, fontSize:11 }}>{yen(i.cost)}</span>
                 </div>
@@ -1813,7 +1813,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
           <div key={m.id} style={{ padding:"8px 10px", background:idx%2===0?C.bg:"transparent", borderRadius:8, marginBottom:4 }}>
             {/* 行1: 管理番号 | 商品名 | 原価 | 転送 */}
             <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:4 }}>
-              <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>#{m.managementNumber}</span>
+              <span style={{ color:C.muted, fontFamily:C.num, fontSize:11, flexShrink:0 }}>管理番号{m.managementNumber}</span>
               <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", flex:1, minWidth:0 }}>{m.name}</span>
               <div style={{ display:"flex", alignItems:"center", gap:4, flexShrink:0 }}>
                 <span style={{ color:C.muted, fontSize:10, fontFamily:C.jp }}>原価</span>
@@ -2566,7 +2566,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       <div style={{ padding:"10px 12px" }}>
         <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical", marginBottom:6 }}>{item.productName||item.ebayTitle||"—"}</div>
         <div style={{ display:"flex", gap:6, flexWrap:"wrap", alignItems:"center" }}>
-          <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
+          <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>管理番号{item.managementNumber}</span>
           <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{yen(item.cost)}</span>
           {matched && <span style={{ fontSize:10, color:C.green, background:"#fff", padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>✓ 一致</span>}
         </div>
@@ -2711,7 +2711,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontFamily:C.jp, fontSize:12, fontWeight:700, color:C.text, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:2, WebkitBoxOrient:"vertical" }}>{item.productName || item.ebayTitle || "Untitled"}</div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", marginTop:4 }}>
-            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>#{item.managementNumber}</span>
+            <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>管理番号{item.managementNumber}</span>
             {item.ebayTitle && <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted, maxWidth:260, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.ebayTitle}</span>}
             {item.salePrice && <span style={{ fontFamily:C.num, fontSize:11, color:C.accent, fontWeight:700 }}>${item.salePrice}</span>}
           </div>
@@ -3601,7 +3601,8 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             {(()=>{ const w=getStatusWarnings(item); return w.length>0 ? <div title={w.join(" / ")} style={{ display:"inline-block", marginTop:3, fontSize:10, color:"#d97706", background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:4, padding:"1px 6px", cursor:"default" }}>⚠️ {w.join(" / ")}</div> : null; })()}
               {(() => {
                 const subText = item.ebaySynced ? (item.ebayOrderId || item.auctRevoId) : item.auctRevoId;
-                return subText ? <div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>#{subText}</div> : null;
+                const subLabel = item.ebaySynced && item.ebayOrderId ? "注文番号" : "管理番号";
+                return subText ? <div style={{ fontFamily:C.num, fontSize:11, color:C.muted, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap", marginTop:2 }}>{subLabel}{subText}</div> : null;
               })()}
               {(()=>{
                 const isSold = item.status==="sold"||item.status==="returned";
