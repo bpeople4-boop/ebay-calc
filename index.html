@@ -2849,9 +2849,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                   left={pendingOrders.length === 0
                     ? <EmptyState>未紐づけの注文はありません</EmptyState>
                     : pendingOrders.map(order => (
-                      <div key={order.orderId} style={{ position:"relative" }}>
-                        <OrderCard order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} />
-                        <button onClick={(e)=>{ e.stopPropagation(); hideOrder(order.orderId); }} style={{ position:"absolute", top:6, right:6, fontSize:10, padding:"2px 6px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer", zIndex:2 }}>非表示</button>
+                      <div key={order.orderId} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
+                        <div style={{ flex:1, minWidth:0 }}><OrderCard order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} /></div>
+                        <button onClick={(e)=>{ e.stopPropagation(); hideOrder(order.orderId); }} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>非表示</button>
                       </div>
                     ))}
                   renderCandidate={item => {
@@ -2879,9 +2879,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                 hiddenOrders.length === 0
                   ? <EmptyState>非表示の注文はありません</EmptyState>
                   : <ScrollPane>{hiddenOrders.map(order => (
-                    <div key={order.orderId} style={{ position:"relative" }}>
-                      <OrderCard order={order} linked={false} onApply={handleUnlink} />
-                      <button onClick={()=>unhideOrder(order.orderId)} style={{ position:"absolute", top:6, right:6, fontSize:10, padding:"2px 6px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer", zIndex:2 }}>復元</button>
+                    <div key={order.orderId} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
+                      <div style={{ flex:1, minWidth:0 }}><OrderCard order={order} linked={false} onApply={handleUnlink} /></div>
+                      <button onClick={()=>unhideOrder(order.orderId)} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>復元</button>
                     </div>
                   ))}</ScrollPane>
               )}
