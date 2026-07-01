@@ -429,10 +429,11 @@ function calcFull(item, overrideCost = null) {
   const totalFee  = ebayBase + promoFee;
   const usedCost  = overrideCost ?? (+cost + +storageShipping);
   // DDP実費が入力済みならそちらを使用、なければDDP上乗せ×為替で概算
+  const hasActualDdp = actualDdpFee !== "" && actualDdpFee != null;
   const ddpCostJPY = destination === "us"
-    ? (+actualDdpFee ? +actualDdpFee : +ddpSurcharge * +exchangeRate)
+    ? (hasActualDdp ? +actualDdpFee : +ddpSurcharge * +exchangeRate)
     : 0;
-  const isActualDdp = !!+actualDdpFee;
+  const isActualDdp = hasActualDdp;
   const refundJPY = refundType !== "none" && +refundUSD ? +refundUSD * (+refundExchangeRate || +exchangeRate) : 0;
   const retShipJPY = +returnShippingJPY || 0;
   const profitJPY = totalJPY - totalFee - usedCost - +intlShipping - ddpCostJPY - refundJPY - retShipJPY;
