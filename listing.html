@@ -338,7 +338,7 @@ function genHTML(d) {
   const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
   const noteLines = [];
   if(noCharger) noteLines.push('*Battery charger is not included.');
-  const noteH = noteLines.length ? `<div style="color:rgb(255,0,16);">${noteLines.join('<br>\n')}</div>` : '';
+  const noteH = noteLines.length ? `<div style="color:#000000;">${noteLines.join('<br>\n')}</div>` : '';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
 
   return `<meta charset="utf-8">
@@ -380,7 +380,7 @@ function genHTML(d) {
   </section>
   <section class="product_dec">
     <h3>Bundled Items</h3>
-    <div><font color="#000000">${bH}</font><br><br></div>
+    <div><font color="#000000">${bH}</font><br></div>
     ${noteH}
     All you can see on the picture will be included in a set of a package.<br><br>
     Please refer to the pictures for more details.<br>
