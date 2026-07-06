@@ -203,7 +203,7 @@ const BUNDLE_LIST = [
   'Battery','Battery Charger','Remote Control',
   'Manual','Mini-Tripod','CD','USB Cable',
   'AV Cable','S-Video Cable','AC Adapter',
-  'HDMI Cable','Mini HDMI Cable','Micro HDMI Cable'
+  'HDMI Cable','Mini HDMI Cable','Micro HDMI Cable','SD Card'
 ];
 
 const API_KEY_STORAGE_KEY = 'anthropic_api_key';
@@ -308,7 +308,7 @@ function buildOpSection(op, type, showBalsam, extra) {
 }
 
 function genHTML(d) {
-  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noSdCard,noCharger,lensOpen=true,finderOpen=true} = d;
+  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlConditionMap = {
     "Exc+5": "EXCELLENT+++++",
@@ -337,8 +337,7 @@ function genHTML(d) {
   const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
   const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
   const noteLines = [];
-  if(noSdCard) noteLines.push('*SD card is NOT included.');
-  if(noCharger) noteLines.push('*Battery charger is NOT included.');
+  if(noCharger) noteLines.push('*Battery charger is not included.');
   const noteH = noteLines.length ? `<div style="color:rgb(255,0,16);">${noteLines.join('<br>\n')}</div>` : '';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
 
@@ -676,7 +675,6 @@ function App() {
   const [finJp, setFinJp] = useState('');
   const [funcJp, setFuncJp] = useState('');
   const [bundles,setBundles]=useState([]);
-  const [noSdCard,setNoSdCard]=useState(false);
   const [noCharger,setNoCharger]=useState(false);
   const [ebayTitle,setEbayTitle]=useState('');
   const [titleCandidates,setTitleCandidates]=useState([]);
@@ -741,7 +739,7 @@ function App() {
     label:`${brand} ${model}`.trim() || '（未入力）',
     photos:photos.filter(p=>p.cloudinaryUrl).map(p=>({cloudinaryUrl:p.cloudinaryUrl})),
     pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
-    funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noSdCard,noCharger,ebayTitle,titleCandidates,finalTitleInput,
+    funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
   });
 
@@ -769,7 +767,6 @@ function App() {
     setFinExtras(draft.finExtras ?? []);
     setFuncExtras(draft.funcExtras ?? []);
     setBundles(draft.bundles ?? []);
-    setNoSdCard(draft.noSdCard ?? false);
     setNoCharger(draft.noCharger ?? false);
     setEbayTitle(draft.ebayTitle ?? '');
     setTitleCandidates(draft.titleCandidates ?? []);
@@ -1042,7 +1039,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
-      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noSdCard,noCharger,lensOpen,finderOpen}));
+      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
 
@@ -1491,13 +1488,9 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                   <span className="bilbl">{n}</span>
                 </div>
               ))}
-              <div className={`bi ${noSdCard?'on':''}`} onClick={()=>setNoSdCard(p=>!p)}>
-                <input type="checkbox" readOnly checked={noSdCard} />
-                <span className="bilbl">SD Card (NOT included)</span>
-              </div>
               <div className={`bi ${noCharger?'on':''}`} onClick={()=>setNoCharger(p=>!p)}>
                 <input type="checkbox" readOnly checked={noCharger} />
-                <span className="bilbl">Battery Charger (NOT included)</span>
+                <span className="bilbl">No Charger</span>
               </div>
             </div>
           </div>
