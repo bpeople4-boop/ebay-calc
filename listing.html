@@ -185,6 +185,16 @@ const TYPES = ['Film Camera','Digital Camera','Movie Camera','Camcorder','Lens',
 const CONDITIONS = ['Top MINT','MINT','Near MINT','Exc+5','Exc+4','Exc+3','AS-IS / For parts or repair'];
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
+const WATCH_MODIFIERS = [
+  {key:'none',label:'なし'},{key:'vintage',label:'Vintage'},{key:'vintageYear',label:'Vintage [年代]'},
+  {key:'rare',label:'Rare'},{key:'rareVintage',label:'Rare Vintage'},
+];
+const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','Digital'];
+const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
+const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
+const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra Belt(s)','Chain','Watch Winder'];
+const WATCH_ITEM_SPEC_FIELDS = ['Brand','Department','Model','Reference Number','Movement','Case Material','Case Size','Case Color','Dial Color','Band Material','Band Color','Water Resistance','Features','Country/Region of Manufacture','Year Manufactured','Type'];
+const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}));
 
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
@@ -268,6 +278,8 @@ const ITEM_SPEC_ORDER = {
 
 const getItemSpecEntries = type =>
   ITEM_SPEC_ORDER[type] || (ITEM_SPEC_FIELDS[type] || []).map(key => ({ key, kind:'AI' }));
+
+const getWatchItemSpecEntries = () => WATCH_ITEM_SPEC_ORDER;
 
 const initOp = () => ({
   fungus:'none',fungusNote:'',haze:'none',hazeNote:'',
@@ -435,16 +447,42 @@ async function uploadToCloudinary(base64) {
   const data = await res.json();
   return data.secure_url;
 }
+
+function genWatchHTML(d) {
+  const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const extraLines = extras => extras.filter(x=>x.en.trim()).map(x=>esc(x.en.trim())).join('<br>\n');
+  const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice];
+  const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
+  const cm=parseFloat(d.wBeltSizeCm);
+  const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
+  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:12px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
+  const bundleLines=d.wBundles.map(x=>`-${esc(x)}`).join('<br>\n');
+  return `<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+.wt-main{word-break:break-word;max-width:100%;background:#FFF;border:1px solid #D9D9D9;padding:0 24px 34px;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A;box-sizing:border-box}.wt-main h1{font-weight:700;font-size:20px!important;letter-spacing:1px;margin:0;padding:34px 0 22px;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9}.wt-crest{text-align:center;padding-top:26px}.wt-crest .dot,.wt-divider .dot{display:inline-block;border-radius:50%}.wt-crest .dot{width:6px;height:6px;border:1px solid #0A0A0A}.wt-crest .line,.wt-divider .line{display:inline-block;height:1px;vertical-align:middle}.wt-crest .line{width:60px;background:#D9D9D9;margin:0 10px}.wt-trust-wrap{padding:4px 30px 26px;display:flex;justify-content:center}.wt-trust-box{border:1px solid #D9D9D9;border-top:3px solid #2E7D32;border-radius:4px;padding:16px;display:flex;align-items:center;gap:16px;max-width:100%;box-sizing:border-box}.wt-trust-text{display:flex;flex-direction:column;gap:4px}.wt-trust-title{font-size:15px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#2E7D32}.wt-trust{display:flex;flex-wrap:wrap;gap:4px 14px}.wt-trust-item{font-size:12px;letter-spacing:.3px;white-space:nowrap}.wt-trust-item:before{content:"\\2713";margin-right:3px;font-weight:700;color:#2E7D32}.wt-medal{position:relative;width:58px;height:58px;flex-shrink:0}.wt-medal-ring{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#F5D97A 0%,#D4A93A 45%,#9C7A1F 100%);box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.6),inset 0 -2px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}.wt-medal-face{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#4CAF50 0%,#2E7D32 55%,#1B5E20 100%);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05}.wt-medal-face span{color:#fff;font-size:8.5px;font-weight:800}.wt-medal-ribbon{position:absolute;top:46px;left:50%}.wt-medal-ribbon .tail{position:absolute;width:10px;height:16px;background:#2E7D32;top:0;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%)}.wt-medal-ribbon .left{left:-13px}.wt-medal-ribbon .right{left:3px;background:#256428}.wt-hdr{margin:30px 0 18px}.wt-hdr img,.wt-main img{max-width:100%;display:block;object-fit:cover}.wt-main h3{position:relative;font-weight:700;font-size:12px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase}.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}.wt-price-note{font-weight:700;font-size:16px!important;letter-spacing:.5px!important;text-align:center!important;color:#3A3A3A!important}.wt-body{padding:0 30px 18px}.wt-main p{margin:0;padding:0 10px 18px;font-size:14px;line-height:1.7}.wt-emph{color:#0A0A0A;font-weight:700}.wt-main table{border-collapse:collapse;width:100%!important;font-size:14px;margin-bottom:10px}.wt-main table tr{background:#F7F7F7}.wt-main table tr:first-of-type{background:#0A0A0A;color:#FFF}.wt-main th,.wt-main td{padding:8px 10px;border:1px solid #E5E5E5;font-size:13px;letter-spacing:.3px}.wt-main th{text-transform:uppercase;font-size:11px;letter-spacing:1px}.wt-divider{text-align:center;padding:18px 0}.wt-divider .dot{width:4px;height:4px;background:#B0B0B0}.wt-divider .line{width:40px;background:#E5E5E5;margin:0 8px}.wt-footer-note{font-size:11px!important;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center}
+</style><div class="wt-main">
+<div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div><h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
+<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div><section><p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p><div class="wt-body"><p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p><p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p></div></section>
+<div class="wt-trust-wrap"><div class="wt-trust-box"><div class="wt-medal"><div class="wt-medal-ring"><div class="wt-medal-face"><span>TOP<br>RATED</span></div></div><div class="wt-medal-ribbon"><div class="tail left"></div><div class="tail right"></div></div></div><div class="wt-trust-text"><div class="wt-trust-title">eBay Top Rated Seller</div><div class="wt-trust"><span class="wt-trust-item">202 Transactions</span><span class="wt-trust-item">$54,800+ in Sales</span><span class="wt-trust-item">0.00% Defect Rate</span><span class="wt-trust-item">100% On-Time Tracking</span></div></div></div></div>
+<div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818041/h5_description_duhsvg.png" alt="Description"></div><div class="wt-body"><table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table><h3>Appearance</h3><p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p><p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p><p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p><h3>Belt Size</h3><p>${beltSize}</p><h3>Functional</h3><p>${functional}</p><h3>Bundled Items</h3>${bundleLines?`<p>${bundleLines}</p>`:''}<p>All items shown in the photos are included in the package.<br>Please check the photos carefully for the condition and accessories.<br>Feel free to contact us if you have any questions.</p></div>
+${watchStaticSections()}
+</div>`;
+}
+
+function watchStaticSections(){return `<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_payment_lngnbc.png" alt="Payment"></div><div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment Method"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_shipping_gu3kkm.png" alt="Shipping"></div><div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL or UPS or EMS</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay. Please note that we cannot ship to addresses that are not registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_storage-and-packing_qarogt.png" alt="Storage & Packing"></div><div class="wt-body"><p>All products are carefully cleaned and disinfected before shipping.</p><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_returns_nv41c2.png" alt="Returns"></div><div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>I have an unconditional return policy if notified within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_international-buyers_qztdg0.png" alt="International Buyers"></div><div class="wt-body"><p><span class="wt-emph">&lt; For United States Buyers &gt;</span><br>Import duties and taxes are included in our shipping price (Delivered Duty Paid, DDP).<br>You will not be charged any additional fees on delivery.<br>If you are mistakenly asked to pay duties, please contact us first and do not pay — we will handle it with the carrier.<br>Please note that state sales tax may still be collected by eBay at checkout depending on the destination state.</p><p><span class="wt-emph">&lt; For Buyers Outside the United States &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility and may vary by country.<br>Please check with your local customs office for more details before purchasing.</p></div><p class="wt-footer-note">Thank you for viewing this listing</p>`;}
 // ── OpBox ──
-async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle}) {
+async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender=''}) {
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
   if(!apiKey) throw new Error('Anthropic API key is not set.');
-  const fields = ITEM_SPEC_FIELDS[pType] || [];
+  const fields = isWatch ? WATCH_ITEM_SPEC_FIELDS : (ITEM_SPEC_FIELDS[pType] || []);
   const prompt = `Confirmed eBay title (primary source): ${ebayTitle || ''}
 Product type: ${pType}
 Condition: ${cond || ''}
 Accessories: ${bundles.length ? bundles.join(', ') : 'none'}
 Supplementary info (use only if not inferrable from title) - Brand: ${brand || ''}, Model: ${model || ''}, Color: ${color || ''}
+${isWatch ? `Reference Number: ${wRefNumber || ''}\nDepartment: ${wGender || ''}\nMovement: ${wMovement || ''}` : ''}
 
 Return JSON with exactly these keys:
 ${fields.join(', ')}`;
@@ -460,7 +498,7 @@ ${fields.join(', ')}`;
     body:JSON.stringify({
       model:'claude-haiku-4-5-20251001',
       max_tokens:1500,
-      system:`You are an eBay listing assistant for vintage Japanese cameras.
+      system:`You are an eBay listing assistant for vintage Japanese cameras and wristwatches.
 The confirmed eBay title is the primary source of truth. Extract Brand, Model, Color, and other specs from the title first. Use supplementary info only when the title alone is insufficient.
 Generate Item Specifics for eBay CSV upload based on the product info provided.
 Return ONLY valid JSON with exactly the keys requested. No explanation, no markdown.
@@ -508,6 +546,14 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 - Application: Choose from: Astronomy, Birding, General Purpose, Hunting, Marine, Military, Opera Glasses. Default to "General Purpose" if unknown.
 - Features: Choose ONLY features you are 100% certain this specific model has. Do NOT guess or infer. If unsure, omit. When in doubt, leave blank. Choose from: Anti-Reflection Coating, Dustproof, Fogproof, Image Stabilization, Lightweight, Long Eye Relief, Night Vision, UV Protection, Waterproof, Water-Resistant, Weather Resistant, Wide-Field Lens, Zoom Lens. Comma-separated string.
 - Size: Choose from: Compact, Mid-Size, Full-Size. Infer from model specs if possible.
+
+${isWatch ? `=== Wristwatch rules ===
+- Output all values in English.
+- Department：wGender の値（${wGender || ''}）をそのまま使う。
+- Movement：wMovement の値（${wMovement || ''}）を参考にしつつ、eBay表記に合わせる。Automaticはそのまま、Hand-windingはManual表記が一般的ならそちらを優先してよい。
+- Country/Region of Manufacture：ブランド名から推定してよい。RADO / Longines / TAG Heuer / Bulgari（時計部門）/ Oris は Switzerland、SEIKO は Japan、Gucci / Fendi は Italy、Dior / Hermès は France。不明な場合は空欄のままでよい。
+- Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
+- その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。` : ''}
 
 Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
       messages:[{role:'user',content:prompt}]
@@ -557,6 +603,31 @@ function buildTitleAuto({cond, specials, withItems, color, snType, snValue, bran
     if(title.length <= 80) return title;
   }
   return makeTitle(steps[steps.length - 1]);
+}
+
+function buildWatchTitleAuto(d) {
+  const modifier = {
+    vintage:'Vintage', vintageYear:`Vintage ${d.wModifierYear.trim()}`,
+    rare:'Rare', rareVintage:'Rare Vintage', none:''
+  }[d.wModifier] || '';
+  const slots = d.wVariableSlots.split(',').map(x=>x.trim()).filter(Boolean);
+  const makeTitle = ({shortMovement=false,slotCount=slots.length,keepAccessories=true}={}) => {
+    const condition = keepAccessories && d.wAccessories.length
+      ? `${d.cond} w/${d.wAccessories.join(', ')}` : d.cond;
+    const movement = shortMovement
+      ? ({Quartz:'Qz',Automatic:'Auto'}[d.wMovement] || d.wMovement) : d.wMovement;
+    return [modifier,condition,d.brand.trim(),d.model.trim(),d.wRefNumber.trim(),
+      ...slots.slice(0,slotCount),movement,d.wGender,'Watch'].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
+  };
+  let title=makeTitle();
+  if(title.length<=80) return title;
+  title=makeTitle({shortMovement:true});
+  if(title.length<=80) return title;
+  for(let count=slots.length-1;count>=0;count--) {
+    title=makeTitle({shortMovement:true,slotCount:count});
+    if(title.length<=80) return title;
+  }
+  return makeTitle({shortMovement:true,slotCount:0,keepAccessories:false});
 }
 
 function highlightTitle(title) {
@@ -655,6 +726,8 @@ function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat}) {
 
 function App() {
   const [rtab,setRtab]=useState('html');
+  const [category,setCategory]=useState('camera');
+  const isWatch=category==='watch';
 
   const [pType,setPType]=useState('Film Camera');
   const [cond,setCond]=useState('Near MINT');
@@ -687,6 +760,22 @@ function App() {
   const [snValue,setSnValue]=useState('');
   const [brand,setBrand]=useState('');
   const [model,setModel]=useState('');
+  const [wModifier,setWModifier]=useState('none');
+  const [wModifierYear,setWModifierYear]=useState('');
+  const [wRefNumber,setWRefNumber]=useState('');
+  const [wVariableSlots,setWVariableSlots]=useState('');
+  const [wMovement,setWMovement]=useState('Quartz');
+  const [wGender,setWGender]=useState("Women's");
+  const [wAccessories,setWAccessories]=useState([]);
+  const [wSerial,setWSerial]=useState('');
+  const [wCaseChoice,setWCaseChoice]=useState('scuffs');
+  const [wCaseExtras,setWCaseExtras]=useState([]);
+  const [wBeltChoice,setWBeltChoice]=useState('scuffs');
+  const [wBeltExtras,setWBeltExtras]=useState([]);
+  const [wCrystalExtras,setWCrystalExtras]=useState([]);
+  const [wBeltSizeCm,setWBeltSizeCm]=useState('');
+  const [wFuncDef,setWFuncDef]=useState(true);
+  const [wBundles,setWBundles]=useState([]);
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -714,8 +803,14 @@ function App() {
     else if(cond==='Near MINT') setAppChoice('scuffs');
     else setAppChoice('signs');
   },[cond]);
+  useEffect(()=>{
+    const choice=['Top MINT','MINT'].includes(cond)?'beautiful':cond==='Near MINT'?'scuffs':'signs';
+    setWCaseChoice(choice); setWBeltChoice(choice);
+  },[cond]);
 
   const toggleBundle=n=>setBundles(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n]);
+  const toggleWatchAccessory=n=>setWAccessories(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n]);
+  const toggleWatchBundle=n=>setWBundles(p=>p.includes(n)?p.filter(x=>x!==n):[...p,n]);
   const toggleSpecial=s=>setSpecials(p=>p.includes(s)?p.filter(x=>x!==s):[...p,s]);
   const toggleWith=w=>setWithItems(p=>p.includes(w)?p.filter(x=>x!==w):[...p,w]);
   const toggleSnType=t=>{ setSnType(p=>p===t?'':t); setSnValue(''); };
@@ -739,18 +834,21 @@ function App() {
     savedAt:new Date().toISOString(),
     label:`${brand} ${model}`.trim() || '（未入力）',
     photos:photos.filter(p=>p.cloudinaryUrl).map(p=>({cloudinaryUrl:p.cloudinaryUrl})),
-    pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
+    category,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
+    wModifier,wModifierYear,wRefNumber,wVariableSlots,wMovement,wGender,wAccessories,wSerial,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wBundles,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
-    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[])]
+    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[]),...(draft.wCaseExtras||[]),...(draft.wBeltExtras||[]),...(draft.wCrystalExtras||[])]
       .reduce((m,x)=>Math.max(m, Number(x.id)||0), 0);
     extraIdRef.current=Math.max(extraIdRef.current, maxId + 1);
   };
 
   const applyDraft=draft=>{
+    setCategory(draft.category ?? 'camera');
     setPType(draft.pType ?? 'Film Camera');
     setCond(draft.cond ?? 'Near MINT');
     setSerialBody(draft.serialBody ?? '');
@@ -779,12 +877,21 @@ function App() {
     setSnValue(draft.snValue ?? '');
     setBrand(draft.brand ?? '');
     setModel(draft.model ?? '');
+    setWModifier(draft.wModifier ?? 'none'); setWModifierYear(draft.wModifierYear ?? '');
+    setWRefNumber(draft.wRefNumber ?? ''); setWVariableSlots(draft.wVariableSlots ?? '');
+    setWMovement(draft.wMovement ?? 'Quartz'); setWGender(draft.wGender ?? "Women's");
+    setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
+    setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
+    setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
+    setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? '');
+    setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
     setHtml(draft.html ?? '');
     setFinalTitleConfirmed(!!draft.finalTitleConfirmed);
     setPhotos((draft.photos||[]).map(p=>({url:p.cloudinaryUrl, cloudinaryUrl:p.cloudinaryUrl, uploading:false, error:false})));
     updateExtraIdRefFromDraft(draft);
     setTimeout(()=>setAppChoice(draft.appChoice ?? 'scuffs'),0);
+    setTimeout(()=>{setWCaseChoice(draft.wCaseChoice ?? 'scuffs');setWBeltChoice(draft.wBeltChoice ?? 'scuffs');},0);
   };
 
   const handleSave=()=>{
@@ -800,6 +907,7 @@ function App() {
   };
 
   const handleClear=()=>{
+    setCategory('camera');
     setPType('Film Camera');
     setCond('Near MINT');
     setSerialBody('');
@@ -827,6 +935,10 @@ function App() {
     setSnValue('');
     setBrand('');
     setModel('');
+    setWModifier('none'); setWModifierYear(''); setWRefNumber(''); setWVariableSlots('');
+    setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
+    setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
+    setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]);
     setPhotos([]);
     setItemSpecifics({});
     setHtml('');
@@ -868,7 +980,9 @@ function App() {
       setTitleCandidates(['Brand and Model are required.']);
       return;
     }
-    const title=buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
+    const title=isWatch
+      ? buildWatchTitleAuto({cond,brand,model,wModifier,wModifierYear,wRefNumber,wVariableSlots,wMovement,wGender,wAccessories})
+      : buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
     setTitleCandidates([title]);
   };
 
@@ -1040,7 +1154,9 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
-      setHtml(genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
+      setHtml(isWatch
+        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wBundles})
+        : genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
 
@@ -1052,7 +1168,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setItemSpecBusy(true);
     setItemSpecError('');
     try{
-      const specs=await generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle});
+      const specs=await generateItemSpecifics({pType,brand,model,cond,color,bundles:isWatch?wBundles:bundles,ebayTitle,isWatch,wRefNumber,wMovement,wGender});
       setItemSpecifics(specs);
     }catch(e){
       setItemSpecError(e.message || 'Item Specifics generation failed.');
@@ -1135,7 +1251,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:8}}>
               <div className="sttl" style={{marginBottom:0}}>Item Specifics</div>
             </div>
-          {getItemSpecEntries(pType).map(({ key:k, kind })=>(
+          {(isWatch ? getWatchItemSpecEntries() : getItemSpecEntries(pType)).map(({ key:k, kind })=>(
             <div key={`${kind}:${k}`} style={{marginBottom:8}}>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                 <div className="input-label" style={{marginTop:0}}>{k}</div>
@@ -1284,11 +1400,19 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
         <div className="fcontent">
 
           <div className="sec">
+            <div className="sttl">カテゴリー</div>
+            <div className="tgrid" style={{gridTemplateColumns:'repeat(2,1fr)'}}>
+              <div className={`tbtn ${!isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('camera')}>📷 カメラ</div>
+              <div className={`tbtn ${isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('watch')}>⌚ 腕時計</div>
+            </div>
+          </div>
+
+          {!isWatch&&<div className="sec">
             <div className="sttl">商品タイプ</div>
             <div className="tgrid">
               {TYPES.map(t=><div key={t} className={`tbtn ${pType===t?'on':''}`} onClick={()=>{setPType(t);setBundles([]);}}>{t}</div>)}
             </div>
-          </div>
+          </div>}
 
           <div className="sec">
             <div className="sttl">コンディション</div>
@@ -1297,6 +1421,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             </div>
           </div>
 
+          {!isWatch&&<>
           <div className="sec">
             <div className="sttl">基本情報</div>
             <div className="dz"
@@ -1495,6 +1620,34 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
               </div>
             </div>
           </div>
+          </>}
+
+          {isWatch&&<>
+            <div className="sec">
+              <div className="sttl">腕時計 基本情報</div>
+              <div className="input-label">先頭修飾語</div><div className="chklist">{WATCH_MODIFIERS.map(x=><div key={x.key} className={`chkbtn ${wModifier===x.key?'on':''}`} onClick={()=>setWModifier(x.key)}><span className="dot" />{x.label}</div>)}</div>
+              {wModifier==='vintageYear'&&<input type="text" value={wModifierYear} onChange={e=>setWModifierYear(e.target.value)} placeholder="1970s" style={{marginTop:7}} />}
+              <div className="input-label">Brand</div><input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="RADO / SEIKO / Longines ..." />
+              <div className="input-label">Line / SubModel</div><input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="DiaStar" />
+              <div className="input-label">Reference Number</div><input type="text" value={wRefNumber} onChange={e=>setWRefNumber(e.target.value)} />
+              <div className="input-label">可変枠（カンマ区切り）</div><input type="text" value={wVariableSlots} onChange={e=>setWVariableSlots(e.target.value)} placeholder="28mm, Gold Dial, Water Resistant" />
+              <div className="input-label">Movement</div><div className="chklist">{WATCH_MOVEMENTS.map(x=><div key={x} className={`chkbtn ${wMovement===x?'on':''}`} onClick={()=>setWMovement(x)}><span className="dot" />{x}</div>)}</div>
+              <div className="input-label">Gender</div><div className="chklist">{WATCH_GENDERS.map(x=><div key={x} className={`chkbtn ${wGender===x?'on':''}`} onClick={()=>setWGender(x)}><span className="dot" />{x}</div>)}</div>
+              <div className="input-label">Accessories（タイトル w/）</div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
+              <div className="input-label">Serial Number</div><input type="text" value={wSerial} onChange={e=>setWSerial(e.target.value)} />
+              <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>タイトルを組み立てる</button>
+              {titleTools}
+              <div className="input-label">確定タイトル入力欄</div><div className="final-title-box"><div className="spec-input-wrap" style={{flex:1,minWidth:0}}><input type="text" value={finalTitleInput} onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}} style={{borderColor:'var(--acc)'}}/><button type="button" className={`spec-copy-btn ${finalTitleCopied?'done':''}`} onClick={handleCopyFinalTitle}>{finalTitleCopied?'✓':'⧉'}</button></div><button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button></div>
+            </div>
+            <div className="sec"><div className="sttl">Appearance</div>
+              <div className="input-label">Case</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wCaseChoice===x?'on':''}`} onClick={()=>setWCaseChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)}/>
+              <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)}/>
+              <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)}/>
+            </div>
+            <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
+            <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div></div>
+            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}</span></div>)}</div></div>
+          </>}
 
         </div>
       </div>
