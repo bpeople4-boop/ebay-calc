@@ -1913,9 +1913,27 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
                   )}
                 </>
               : <div>
-                  <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）</span>
-                  <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
-                  <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}>🌐 DDU発送 — 送料無料</div>
+                  <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                    <span style={{...lblS(), display:"flex", alignItems:"center", gap:4}}>落札送料（$）</span>
+                    {!form.ebaySynced && (
+                      <label style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, fontFamily:C.jp, color:C.muted, cursor:"pointer" }}>
+                        <input type="checkbox" checked={!!form.chargeShipping}
+                          onChange={e => {
+                            const checked = e.target.checked;
+                            setForm(p => ({ ...p, chargeShipping: checked, ...(checked ? {} : { saleShipping: "0" }) }));
+                          }} />
+                        送料を入れる
+                      </label>
+                    )}
+                  </div>
+                  {!form.ebaySynced && form.chargeShipping ? (
+                    <input style={inpS({ background:linkBg })} type="text" inputMode="decimal" placeholder="0.00" value={form.saleShipping??""} onChange={set("saleShipping")} />
+                  ) : (
+                    <>
+                      <input style={inpS({ background:linkBg || "#f0f4f0", color:C.green, fontWeight:700, cursor:"not-allowed" })} type="text" value="Free Shipping" readOnly />
+                      <div style={{ color:C.green, fontSize:10, fontFamily:C.jp, marginTop:3 }}> DDU発送 — 送料無料</div>
+                    </>
+                  )}
                 </div>
             }
           </div>
