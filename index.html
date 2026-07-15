@@ -1102,7 +1102,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : { saleShipping: ddpCalc(p.salePrice).toFixed(2) }),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice).toFixed(2), chargeShipping: false }),
               }));
             }}>
               <option value="other">その他</option>
@@ -1952,7 +1952,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0" } : { saleShipping: ddpCalc(p.salePrice).toFixed(2) }),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice).toFixed(2), chargeShipping: false }),
               }));
             }}>
               <option value="other">その他</option>
