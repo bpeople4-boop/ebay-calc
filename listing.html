@@ -202,7 +202,7 @@ const WATCH_CASE_PRESETS = [
 ];
 const WATCH_CRYSTAL_PRESETS = [
   {label:'風防内側汚れ', jp:'風防の内側に汚れがあります。', en:'The inside of the windshield is dirty.'},
-  {label:'位置指定の傷', jp:'全体的にクリアですが、表面に軽い傷があります。指定位置にごく僅かな傷がありますが目立ちません。', en:"Clear overall with minor surface scratches. There is a very slight scratch at the [X] o'clock position, but it is not noticeable."},
+  {label:'位置指定の傷', jp:'全体的にクリアですが、表面に軽い傷があります。{POS}時位置にごく僅かな傷がありますが目立ちません。', en:"Clear overall with minor surface scratches. There is a very slight scratch at the {POS} o'clock position, but it is not noticeable.", needsPosition:true},
 ];
 const WATCH_BELT_PRESETS = [
   {label:'ベルト交換推奨', jp:'ベルトはお好みのものへの交換をおすすめします。', en:'We recommend replacing the strap with one of your choice.'},
@@ -821,7 +821,21 @@ function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat,presets,onAddPreset}
     <div className="extra-list">
       {presets && presets.length>0 && (
         <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:6}}>
-          {presets.map((p,i)=><div key={i} className="tbtn" style={{fontSize:11,padding:'5px 8px'}} onClick={()=>onAddPreset(p)}>{p.label}</div>)}
+          {presets.map((p,i)=>{
+            const used = extras.some(x=>x.presetLabel===p.label);
+            return (
+              <div key={i} className={`tbtn ${used?'on':''}`} style={{fontSize:11,padding:'5px 8px',opacity:used?0.5:1,cursor:used?'default':'pointer'}} onClick={()=>{
+                if(used) return;
+                if(p.needsPosition){
+                  const pos=window.prompt('何時の位置の傷ですか？(1〜12の数字を入力)','8');
+                  if(pos===null || !pos.trim()) return;
+                  onAddPreset({label:p.label, jp:p.jp.replace('{POS}',pos.trim()), en:p.en.replace('{POS}',pos.trim())});
+                } else {
+                  onAddPreset({label:p.label, jp:p.jp, en:p.en});
+                }
+              }}>{used?'✓ ':''}{p.label}</div>
+            );
+          })}
         </div>
       )}
       <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>＋ 詳細を追加</button>
@@ -1187,7 +1201,7 @@ ${title}
   };
 
   const addExtra = setter => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp:'', en:'' }]);
-  const addPresetExtra = (setter, preset) => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp: preset.jp, en: preset.en }]);
+  const addPresetExtra = (setter, preset) => setter(p => (p.length >= 5 || p.some(x=>x.presetLabel===preset.label)) ? p : [...p, { id: extraIdRef.current++, jp: preset.jp, en: preset.en, presetLabel: preset.label }]);
   const updateExtra = (setter, id, field, value) => setter(p => p.map(x => x.id === id ? { ...x, [field]: value } : x));
   const removeExtra = (setter, id) => setter(p => p.filter(x => x.id !== id));
   const presentOpticNotes = op => ([
