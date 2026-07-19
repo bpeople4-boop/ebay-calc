@@ -455,7 +455,8 @@ function genWatchHTML(d) {
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
   const cm=parseFloat(d.wBeltSizeCm);
   const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
-  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
+  const funcBase=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
+  const functional=[funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
   const bundleLines=d.wBundles.map(x=>`-${esc(x)}`).join('<br>\n');
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -877,6 +878,7 @@ function App() {
   const [wCrystalExtras,setWCrystalExtras]=useState([]);
   const [wBeltSizeCm,setWBeltSizeCm]=useState('');
   const [wFuncDef,setWFuncDef]=useState(true);
+  const [wFuncExtras,setWFuncExtras]=useState([]);
   const [wBundles,setWBundles]=useState([]);
 
   const [html,setHtml]=useState('');
@@ -940,11 +942,11 @@ function App() {
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wVariableSlots,wMovement,wGender,wAccessories,wSerial,
-    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wBundles,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
-    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[]),...(draft.wCaseExtras||[]),...(draft.wBeltExtras||[]),...(draft.wCrystalExtras||[])]
+    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[]),...(draft.wCaseExtras||[]),...(draft.wBeltExtras||[]),...(draft.wCrystalExtras||[]),...(draft.wFuncExtras||[])]
       .reduce((m,x)=>Math.max(m, Number(x.id)||0), 0);
     extraIdRef.current=Math.max(extraIdRef.current, maxId + 1);
   };
@@ -987,6 +989,7 @@ function App() {
     setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
     setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? '');
     setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []);
+    setWFuncExtras(draft.wFuncExtras ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
     setHtml(draft.html ?? '');
     setFinalTitleConfirmed(!!draft.finalTitleConfirmed);
@@ -1041,6 +1044,7 @@ function App() {
     setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
     setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
     setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]);
+    setWFuncExtras([]);
     setPhotos([]);
     setItemSpecifics({});
     setHtml('');
@@ -1162,6 +1166,7 @@ ${title}
   };
 
   const addExtra = setter => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp:'', en:'' }]);
+  const addPresetExtra = (setter, preset) => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp: preset.jp, en: preset.en }]);
   const updateExtra = (setter, id, field, value) => setter(p => p.map(x => x.id === id ? { ...x, [field]: value } : x));
   const removeExtra = (setter, id) => setter(p => p.filter(x => x.id !== id));
   const presentOpticNotes = op => ([
@@ -1257,7 +1262,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wBundles})
+        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles})
         : genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
