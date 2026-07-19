@@ -189,6 +189,14 @@ const WATCH_MODIFIERS = [
   {key:'none',label:'なし'},{key:'vintage',label:'Vintage'},{key:'vintageYear',label:'Vintage [年代]'},
   {key:'rare',label:'Rare'},{key:'rareVintage',label:'Rare Vintage'},
 ];
+const WATCH_SLOT_PRESETS = {
+  size: ['24mm','28mm','35mm','38mm','40mm','42mm'],
+  dial: ['Black Dial','White Dial','Silver Dial','Blue Dial','Gold Dial','Gray Dial'],
+  water: ['30m','50m','100m','200m'],
+  material: ['Ceramic','Gold','Stainless Steel','18K','Titanium'],
+  function: ['Chronograph','Day/Date','GMT',"Diver's",'Moon Phase'],
+  decoration: ['Diamonds','Stones'],
+};
 const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','Digital'];
 const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
 const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
@@ -731,7 +739,7 @@ function buildWatchTitleAuto(d) {
     vintage:'Vintage', vintageYear:`Vintage ${d.wModifierYear.trim()}`,
     rare:'Rare', rareVintage:'Rare Vintage', none:''
   }[d.wModifier] || '';
-  const slots = d.wVariableSlots.split(',').map(x=>x.trim()).filter(Boolean);
+  const slots = [d.wSlotSize,d.wSlotDial,d.wSlotWater,d.wSlotMaterial,d.wSlotFunction,d.wSlotDecoration].map(x=>(x||'').trim()).filter(Boolean);
   const makeTitle = ({shortMovement=false,slotCount=slots.length,keepAccessories=true}={}) => {
     const condition = keepAccessories && d.wAccessories.length
       ? `${d.cond} w/${d.wAccessories.join(', ')}` : d.cond;
@@ -911,7 +919,12 @@ function App() {
   const [wModifier,setWModifier]=useState('none');
   const [wModifierYear,setWModifierYear]=useState('');
   const [wRefNumber,setWRefNumber]=useState('');
-  const [wVariableSlots,setWVariableSlots]=useState('');
+  const [wSlotSize,setWSlotSize]=useState('');
+  const [wSlotDial,setWSlotDial]=useState('');
+  const [wSlotWater,setWSlotWater]=useState('');
+  const [wSlotMaterial,setWSlotMaterial]=useState('');
+  const [wSlotFunction,setWSlotFunction]=useState('');
+  const [wSlotDecoration,setWSlotDecoration]=useState('');
   const [wMovement,setWMovement]=useState('Quartz');
   const [wGender,setWGender]=useState("Women's");
   const [wAccessories,setWAccessories]=useState([]);
@@ -986,7 +999,7 @@ function App() {
     category,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
-    wModifier,wModifierYear,wRefNumber,wVariableSlots,wMovement,wGender,wAccessories,wSerial,
+    wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
     wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,
   });
 
@@ -1027,7 +1040,8 @@ function App() {
     setBrand(draft.brand ?? '');
     setModel(draft.model ?? '');
     setWModifier(draft.wModifier ?? 'none'); setWModifierYear(draft.wModifierYear ?? '');
-    setWRefNumber(draft.wRefNumber ?? ''); setWVariableSlots(draft.wVariableSlots ?? '');
+    setWRefNumber(draft.wRefNumber ?? '');
+    setWSlotSize(draft.wSlotSize ?? ''); setWSlotDial(draft.wSlotDial ?? ''); setWSlotWater(draft.wSlotWater ?? ''); setWSlotMaterial(draft.wSlotMaterial ?? ''); setWSlotFunction(draft.wSlotFunction ?? ''); setWSlotDecoration(draft.wSlotDecoration ?? '');
     setWMovement(draft.wMovement ?? 'Quartz'); setWGender(draft.wGender ?? "Women's");
     setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
     setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
@@ -1085,7 +1099,8 @@ function App() {
     setSnValue('');
     setBrand('');
     setModel('');
-    setWModifier('none'); setWModifierYear(''); setWRefNumber(''); setWVariableSlots('');
+    setWModifier('none'); setWModifierYear(''); setWRefNumber('');
+    setWSlotSize(''); setWSlotDial(''); setWSlotWater(''); setWSlotMaterial(''); setWSlotFunction(''); setWSlotDecoration('');
     setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
     setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
     setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]);
@@ -1132,7 +1147,7 @@ function App() {
       return;
     }
     const title=isWatch
-      ? buildWatchTitleAuto({cond,brand,model,wModifier,wModifierYear,wRefNumber,wVariableSlots,wMovement,wGender,wAccessories})
+      ? buildWatchTitleAuto({cond,brand,model,wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories})
       : buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
     setTitleCandidates([title]);
   };
@@ -1779,13 +1794,18 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
               <div className="sttl">腕時計 基本情報</div>
               <div className="input-label">先頭修飾語</div><div className="chklist">{WATCH_MODIFIERS.map(x=><div key={x.key} className={`chkbtn ${wModifier===x.key?'on':''}`} onClick={()=>setWModifier(x.key)}><span className="dot" />{x.label}</div>)}</div>
               {wModifier==='vintageYear'&&<input type="text" value={wModifierYear} onChange={e=>setWModifierYear(e.target.value)} placeholder="1970s" style={{marginTop:7}} />}
+              <div className="input-label">Accessories（タイトル w/）</div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
               <div className="input-label">Brand</div><input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="RADO / SEIKO / Longines ..." />
               <div className="input-label">Line / SubModel</div><input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="DiaStar" />
               <div className="input-label">Reference Number</div><input type="text" value={wRefNumber} onChange={e=>setWRefNumber(e.target.value)} />
-              <div className="input-label">可変枠（カンマ区切り）</div><input type="text" value={wVariableSlots} onChange={e=>setWVariableSlots(e.target.value)} placeholder="28mm, Gold Dial, Water Resistant" />
+              <div className="input-label">サイズ</div><div className="chklist">{WATCH_SLOT_PRESETS.size.map(x=><div key={x} className={`chkbtn ${wSlotSize===x?'on':''}`} onClick={()=>setWSlotSize(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotSize} onChange={e=>setWSlotSize(e.target.value)} placeholder="28mm" style={{marginTop:4}} />
+              <div className="input-label" style={{marginTop:8}}>ダイアル色</div><div className="chklist">{WATCH_SLOT_PRESETS.dial.map(x=><div key={x} className={`chkbtn ${wSlotDial===x?'on':''}`} onClick={()=>setWSlotDial(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotDial} onChange={e=>setWSlotDial(e.target.value)} placeholder="Gold Dial" style={{marginTop:4}} />
+              <div className="input-label" style={{marginTop:8}}>防水性能</div><div className="chklist">{WATCH_SLOT_PRESETS.water.map(x=><div key={x} className={`chkbtn ${wSlotWater===x?'on':''}`} onClick={()=>setWSlotWater(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotWater} onChange={e=>setWSlotWater(e.target.value)} placeholder="100m" style={{marginTop:4}} />
+              <div className="input-label" style={{marginTop:8}}>素材</div><div className="chklist">{WATCH_SLOT_PRESETS.material.map(x=><div key={x} className={`chkbtn ${wSlotMaterial===x?'on':''}`} onClick={()=>setWSlotMaterial(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotMaterial} onChange={e=>setWSlotMaterial(e.target.value)} placeholder="Stainless Steel" style={{marginTop:4}} />
+              <div className="input-label" style={{marginTop:8}}>機能</div><div className="chklist">{WATCH_SLOT_PRESETS.function.map(x=><div key={x} className={`chkbtn ${wSlotFunction===x?'on':''}`} onClick={()=>setWSlotFunction(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotFunction} onChange={e=>setWSlotFunction(e.target.value)} placeholder="Chronograph" style={{marginTop:4}} />
+              <div className="input-label" style={{marginTop:8}}>装飾</div><div className="chklist">{WATCH_SLOT_PRESETS.decoration.map(x=><div key={x} className={`chkbtn ${wSlotDecoration===x?'on':''}`} onClick={()=>setWSlotDecoration(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotDecoration} onChange={e=>setWSlotDecoration(e.target.value)} placeholder="Diamonds" style={{marginTop:4}} />
               <div className="input-label">Movement</div><div className="chklist">{WATCH_MOVEMENTS.map(x=><div key={x} className={`chkbtn ${wMovement===x?'on':''}`} onClick={()=>setWMovement(x)}><span className="dot" />{x}</div>)}</div>
               <div className="input-label">Gender</div><div className="chklist">{WATCH_GENDERS.map(x=><div key={x} className={`chkbtn ${wGender===x?'on':''}`} onClick={()=>setWGender(x)}><span className="dot" />{x}</div>)}</div>
-              <div className="input-label">Accessories（タイトル w/）</div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
               <div className="input-label">Serial Number</div><input type="text" value={wSerial} onChange={e=>setWSerial(e.target.value)} />
               <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>タイトルを組み立てる</button>
               {titleTools}
