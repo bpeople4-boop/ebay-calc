@@ -199,6 +199,7 @@ const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}))
 
 const WATCH_CASE_PRESETS = [
   {label:'夜光欠損', jp:'夜光塗料の一部が欠けています。', en:'Some of the luminous material is missing.'},
+  {label:'夜光コーティング剥離', jp:'夜光コーティングの一部が剥がれています。', en:'Some of the luminous coating has peeled off.'},
   {label:'リューズ塗装剥げ', jp:'リューズの塗装が剥がれています。', en:'The paint on the crown of the wristwatch is peeling.'},
 ];
 const WATCH_CRYSTAL_PRESETS = [
@@ -211,7 +212,6 @@ const WATCH_BELT_PRESETS = [
 const WATCH_FUNC_PRESETS = [
   {label:'回転ベゼル（動作確認済みの個体のみ）', jp:'ベゼルは両方向（双方向）にスムーズに回転します。', en:'The bezel rotates smoothly in both directions (bidirectional).'},
   {label:'回転ベゼル（一方向のみ・ダイバーズ系）', jp:'ベゼルは正しく反時計回りの一方向にのみ回転し、正常に機能しています。', en:'The bezel rotates correctly in one direction only (counterclockwise), functioning as designed.'},
-  {label:'夜光コーティング剥離', jp:'夜光コーティングの一部が剥がれています。', en:'Some of the luminous coating has peeled off.'},
 ];
 
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
@@ -1251,7 +1251,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   };
 
   const handleChatFunctional = extras => {
-    const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
+    const inputs = extras.filter(x=>!x.presetLabel).map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
     const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
 出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
@@ -1278,7 +1278,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   };
 
   const handleChatAppearance = extras => {
-    const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
+    const inputs = extras.filter(x=>!x.presetLabel).map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
     const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
 出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
