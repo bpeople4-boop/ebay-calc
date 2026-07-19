@@ -455,23 +455,125 @@ function genWatchHTML(d) {
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
   const cm=parseFloat(d.wBeltSizeCm);
   const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
-  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:12px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
+  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const bundleLines=d.wBundles.map(x=>`-${esc(x)}`).join('<br>\n');
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-.wt-main{word-break:break-word;max-width:100%;background:#FFF;border:1px solid #D9D9D9;padding:0 24px 34px;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A;box-sizing:border-box}.wt-main h1{font-weight:700;font-size:20px!important;letter-spacing:1px;margin:0;padding:34px 0 22px;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9}.wt-crest{text-align:center;padding-top:26px}.wt-crest .dot,.wt-divider .dot{display:inline-block;border-radius:50%}.wt-crest .dot{width:6px;height:6px;border:1px solid #0A0A0A}.wt-crest .line,.wt-divider .line{display:inline-block;height:1px;vertical-align:middle}.wt-crest .line{width:60px;background:#D9D9D9;margin:0 10px}.wt-trust-wrap{padding:4px 30px 26px;display:flex;justify-content:center}.wt-trust-box{border:1px solid #D9D9D9;border-top:3px solid #2E7D32;border-radius:4px;padding:16px;display:flex;align-items:center;gap:16px;max-width:100%;box-sizing:border-box}.wt-trust-text{display:flex;flex-direction:column;gap:4px}.wt-trust-title{font-size:15px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#2E7D32}.wt-trust{display:flex;flex-wrap:wrap;gap:4px 14px}.wt-trust-item{font-size:12px;letter-spacing:.3px;white-space:nowrap}.wt-trust-item:before{content:"\\2713";margin-right:3px;font-weight:700;color:#2E7D32}.wt-medal{position:relative;width:58px;height:58px;flex-shrink:0}.wt-medal-ring{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#F5D97A 0%,#D4A93A 45%,#9C7A1F 100%);box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.6),inset 0 -2px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}.wt-medal-face{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#4CAF50 0%,#2E7D32 55%,#1B5E20 100%);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05}.wt-medal-face span{color:#fff;font-size:8.5px;font-weight:800}.wt-medal-ribbon{position:absolute;top:46px;left:50%}.wt-medal-ribbon .tail{position:absolute;width:10px;height:16px;background:#2E7D32;top:0;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%)}.wt-medal-ribbon .left{left:-13px}.wt-medal-ribbon .right{left:3px;background:#256428}.wt-hdr{margin:30px 0 18px}.wt-hdr img,.wt-main img{max-width:100%;display:block;object-fit:cover}.wt-main h3{position:relative;font-weight:700;font-size:12px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase}.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}.wt-price-note{font-weight:700;font-size:16px!important;letter-spacing:.5px!important;text-align:center!important;color:#3A3A3A!important}.wt-body{padding:0 30px 18px}.wt-main p{margin:0;padding:0 10px 18px;font-size:14px;line-height:1.7}.wt-emph{color:#0A0A0A;font-weight:700}.wt-main table{border-collapse:collapse;width:100%!important;font-size:14px;margin-bottom:10px}.wt-main table tr{background:#F7F7F7}.wt-main table tr:first-of-type{background:#0A0A0A;color:#FFF}.wt-main th,.wt-main td{padding:8px 10px;border:1px solid #E5E5E5;font-size:13px;letter-spacing:.3px}.wt-main th{text-transform:uppercase;font-size:11px;letter-spacing:1px}.wt-divider{text-align:center;padding:18px 0}.wt-divider .dot{width:4px;height:4px;background:#B0B0B0}.wt-divider .line{width:40px;background:#E5E5E5;margin:0 8px}.wt-footer-note{font-size:11px!important;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center}
-</style><div class="wt-main">
-<div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div><h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
-<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div><section><p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p><div class="wt-body"><p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p><p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p></div></section>
-<div class="wt-trust-wrap"><div class="wt-trust-box"><div class="wt-medal"><div class="wt-medal-ring"><div class="wt-medal-face"><span>TOP<br>RATED</span></div></div><div class="wt-medal-ribbon"><div class="tail left"></div><div class="tail right"></div></div></div><div class="wt-trust-text"><div class="wt-trust-title">eBay Top Rated Seller</div><div class="wt-trust"><span class="wt-trust-item">202 Transactions</span><span class="wt-trust-item">$54,800+ in Sales</span><span class="wt-trust-item">0.00% Defect Rate</span><span class="wt-trust-item">100% On-Time Tracking</span></div></div></div></div>
-<div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818041/h5_description_duhsvg.png" alt="Description"></div><div class="wt-body"><table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table><h3>Appearance</h3><p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p><p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p><p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p><h3>Belt Size</h3><p>${beltSize}</p><h3>Functional</h3><p>${functional}</p><h3>Bundled Items</h3>${bundleLines?`<p>${bundleLines}</p>`:''}<p>All items shown in the photos are included in the package.<br>Please check the photos carefully for the condition and accessories.<br>Feel free to contact us if you have any questions.</p></div>
+.wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
+.wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9;word-break:break-word}
+.wt-crest{text-align:center;padding-top:26px}
+.wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
+.wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
+.wt-sat-wrap{padding:4px 30px 26px;display:flex;justify-content:center}
+.wt-sat-box{border-top:3px solid #2E7D32;border-left:1px solid #D9D9D9;border-right:1px solid #D9D9D9;border-bottom:1px solid #D9D9D9;border-radius:4px;padding:16px 22px;width:100%;max-width:460px;box-sizing:border-box}
+.wt-sat-title{font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#2E7D32;text-align:center;margin:0 0 10px 0}
+.wt-sat-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #F0F0F0}
+.wt-sat-stats .wt-sat-stat-item{font-size:13px;letter-spacing:0.3px;color:#1A1A1A;white-space:nowrap}
+.wt-sat-stats .wt-sat-stat-item:before{content:"\\2713";display:inline-block;margin-right:3px;font-weight:700;color:#2E7D32}
+.wt-sat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.wt-sat-label{font-size:13.5px;letter-spacing:0.3px;color:#1A1A1A}
+.wt-sat-stars{color:#D4A93A;font-size:15px;letter-spacing:2px;white-space:nowrap}
+.wt-hdr{margin:30px 0 18px 0}
+.wt-hdr img{width:100%;display:block}
+.wt-hdr .wt-hdr-mobile{display:none}
+.wt-main h3{position:relative;font-weight:700;font-size:13px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase;word-break:break-word}
+.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}
+.wt-main .wt-price-note{font-weight:700;font-size:18px!important;letter-spacing:0.5px;margin:0;padding:0 0 18px 0;text-align:center;color:#3A3A3A}
+.wt-main .wt-body{padding:0 30px 18px}
+.wt-main p{word-break:break-word;font-weight:400;margin:0;padding:0 10px 18px;font-size:18px;line-height:1.8;text-align:left;color:#1A1A1A}
+.wt-emph{color:#0A0A0A;font-weight:700}
+.wt-main table{border-collapse:collapse;width:100%!important;font-size:15px;margin-bottom:10px}
+.wt-main table tr{background-color:#F7F7F7;color:#1A1A1A}
+.wt-main table tr:first-of-type{background-color:#0A0A0A;color:#FFFFFF}
+.wt-main table th,.wt-main table td{padding:10px 12px;border:1px solid #E5E5E5;word-break:break-word;font-size:16px;letter-spacing:0.3px}
+.wt-main table th{text-transform:uppercase;font-weight:700;letter-spacing:1px;font-size:14px}
+.wt-main section{padding-bottom:6px}
+.wt-main .img-area{text-align:center}
+.wt-main img{max-width:100%;object-fit:cover}
+.wt-divider{text-align:center;padding:18px 0}
+.wt-divider .dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:#B0B0B0}
+.wt-divider .line{display:inline-block;width:40px;height:1px;background:#E5E5E5;vertical-align:middle;margin:0 8px}
+.wt-footer-note{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center;padding:4px 30px 0}
+.wt-footer-arigato{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:#D4A93A;padding:0 30px 6px;margin:0}
+.wt-footer-arigato img{width:36px;height:36px;vertical-align:middle;margin-right:8px;display:inline-block}
+.wt-footer-arigato span{vertical-align:middle}
+@media (max-width:600px){
+.wt-main{padding:0 12px 28px 12px}
+.wt-main .wt-body{padding:0 14px 18px}
+.wt-sat-wrap{padding:4px 14px 22px}
+.wt-hdr .wt-hdr-pc{display:none}
+.wt-hdr .wt-hdr-mobile{display:block}
+.wt-main p{font-size:16px;line-height:1.8;padding:0 4px 18px}
+.wt-main h1{font-size:24px!important;padding:26px 0 18px 0}
+.wt-main h3{font-size:13.5px!important}
+.wt-sat-title{font-size:14.5px}
+.wt-sat-stats .wt-sat-stat-item{font-size:13px}
+.wt-sat-label{font-size:14px}
+.wt-sat-stars{font-size:16px}
+.wt-main table{font-size:14px}
+.wt-main table th,.wt-main table td{font-size:13.5px;padding:9px 6px}
+}
+</style>
+<div class="wt-main">
+<div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div>
+<h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
+<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+<section>
+<p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
+<div class="wt-body">
+<p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p>
+<p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p>
+</div>
+</section>
+<div class="wt-sat-wrap">
+<div class="wt-sat-box">
+<div class="wt-sat-title">Buyer Satisfaction</div>
+<div class="wt-sat-stats">
+<span class="wt-sat-stat-item">202 Transactions</span>
+<span class="wt-sat-stat-item">$54,800+ in Sales</span>
+<span class="wt-sat-stat-item">0.00% Defect Rate</span>
+<span class="wt-sat-stat-item">100% On-Time Tracking</span>
+</div>
+<div class="wt-sat-row"><span class="wt-sat-label">Accurate Description</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Reasonable Shipping Cost</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Shipping Speed</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Communication</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+</div>
+</div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_description_pc_kgttoe.png" alt="Description"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/description_1_r4h4lu.png" alt="Description"></div>
+<div class="wt-body">
+<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
+<h3>Appearance</h3>
+<p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p>
+<p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p>
+<p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p>
+<h3>Belt Size</h3>
+<p>${beltSize}</p>
+<h3>Functional</h3>
+<p>${functional}</p>
+<h3>Bundled Items</h3>
+${bundleLines?`<p>${bundleLines}</p>`:''}
+<p>All items shown in the photos are included in the package.<br>Please check the photos carefully for the condition and accessories.<br>Feel free to contact us if you have any questions.</p>
+</div>
 ${watchStaticSections()}
 </div>`;
 }
 
-function watchStaticSections(){return `<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_payment_lngnbc.png" alt="Payment"></div><div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment Method"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_shipping_gu3kkm.png" alt="Shipping"></div><div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL or UPS or EMS</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay. Please note that we cannot ship to addresses that are not registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_storage-and-packing_qarogt.png" alt="Storage & Packing"></div><div class="wt-body"><p>All products are carefully cleaned and disinfected before shipping.</p><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_returns_nv41c2.png" alt="Returns"></div><div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>I have an unconditional return policy if notified within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_international-buyers_qztdg0.png" alt="International Buyers"></div><div class="wt-body"><p><span class="wt-emph">&lt; For United States Buyers &gt;</span><br>Import duties and taxes are included in our shipping price (Delivered Duty Paid, DDP).<br>You will not be charged any additional fees on delivery.<br>If you are mistakenly asked to pay duties, please contact us first and do not pay — we will handle it with the carrier.<br>Please note that state sales tax may still be collected by eBay at checkout depending on the destination state.</p><p><span class="wt-emph">&lt; For Buyers Outside the United States &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility and may vary by country.<br>Please check with your local customs office for more details before purchasing.</p></div><p class="wt-footer-note">Thank you for viewing this listing</p>`;}
+function watchStaticSections(){return `<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_payment_pc_a6fzsq.png" alt="Payment"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/payment_1_esjmgp.png" alt="Payment"></div>
+<div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment Method"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_shipping_pc_x97mt5.png" alt="Shipping"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/shipping_1_kiu0ei.png" alt="Shipping"></div>
+<div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL or UPS or EMS</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay. Please note that we cannot ship to addresses that are not registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_storage-and-packing_pc_lyboua.png" alt="Storage & Packing"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/storage-and-packing_1_kyrdl4.png" alt="Storage & Packing"></div>
+<div class="wt-body"><p>All products are carefully cleaned and disinfected before shipping.</p><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p></div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_returns_pc_gqp3ho.png" alt="Returns"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/returns_1_iqgcgp.png" alt="Returns"></div>
+<div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>I have an unconditional return policy if notified within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div>
+<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_international-buyers_pc_yfzvfi.png" alt="International Buyers"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/international-buyers_1_r6koui.png" alt="International Buyers"></div>
+<div class="wt-body"><p><span class="wt-emph">&lt; For United States Buyers &gt;</span><br>Import duties and taxes are included in our shipping price (Delivered Duty Paid, DDP).<br>You will not be charged any additional fees on delivery.<br>If you are mistakenly asked to pay duties, please contact us first and do not pay — we will handle it with the carrier.<br>Please note that state sales tax may still be collected by eBay at checkout depending on the destination state.</p><p><span class="wt-emph">&lt; For Buyers Outside the United States &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility and may vary by country.<br>Please check with your local customs office for more details before purchasing.</p></div>
+<p class="wt-footer-arigato"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784421458/arigato_icon_transparent_tcakik.png" alt="Arigato"><span>ARIGATO</span></p>
+<p class="wt-footer-note">Thank you for viewing this listing</p>`;}
 // ── OpBox ──
 async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender=''}) {
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
