@@ -1879,9 +1879,9 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
           )}
 
           {rtab==='preview'&&(
-            <div style={{flex:1,minHeight:0,display:'flex',flexDirection:'column'}}>
+            <div style={{height:'78vh',display:'flex',flexDirection:'column'}}>
               {html
-                ? <iframe title="preview" srcDoc={html} style={{flex:1,minHeight:0,width:'100%',border:'1px solid var(--bdr)',borderRadius:7,background:'#fff'}} />
+                ? <iframe title="preview" srcDoc={html} style={{height:'100%',width:'100%',border:'1px solid var(--bdr)',borderRadius:7,background:'#fff'}} />
                 : <div className="empty" style={{flex:1}}><div style={{fontSize:28,marginBottom:8}}>💻</div><h3>HTMLが未生成</h3><p style={{fontSize:11,marginTop:4}}>左のフォームを入力して<br/>「HTML生成」を押してください</p></div>
               }
             </div>
