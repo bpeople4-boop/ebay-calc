@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>eBay 蜃ｺ蜩√い繝励Μ</title>
+  <title>eBay 出品アプリ</title>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=DM+Mono:wght@400;500&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -27,7 +27,7 @@
     ::-webkit-scrollbar-track{background:transparent}
     ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 
-    /* 笏笏 Form panel 笏笏 */
+    /* ── Form panel ── */
     .fpanel{flex:1.1;min-width:380px;display:flex;flex-direction:column;border-right:1px solid var(--bdr)}
     .fpanel-header{padding:9px 18px;border-bottom:1px solid var(--bdr);background:var(--surf);display:flex;align-items:center;gap:10px;flex-shrink:0;min-height:40px}
     .fhtxt{font-size:13px;font-weight:600;color:var(--acc);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -35,7 +35,7 @@
     .hbtn:hover{border-color:var(--acc);color:var(--acc)}
     .fcontent{flex:1;overflow-y:auto;padding:16px}
 
-    /* 笏笏 Right panel (output) 笏笏 */
+    /* ── Right panel (output) ── */
     .rpanel{flex:1;min-width:400px;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
     .rtabs{display:flex;border-bottom:1px solid var(--bdr);background:var(--surf);flex-shrink:0;padding:0 12px}
     .rtab{padding:10px 14px;font-size:13px;cursor:pointer;border-bottom:2px solid transparent;color:var(--mut);transition:all .15s;white-space:nowrap;user-select:none}
@@ -43,7 +43,7 @@
     .rtab.on{color:var(--acc);border-bottom-color:var(--acc);font-weight:600}
     .rcontent{flex:1;min-height:0;overflow-y:auto;padding:16px}
 
-    /* 笏笏 Form sections 笏笏 */
+    /* ── Form sections ── */
     .sec{background:var(--surf);border:1px solid var(--bdr);border-radius:9px;padding:14px;margin-bottom:12px}
     .sttl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:var(--mut);margin-bottom:10px}
 
@@ -186,7 +186,7 @@ const CONDITIONS = ['Top MINT','MINT','Near MINT','Exc+5','Exc+4','Exc+3','AS-IS
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
 const WATCH_MODIFIERS = [
-  {key:'none',label:'縺ｪ縺・},{key:'vintage',label:'Vintage'},{key:'vintageYear',label:'Vintage [蟷ｴ莉｣]'},
+  {key:'none',label:'なし'},{key:'vintage',label:'Vintage'},{key:'vintageYear',label:'Vintage [年代]'},
   {key:'rare',label:'Rare'},{key:'rareVintage',label:'Rare Vintage'},
 ];
 const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','Digital'];
@@ -199,11 +199,11 @@ const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}))
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
 const OVERALL_OPTS = [
-  {val:'auto',  lbl:'閾ｪ蜍・},
+  {val:'auto',  lbl:'自動'},
   {val:'very',  lbl:'Very beautiful'},
   {val:'beautiful',lbl:'Beautiful'},
   {val:'good',  lbl:'Good Condition.'},
-  {val:'none',  lbl:'縺ｪ縺・},
+  {val:'none',  lbl:'なし'},
 ];
 const OVERALL_TEXT = {very:'Very beautiful condition.',beautiful:'Beautiful condition.',good:'Good Condition.',none:null};
 
@@ -288,7 +288,7 @@ const initOp = () => ({
   overall:'auto',
 });
 
-// 笏笏 HTML Generation 笏笏
+// ── HTML Generation ──
 function buildOpSection(op, type, showBalsam, extra) {
   const isLens = type==='lens';
   const label = isLens?'Lens':'Finder';
@@ -329,8 +329,8 @@ function genHTML(d) {
   };
   const htmlCondition = htmlConditionMap[cond] || cond;
   const serialTxt = hasLensSerial
-    ? `Body:${serialBody||'窶・}<br>\n&nbsp; &nbsp; Lens:${serialLens||'窶・}`
-    : `Body:${serialBody||'窶・}`;
+    ? `Body:${serialBody||'—'}<br>\n&nbsp; &nbsp; Lens:${serialLens||'—'}`
+    : `Body:${serialBody||'—'}`;
 
   let appH = '';
   if(appChoice==='beautiful') appH = '<div><b><span style="color:rgb(255,0,16);">Appearance is beautiful.</span></b></div>';
@@ -455,126 +455,24 @@ function genWatchHTML(d) {
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
   const cm=parseFloat(d.wBeltSizeCm);
   const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
-  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
+  const functional=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:12px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const bundleLines=d.wBundles.map(x=>`-${esc(x)}`).join('<br>\n');
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-.wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
-.wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9;word-break:break-word}
-.wt-crest{text-align:center;padding-top:26px}
-.wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
-.wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
-.wt-sat-wrap{padding:4px 30px 26px;display:flex;justify-content:center}
-.wt-sat-box{border-top:3px solid #2E7D32;border-left:1px solid #D9D9D9;border-right:1px solid #D9D9D9;border-bottom:1px solid #D9D9D9;border-radius:4px;padding:16px 22px;width:100%;max-width:460px;box-sizing:border-box}
-.wt-sat-title{font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#2E7D32;text-align:center;margin:0 0 10px 0}
-.wt-sat-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #F0F0F0}
-.wt-sat-stats .wt-sat-stat-item{font-size:13px;letter-spacing:0.3px;color:#1A1A1A;white-space:nowrap}
-.wt-sat-stats .wt-sat-stat-item:before{content:"\\2713";display:inline-block;margin-right:3px;font-weight:700;color:#2E7D32}
-.wt-sat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
-.wt-sat-label{font-size:13.5px;letter-spacing:0.3px;color:#1A1A1A}
-.wt-sat-stars{color:#D4A93A;font-size:15px;letter-spacing:2px;white-space:nowrap}
-.wt-hdr{margin:30px 0 18px 0}
-.wt-hdr img{width:100%;display:block}
-.wt-hdr .wt-hdr-mobile{display:none}
-.wt-main h3{position:relative;font-weight:700;font-size:13px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase;word-break:break-word}
-.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}
-.wt-main .wt-price-note{font-weight:700;font-size:18px!important;letter-spacing:0.5px;margin:0;padding:0 0 18px 0;text-align:center;color:#3A3A3A}
-.wt-main .wt-body{padding:0 30px 18px}
-.wt-main p{word-break:break-word;font-weight:400;margin:0;padding:0 10px 18px;font-size:18px;line-height:1.8;text-align:left;color:#1A1A1A}
-.wt-emph{color:#0A0A0A;font-weight:700}
-.wt-main table{border-collapse:collapse;width:100%!important;font-size:15px;margin-bottom:10px}
-.wt-main table tr{background-color:#F7F7F7;color:#1A1A1A}
-.wt-main table tr:first-of-type{background-color:#0A0A0A;color:#FFFFFF}
-.wt-main table th,.wt-main table td{padding:10px 12px;border:1px solid #E5E5E5;word-break:break-word;font-size:16px;letter-spacing:0.3px}
-.wt-main table th{text-transform:uppercase;font-weight:700;letter-spacing:1px;font-size:14px}
-.wt-main section{padding-bottom:6px}
-.wt-main .img-area{text-align:center}
-.wt-main img{max-width:100%;object-fit:cover}
-.wt-divider{text-align:center;padding:18px 0}
-.wt-divider .dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:#B0B0B0}
-.wt-divider .line{display:inline-block;width:40px;height:1px;background:#E5E5E5;vertical-align:middle;margin:0 8px}
-.wt-footer-note{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center;padding:4px 30px 0}
-.wt-footer-arigato{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:#D4A93A;padding:0 30px 6px;margin:0}
-.wt-footer-arigato img{width:36px;height:36px;vertical-align:middle;margin-right:8px;display:inline-block}
-.wt-footer-arigato span{vertical-align:middle}
-@media (max-width:600px){
-.wt-main{padding:0 12px 28px 12px}
-.wt-main .wt-body{padding:0 14px 18px}
-.wt-sat-wrap{padding:4px 14px 22px}
-.wt-hdr .wt-hdr-pc{display:none}
-.wt-hdr .wt-hdr-mobile{display:block}
-.wt-main p{font-size:16px;line-height:1.8;padding:0 4px 18px}
-.wt-main h1{font-size:24px!important;padding:26px 0 18px 0}
-.wt-main h3{font-size:13.5px!important}
-.wt-sat-title{font-size:14.5px}
-.wt-sat-stats .wt-sat-stat-item{font-size:13px}
-.wt-sat-label{font-size:14px}
-.wt-sat-stars{font-size:16px}
-.wt-main table{font-size:14px}
-.wt-main table th,.wt-main table td{font-size:13.5px;padding:9px 6px}
-}
-</style>
-<div class="wt-main">
-<div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div>
-<h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
-<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
-<section>
-<p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
-<div class="wt-body">
-<p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p>
-<p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p>
-</div>
-</section>
-<div class="wt-sat-wrap">
-<div class="wt-sat-box">
-<div class="wt-sat-title">Buyer Satisfaction</div>
-<div class="wt-sat-stats">
-<span class="wt-sat-stat-item">202 Transactions</span>
-<span class="wt-sat-stat-item">$54,800+ in Sales</span>
-<span class="wt-sat-stat-item">0.00% Defect Rate</span>
-<span class="wt-sat-stat-item">100% On-Time Tracking</span>
-</div>
-<div class="wt-sat-row"><span class="wt-sat-label">Accurate Description</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
-<div class="wt-sat-row"><span class="wt-sat-label">Reasonable Shipping Cost</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
-<div class="wt-sat-row"><span class="wt-sat-label">Shipping Speed</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
-<div class="wt-sat-row"><span class="wt-sat-label">Communication</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
-</div>
-</div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_description_pc_kgttoe.png" alt="Description"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/description_1_r4h4lu.png" alt="Description"></div>
-<div class="wt-body">
-<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
-<h3>Appearance</h3>
-<p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p>
-<p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p>
-<p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p>
-<h3>Belt Size</h3>
-<p>${beltSize}</p>
-<h3>Functional</h3>
-<p>${functional}</p>
-<h3>Bundled Items</h3>
-${bundleLines?`<p>${bundleLines}</p>`:''}
-<p>All items shown in the photos are included in the package.<br>Please check the photos carefully for the condition and accessories.<br>Feel free to contact us if you have any questions.</p>
-</div>
+.wt-main{word-break:break-word;max-width:100%;background:#FFF;border:1px solid #D9D9D9;padding:0 24px 34px;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A;box-sizing:border-box}.wt-main h1{font-weight:700;font-size:20px!important;letter-spacing:1px;margin:0;padding:34px 0 22px;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9}.wt-crest{text-align:center;padding-top:26px}.wt-crest .dot,.wt-divider .dot{display:inline-block;border-radius:50%}.wt-crest .dot{width:6px;height:6px;border:1px solid #0A0A0A}.wt-crest .line,.wt-divider .line{display:inline-block;height:1px;vertical-align:middle}.wt-crest .line{width:60px;background:#D9D9D9;margin:0 10px}.wt-trust-wrap{padding:4px 30px 26px;display:flex;justify-content:center}.wt-trust-box{border:1px solid #D9D9D9;border-top:3px solid #2E7D32;border-radius:4px;padding:16px;display:flex;align-items:center;gap:16px;max-width:100%;box-sizing:border-box}.wt-trust-text{display:flex;flex-direction:column;gap:4px}.wt-trust-title{font-size:15px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:#2E7D32}.wt-trust{display:flex;flex-wrap:wrap;gap:4px 14px}.wt-trust-item{font-size:12px;letter-spacing:.3px;white-space:nowrap}.wt-trust-item:before{content:"\\2713";margin-right:3px;font-weight:700;color:#2E7D32}.wt-medal{position:relative;width:58px;height:58px;flex-shrink:0}.wt-medal-ring{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#F5D97A 0%,#D4A93A 45%,#9C7A1F 100%);box-shadow:0 3px 6px rgba(0,0,0,.35),inset 0 1px 2px rgba(255,255,255,.6),inset 0 -2px 3px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center}.wt-medal-face{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 25%,#4CAF50 0%,#2E7D32 55%,#1B5E20 100%);display:flex;align-items:center;justify-content:center;text-align:center;line-height:1.05}.wt-medal-face span{color:#fff;font-size:8.5px;font-weight:800}.wt-medal-ribbon{position:absolute;top:46px;left:50%}.wt-medal-ribbon .tail{position:absolute;width:10px;height:16px;background:#2E7D32;top:0;clip-path:polygon(0 0,100% 0,100% 100%,50% 78%,0 100%)}.wt-medal-ribbon .left{left:-13px}.wt-medal-ribbon .right{left:3px;background:#256428}.wt-hdr{margin:30px 0 18px}.wt-hdr img,.wt-main img{max-width:100%;display:block;object-fit:cover}.wt-main h3{position:relative;font-weight:700;font-size:12px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase}.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}.wt-price-note{font-weight:700;font-size:16px!important;letter-spacing:.5px!important;text-align:center!important;color:#3A3A3A!important}.wt-body{padding:0 30px 18px}.wt-main p{margin:0;padding:0 10px 18px;font-size:14px;line-height:1.7}.wt-emph{color:#0A0A0A;font-weight:700}.wt-main table{border-collapse:collapse;width:100%!important;font-size:14px;margin-bottom:10px}.wt-main table tr{background:#F7F7F7}.wt-main table tr:first-of-type{background:#0A0A0A;color:#FFF}.wt-main th,.wt-main td{padding:8px 10px;border:1px solid #E5E5E5;font-size:13px;letter-spacing:.3px}.wt-main th{text-transform:uppercase;font-size:11px;letter-spacing:1px}.wt-divider{text-align:center;padding:18px 0}.wt-divider .dot{width:4px;height:4px;background:#B0B0B0}.wt-divider .line{width:40px;background:#E5E5E5;margin:0 8px}.wt-footer-note{font-size:11px!important;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center}
+</style><div class="wt-main">
+<div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div><h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
+<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div><section><p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p><div class="wt-body"><p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p><p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p></div></section>
+<div class="wt-trust-wrap"><div class="wt-trust-box"><div class="wt-medal"><div class="wt-medal-ring"><div class="wt-medal-face"><span>TOP<br>RATED</span></div></div><div class="wt-medal-ribbon"><div class="tail left"></div><div class="tail right"></div></div></div><div class="wt-trust-text"><div class="wt-trust-title">eBay Top Rated Seller</div><div class="wt-trust"><span class="wt-trust-item">202 Transactions</span><span class="wt-trust-item">$54,800+ in Sales</span><span class="wt-trust-item">0.00% Defect Rate</span><span class="wt-trust-item">100% On-Time Tracking</span></div></div></div></div>
+<div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818041/h5_description_duhsvg.png" alt="Description"></div><div class="wt-body"><table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table><h3>Appearance</h3><p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p><p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p><p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p><h3>Belt Size</h3><p>${beltSize}</p><h3>Functional</h3><p>${functional}</p><h3>Bundled Items</h3>${bundleLines?`<p>${bundleLines}</p>`:''}<p>All items shown in the photos are included in the package.<br>Please check the photos carefully for the condition and accessories.<br>Feel free to contact us if you have any questions.</p></div>
 ${watchStaticSections()}
 </div>`;
 }
 
-function watchStaticSections(){return `<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_payment_pc_a6fzsq.png" alt="Payment"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/payment_1_esjmgp.png" alt="Payment"></div>
-<div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment Method"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_shipping_pc_x97mt5.png" alt="Shipping"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/shipping_1_kiu0ei.png" alt="Shipping"></div>
-<div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL or UPS or EMS</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay. Please note that we cannot ship to addresses that are not registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_storage-and-packing_pc_lyboua.png" alt="Storage & Packing"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/storage-and-packing_1_kyrdl4.png" alt="Storage & Packing"></div>
-<div class="wt-body"><p>All products are carefully cleaned and disinfected before shipping.</p><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p></div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_returns_pc_gqp3ho.png" alt="Returns"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/returns_1_iqgcgp.png" alt="Returns"></div>
-<div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>I have an unconditional return policy if notified within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div>
-<div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784418869/Ah5_international-buyers_pc_yfzvfi.png" alt="International Buyers"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/international-buyers_1_r6koui.png" alt="International Buyers"></div>
-<div class="wt-body"><p><span class="wt-emph">&lt; For United States Buyers &gt;</span><br>Import duties and taxes are included in our shipping price (Delivered Duty Paid, DDP).<br>You will not be charged any additional fees on delivery.<br>If you are mistakenly asked to pay duties, please contact us first and do not pay — we will handle it with the carrier.<br>Please note that state sales tax may still be collected by eBay at checkout depending on the destination state.</p><p><span class="wt-emph">&lt; For Buyers Outside the United States &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility and may vary by country.<br>Please check with your local customs office for more details before purchasing.</p></div>
-<p class="wt-footer-arigato"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784421458/arigato_icon_transparent_tcakik.png" alt="Arigato"><span>ARIGATO</span></p>
-<p class="wt-footer-note">Thank you for viewing this listing</p>`;}
-// 笏笏 OpBox 笏笏
+function watchStaticSections(){return `<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_payment_lngnbc.png" alt="Payment"></div><div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment Method"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_shipping_gu3kkm.png" alt="Shipping"></div><div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL or UPS or EMS</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay. Please note that we cannot ship to addresses that are not registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_storage-and-packing_qarogt.png" alt="Storage & Packing"></div><div class="wt-body"><p>All products are carefully cleaned and disinfected before shipping.</p><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_returns_nv41c2.png" alt="Returns"></div><div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>I have an unconditional return policy if notified within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div><div class="wt-hdr"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783818042/h5_international-buyers_qztdg0.png" alt="International Buyers"></div><div class="wt-body"><p><span class="wt-emph">&lt; For United States Buyers &gt;</span><br>Import duties and taxes are included in our shipping price (Delivered Duty Paid, DDP).<br>You will not be charged any additional fees on delivery.<br>If you are mistakenly asked to pay duties, please contact us first and do not pay — we will handle it with the carrier.<br>Please note that state sales tax may still be collected by eBay at checkout depending on the destination state.</p><p><span class="wt-emph">&lt; For Buyers Outside the United States &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility and may vary by country.<br>Please check with your local customs office for more details before purchasing.</p></div><p class="wt-footer-note">Thank you for viewing this listing</p>`;}
+// ── OpBox ──
 async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender=''}) {
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
   if(!apiKey) throw new Error('Anthropic API key is not set.');
@@ -651,7 +549,11 @@ Return ONLY valid JSON with exactly the keys requested. No explanation, no markd
 
 ${isWatch ? `=== Wristwatch rules ===
 - Output all values in English.
-- Department・嗹Gender 縺ｮ蛟､・・{wGender || ''}・峨ｒ縺昴・縺ｾ縺ｾ菴ｿ縺・・- Movement・嗹Movement 縺ｮ蛟､・・{wMovement || ''}・峨ｒ蜿り・↓縺励▽縺､縲‘Bay陦ｨ險倥↓蜷医ｏ縺帙ｋ縲・utomatic縺ｯ縺昴・縺ｾ縺ｾ縲？and-winding縺ｯManual陦ｨ險倥′荳闊ｬ逧・↑繧峨◎縺｡繧峨ｒ蜆ｪ蜈医＠縺ｦ繧医＞縲・- Country/Region of Manufacture・壹ヶ繝ｩ繝ｳ繝牙錐縺九ｉ謗ｨ螳壹＠縺ｦ繧医＞縲３ADO / Longines / TAG Heuer / Bulgari・域凾險磯Κ髢・・ Oris 縺ｯ Switzerland縲ヾEIKO 縺ｯ Japan縲；ucci / Fendi 縺ｯ Italy縲．ior / Hermﾃｨs 縺ｯ France縲ゆｸ肴・縺ｪ蝣ｴ蜷医・遨ｺ谺・・縺ｾ縺ｾ縺ｧ繧医＞縲・- Water Resistance・壼梛逡ｪ繝ｻ蝠・刀蜷阪°繧牙愛譁ｭ縺ｧ縺阪ｋ蝣ｴ蜷医・縺ｿ縲・0m (3 ATM)縲阪・繧医≧縺ｪ蠖｢蠑上〒險伜・縺励∽ｸ肴・縺ｪ繧臥ｩｺ谺・↓縺吶ｋ縲・- 縺昴・莉悶・繝輔ぅ繝ｼ繝ｫ繝峨・蝠・刀蜷阪・繝悶Λ繝ｳ繝峨・蝙狗分縺九ｉ蟶ｸ隴倡噪縺ｫ謗ｨ貂ｬ縺励※蝓九ａ繧九ょ・縺九ｉ縺ｪ縺・・岼縺ｯ遨ｺ谺・〒繧医＞縲Ａ : ''}
+- Department：wGender の値（${wGender || ''}）をそのまま使う。
+- Movement：wMovement の値（${wMovement || ''}）を参考にしつつ、eBay表記に合わせる。Automaticはそのまま、Hand-windingはManual表記が一般的ならそちらを優先してよい。
+- Country/Region of Manufacture：ブランド名から推定してよい。RADO / Longines / TAG Heuer / Bulgari（時計部門）/ Oris は Switzerland、SEIKO は Japan、Gucci / Fendi は Italy、Dior / Hermès は France。不明な場合は空欄のままでよい。
+- Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
+- その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。` : ''}
 
 Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
       messages:[{role:'user',content:prompt}]
@@ -750,7 +652,7 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
   const set=(f,v)=>setOp(p=>({...p,[f]:v}));
   return (
     <div className="opbox">
-      <div className="opbtl" onClick={onToggle} style={{cursor:onToggle?'pointer':'default'}}>窶・{title} {isOpen?'笆ｼ':'笆ｶ'}</div>
+      <div className="opbtl" onClick={onToggle} style={{cursor:onToggle?'pointer':'default'}}>— {title} {isOpen?'▼':'▶'}</div>
       {isOpen&&(
         <>
       <div className="overall-row">
@@ -765,8 +667,8 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
             <div key={item} className="oprow">
               <div className="oplbl">{item}</div>
               <div className="tg">
-                <button className={`tgbtn nn ${op.dust!=='large'?'on':''}`} onClick={()=>set('dust','small')}>蟆・/button>
-                <button className={`tgbtn pp ${op.dust==='large'?'on':''}`} onClick={()=>set('dust','large')}>螟ｧ</button>
+                <button className={`tgbtn nn ${op.dust!=='large'?'on':''}`} onClick={()=>set('dust','small')}>小</button>
+                <button className={`tgbtn pp ${op.dust==='large'?'on':''}`} onClick={()=>set('dust','large')}>大</button>
               </div>
             </div>
           );
@@ -775,11 +677,11 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
           <div key={item} className="oprow">
             <div className="oplbl">{item}</div>
             <div className="tg">
-              <button className={`tgbtn nn ${op[k]==='none'?'on':''}`} onClick={()=>set(k,'none')}>縺ｪ縺・/button>
-              <button className={`tgbtn pp ${op[k]==='present'?'on':''}`} onClick={()=>set(k,'present')}>縺ゅｊ</button>
+              <button className={`tgbtn nn ${op[k]==='none'?'on':''}`} onClick={()=>set(k,'none')}>なし</button>
+              <button className={`tgbtn pp ${op[k]==='present'?'on':''}`} onClick={()=>set(k,'present')}>あり</button>
             </div>
             <input type="text" className="opni"
-              placeholder={op[k]==='present'?'譌･譛ｬ隱槭〒迥ｶ諷九ｒ蜈･蜉帙√∪縺溘・ChatGPT縺ｫ逶ｸ隲・:''}
+              placeholder={op[k]==='present'?'日本語で状態を入力、またはChatGPTに相談':''}
               value={op[k+'Note']||''}
               disabled={op[k]==='none'}
               style={{opacity:op[k]==='present'?1:0.3}}
@@ -794,30 +696,30 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
   );
 }
 
-// 笏笏 App 笏笏
+// ── App ──
 function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat}) {
   return (
     <div className="extra-list">
-      <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>・・隧ｳ邏ｰ繧定ｿｽ蜉</button>
+      <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>＋ 詳細を追加</button>
       {extras.map(x=>(
         <div key={x.id} className="extra-card">
           <div className="extra-head">
             <textarea
               value={x.jp}
               onChange={e=>onUpdate(x.id,'jp',e.target.value)}
-              placeholder="譌･譛ｬ隱槭〒迥ｶ諷九ｒ蜈･蜉帙√∪縺溘・ChatGPT縺ｫ逶ｸ隲・
+              placeholder="日本語で状態を入力、またはChatGPTに相談"
             />
-            <button className="xbtn" onClick={()=>onRemove(x.id)}>笨・/button>
+            <button className="xbtn" onClick={()=>onRemove(x.id)}>✕</button>
           </div>
           <input
             type="text"
             value={x.en}
             onChange={e=>onUpdate(x.id,'en',e.target.value)}
-            placeholder="ChatGPT縺ｮ闍ｱ譁・ｒ縺薙％縺ｫ雋ｼ繧贋ｻ倥￠"
+            placeholder="ChatGPTの英文をここに貼り付け"
           />
         </div>
       ))}
-      <button className="btn bblu bsm" onClick={onChat}>ChatGPT縺ｧ逶ｸ隲・/button>
+      <button className="btn bblu bsm" onClick={onChat}>ChatGPTで相談</button>
     </div>
   );
 }
@@ -930,7 +832,7 @@ function App() {
   const collectDraftState=(id=currentDraftId)=>({
     id,
     savedAt:new Date().toISOString(),
-    label:`${brand} ${model}`.trim() || '・域悴蜈･蜉幢ｼ・,
+    label:`${brand} ${model}`.trim() || '（未入力）',
     photos:photos.filter(p=>p.cloudinaryUrl).map(p=>({cloudinaryUrl:p.cloudinaryUrl})),
     category,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
@@ -1000,7 +902,7 @@ function App() {
     const next=exists ? drafts.map(x=>x.id===id ? draft : x) : [draft, ...drafts];
     writeDrafts(next);
     setCurrentDraftId(id);
-    setSavedToast('菫晏ｭ倥＠縺ｾ縺励◆');
+    setSavedToast('保存しました');
     setTimeout(()=>setSavedToast(null),2000);
   };
 
@@ -1052,10 +954,10 @@ function App() {
 
   const handleSelectDraft=draft=>{
     if(currentDraftId===draft.id) {
-      alert('縺吶〒縺ｫ髢九°繧後※縺・∪縺・);
+      alert('すでに開かれています');
       return;
     }
-    if(!confirm('蜈･蜉帑ｸｭ縺ｮ蜀・ｮｹ縺悟､ｱ繧上ｌ縺ｾ縺吶らｶ壹￠縺ｾ縺吶°・・)) return;
+    if(!confirm('入力中の内容が失われます。続けますか？')) return;
     applyDraft(draft);
     setCurrentDraftId(draft.id);
     setShowDraftModal(false);
@@ -1118,23 +1020,42 @@ function App() {
 
   const handleConsultChatGPT=()=>{
     const title=titleCandidates[0] || '';
-    const chatText=`縲心old螻･豁ｴURL縲・笘懊％縺薙↓URL繧定ｲｼ縺｣縺ｦ縺上□縺輔＞
+    const chatText=`【Sold履歴URL】
+☜ここにURLを貼ってください
 
-縲舌ち繧､繝医Ν蛟呵｣懊・${title}
+【タイトル候補】
+${title}
 
-縲先欠遉ｺ縲・縺ゅ↑縺溘・eBay縺ｧ繧ｫ繝｡繝ｩ繝ｻ繝ｬ繝ｳ繧ｺ繧呈律譛ｬ縺九ｉ豬ｷ螟悶↓雋ｩ螢ｲ縺吶ｋ繧ｻ繝ｩ繝ｼ縺ｮ繧ｿ繧､繝医Ν譛驕ｩ蛹悶い繧ｷ繧ｹ繧ｿ繝ｳ繝医〒縺吶・
-荳願ｨ倥・Sold螻･豁ｴURL繧貞ｮ滄圀縺ｫ髢九＞縺ｦ螢ｲ繧後◆繧ｿ繧､繝医Ν繧貞・譫舌＠縲√ち繧､繝医Ν蛟呵｣懊→辣ｧ蜷医＠縺溘≧縺医〒譛驕ｩ縺ｪ繧ｿ繧､繝医Ν繧・縺､謠先｡医＠縺ｦ縺上□縺輔＞縲・
-繧ｿ繧､繝医Ν繝ｫ繝ｼ繝ｫ・・- 譛螟ｧ80譁・ｭ暦ｼ亥濠隗偵せ繝壹・繧ｹ縺ｮ縺ｿ菴ｿ逕ｨ・・- 螟ｧ譁・ｭ励Ν繝ｼ繝ｫ・壼渕譛ｬ逧・↓蜷・腰隱槭・蜈磯ｭ縺ｯ螟ｧ譁・ｭ暦ｼ井ｾ具ｼ咾anon, Black, From, Body・・- 縺溘□縺祐old螻･豁ｴ縺ｮ螳滄圀縺ｮ繧ｿ繧､繝医Ν陦ｨ險倥ｒ譛蜆ｪ蜈医→縺吶ｋ・亥梛逡ｪ繝ｻ繝｢繝・Ν蜷阪・諷｣鄙堤噪縺ｪ陦ｨ險倥↓蠕薙≧・・- 萓具ｼ哘OS 1N HS, RB67, f/3.5 縺ｪ縺ｩ縺ｯSold螻･豁ｴ縺ｮ陦ｨ險倥↓蜷医ｏ縺帙ｋ
-- 讒矩・嘴Special} [{Condition}{w/ 莉伜ｱ槫刀}] {Brand} {Model} {Color} {繧ｹ繝壹ャ繧ｯ} {S/N or S/C} From JAPAN
-- Special繧ｭ繝ｼ繝ｯ繝ｼ繝会ｼ・EAD / Rare / Meter Works / All Works・峨・Condition縺ｮ蜑・- 80譁・ｭ苓ｶ・∴縺溷ｴ蜷医・遏ｭ邵ｮ鬆・ｼ・  1. From繧貞炎髯､・・APAN縺ｯ谿九☆・・  2. f/謨ｰ蛟､竊断謨ｰ蛟､・医せ繝ｩ繝・す繝･蜑企勁・・  3. Color繧貞炎髯､
-  4. [Near MINT w/ Hood]竊端Near MINT]・井ｻ伜ｱ槫刀蜑企勁・・  5. S/N縺ｾ縺溘・S/C繧偵∪繧九＃縺ｨ蜑企勁
-- 邨ｶ蟇ｾ縺ｫ蜑企勁縺励↑縺・ｼ售pecial繝ｻCondition繝ｻBrand繝ｻModel繝ｻJAPAN
-- Brand繝ｻModel縺ｯ蜈･蜉帶枚蟄怜・繧偵◎縺ｮ縺ｾ縺ｾ菴ｿ逕ｨ・郁｣懷ｮ後・螟画峩遖∵ｭ｢・・
-蜃ｺ蜉帛ｽ｢蠑擾ｼ・- 譛邨ゅち繧､繝医Ν1陦後・縺ｿ
-- 譁・ｭ玲焚繧剃ｽｵ險・- Sold螻･豁ｴ縺九ｉ蜿り・↓縺励◆迚ｹ蠕ｴ2縲・轤ｹ
-- 蛟呵｣懊°繧峨・螟画峩轤ｹ
-- 譛邨ゅち繧､繝医Ν縺ｮ縺ｿ繧・陦後〒蜃ｺ蜉帙☆繧・- 繧ｳ繝斐・縺励ｄ縺吶＞繧医≧縺ｫ縲∵怙邨ゅち繧､繝医Ν縺縺代ｒ繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け縺ｧ蝗ｲ繧
-- 隗｣隱ｬ譁・ｄ陬懆ｶｳ譁・・繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け蜀・↓蜈･繧後↑縺・- 繧ｿ繧､繝医Ν蛟呵｣懊・繧ｹ繝壹Ν繝溘せ繝ｻ隱､蟄暦ｼ井ｾ具ｼ啼ns竊脱OS縲…anonn竊辰anon遲会ｼ峨′縺ゅｌ縺ｰ謖・遭縺励※菫ｮ豁｣縺吶ｋ縺薙→`;
+【指示】
+あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのタイトル最適化アシスタントです。
+
+上記のSold履歴URLを実際に開いて売れたタイトルを分析し、タイトル候補と照合したうえで最適なタイトルを1つ提案してください。
+
+タイトルルール：
+- 最大80文字（半角スペースのみ使用）
+- 大文字ルール：基本的に各単語の先頭は大文字（例：Canon, Black, From, Body）
+- ただしSold履歴の実際のタイトル表記を最優先とする（型番・モデル名は慣習的な表記に従う）
+- 例：EOS 1N HS, RB67, f/3.5 などはSold履歴の表記に合わせる
+- 構造：{Special} [{Condition}{w/ 付属品}] {Brand} {Model} {Color} {スペック} {S/N or S/C} From JAPAN
+- Specialキーワード（READ / Rare / Meter Works / All Works）はConditionの前
+- 80文字超えた場合の短縮順：
+  1. Fromを削除（JAPANは残す）
+  2. f/数値→f数値（スラッシュ削除）
+  3. Colorを削除
+  4. [Near MINT w/ Hood]→[Near MINT]（付属品削除）
+  5. S/NまたはS/Cをまるごと削除
+- 絶対に削除しない：Special・Condition・Brand・Model・JAPAN
+- Brand・Modelは入力文字列をそのまま使用（補完・変更禁止）
+
+出力形式：
+- 最終タイトル1行のみ
+- 文字数を併記
+- Sold履歴から参考にした特徴2〜3点
+- 候補からの変更点
+- 最終タイトルのみを1行で出力する
+- コピペしやすいように、最終タイトルだけをコードブロックで囲む
+- 解説文や補足文はコードブロック内に入れない
+- タイトル候補のスペルミス・誤字（例：ens→EOS、canonn→Canon等）があれば指摘して修正すること`;
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
   };
 
@@ -1152,48 +1073,81 @@ function App() {
       ...presentOpticNotes(op),
       ...extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean),
     ];
-    const chatText = `縺ゅ↑縺溘・eBay縺ｧ繧ｫ繝｡繝ｩ繝ｻ繝ｬ繝ｳ繧ｺ繧呈律譛ｬ縺九ｉ豬ｷ螟悶↓雋ｩ螢ｲ縺吶ｋ繧ｻ繝ｩ繝ｼ縺ｮ繧｢繧ｷ繧ｹ繧ｿ繝ｳ繝医〒縺吶・蜃ｺ蜩∝膚蜩・ｼ・{ebayTitle || titleCandidates[0] || '・域悴險ｭ螳夲ｼ・}
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
-莉･荳九・蜈･蜉帛・螳ｹ縺ｫ蠢懊§縺ｦ蟇ｾ蠢懊＠縺ｦ縺上□縺輔＞縲・
-笆 逞・憾縺梧・遒ｺ縺ｫ譖ｸ縺九ｌ縺ｦ縺・ｋ蝣ｴ蜷・竊・eBay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・↓螟画鋤縺励※縺上□縺輔＞縲・
-笆 雉ｪ蝠上・霑ｷ縺｣縺ｦ縺・ｋ蝣ｴ蜷茨ｼ医後←縺薙・繧ｫ繝薙°縲阪後←縺・嶌縺代・縺・＞縲阪↑縺ｩ・・竊・蜃ｺ蜩∝膚蜩∝錐縺九ｉ繧ｫ繝｡繝ｩ縺ｮ讒矩繝ｻ迚ｹ蠕ｴ繧呈耳貂ｬ縺励∵怙驕ｩ縺ｪ闍ｱ譁・｡ｨ迴ｾ繧呈署譯医＠縺ｦ縺上□縺輔＞縲・譛邨ら噪縺ｪ繧ｴ繝ｼ繝ｫ縺ｯ縲憩Bay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・阪〒縺吶・
-縲・{section}縺ｮ迥ｶ諷九・雉ｪ蝠上・${inputs.length ? inputs.join('\n') : '・亥・蜉帙↑縺暦ｼ・}
+以下の入力内容に応じて対応してください。
 
-縲仙・蜉帙Ν繝ｼ繝ｫ繝ｻ蜴ｳ螳医・- 闍ｱ譁・・繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け・・`\`\`・峨〒蝗ｲ繧薙〒繧ｳ繝斐・縺励ｄ縺吶￥蜃ｺ蜉帙☆繧九％縺ｨ
-- 闍ｱ譁・・逶ｴ蠕後↓譌･譛ｬ隱槭〒鄙ｻ險ｳ繧・陦梧ｷｻ縺医ｋ
-- 縺輔ｉ縺ｫ1縲・譁・〒邁｡蜊倥↑隗｣隱ｬ・医↑縺懊◎縺ｮ陦ｨ迴ｾ縺九・驛ｨ菴榊錐縺ｮ譬ｹ諡縺ｪ縺ｩ・峨ｒ譌･譛ｬ隱槭〒豺ｻ縺医ｋ
-- 謠先｡医′隍・焚縺ゅｋ蝣ｴ蜷医・譯・繝ｻ譯・縺ｮ蠖｢縺ｧ荳ｦ縺ｹ繧・- 蜑咲ｽｮ縺阪ｄ邱繧√・謖ｨ諡ｶ縺ｯ荳崎ｦ・- 蜃ｺ蜉帙・闍ｱ譁・Κ蛻・・縲熊ungus: 縲阪↑縺ｩ縺ｮ鬆・岼蜷阪・繝ｬ繝輔ぅ繝・け繧ｹ縺ｯ蜷ｫ繧√★縲∬恭譁・悽菴薙・縺ｿ繧偵さ繝ｼ繝峨ヶ繝ｭ繝・け縺ｫ蜈･繧後ｋ`;
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
+
+■ 質問・迷っている場合（「どこのカビか」「どう書けばいい」など）
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【${section}の状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文はコードブロック（\`\`\`）で囲んでコピペしやすく出力すること
+- 英文の直後に日本語で翻訳を1行添える
+- さらに1〜2文で簡単な解説（なぜその表現か・部位名の根拠など）を日本語で添える
+- 提案が複数ある場合は案1・案2の形で並べる
+- 前置きや締めの挨拶は不要
+- 出力の英文部分は「Fungus: 」などの項目名プレフィックスは含めず、英文本体のみをコードブロックに入れる`;
     openChatGPT(chatText);
   };
 
   const handleChatFunctional = extras => {
     const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
-    const chatText = `縺ゅ↑縺溘・eBay縺ｧ繧ｫ繝｡繝ｩ繝ｻ繝ｬ繝ｳ繧ｺ繧呈律譛ｬ縺九ｉ豬ｷ螟悶↓雋ｩ螢ｲ縺吶ｋ繧ｻ繝ｩ繝ｼ縺ｮ繧｢繧ｷ繧ｹ繧ｿ繝ｳ繝医〒縺吶・蜃ｺ蜩∝膚蜩・ｼ・{ebayTitle || titleCandidates[0] || '・域悴險ｭ螳夲ｼ・}
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
-莉･荳九・蜈･蜉帛・螳ｹ縺ｫ蠢懊§縺ｦ蟇ｾ蠢懊＠縺ｦ縺上□縺輔＞縲・
-笆 逞・憾縺梧・遒ｺ縺ｫ譖ｸ縺九ｌ縺ｦ縺・ｋ蝣ｴ蜷・竊・eBay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・↓螟画鋤縺励※縺上□縺輔＞縲・
-笆 雉ｪ蝠上・霑ｷ縺｣縺ｦ縺・ｋ蝣ｴ蜷・竊・蜃ｺ蜩∝膚蜩∝錐縺九ｉ繧ｫ繝｡繝ｩ縺ｮ讒矩繝ｻ迚ｹ蠕ｴ繧呈耳貂ｬ縺励∵怙驕ｩ縺ｪ闍ｱ譁・｡ｨ迴ｾ繧呈署譯医＠縺ｦ縺上□縺輔＞縲・譛邨ら噪縺ｪ繧ｴ繝ｼ繝ｫ縺ｯ縲憩Bay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・阪〒縺吶・
-縲色unctional縺ｮ迥ｶ諷九・雉ｪ蝠上・${inputs.length ? inputs.join('\n') : '・亥・蜉帙↑縺暦ｼ・}
+以下の入力内容に応じて対応してください。
 
-縲仙・蜉帙Ν繝ｼ繝ｫ繝ｻ蜴ｳ螳医・- 闍ｱ譁・・繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け・・`\`\`・峨〒蝗ｲ繧薙〒繧ｳ繝斐・縺励ｄ縺吶￥蜃ｺ蜉帙☆繧九％縺ｨ
-- 闍ｱ譁・・逶ｴ蠕後↓譌･譛ｬ隱槭〒鄙ｻ險ｳ繧・陦梧ｷｻ縺医ｋ
-- 縺輔ｉ縺ｫ1縲・譁・〒邁｡蜊倥↑隗｣隱ｬ・医↑縺懊◎縺ｮ陦ｨ迴ｾ縺九・驛ｨ菴榊錐縺ｮ譬ｹ諡縺ｪ縺ｩ・峨ｒ譌･譛ｬ隱槭〒豺ｻ縺医ｋ
-- 謠先｡医′隍・焚縺ゅｋ蝣ｴ蜷医・譯・繝ｻ譯・縺ｮ蠖｢縺ｧ荳ｦ縺ｹ繧・- 蜑咲ｽｮ縺阪ｄ邱繧√・謖ｨ諡ｶ縺ｯ荳崎ｦ・- 蜃ｺ蜉帙・闍ｱ譁・Κ蛻・・縲熊ungus: 縲阪↑縺ｩ縺ｮ鬆・岼蜷阪・繝ｬ繝輔ぅ繝・け繧ｹ縺ｯ蜷ｫ繧√★縲∬恭譁・悽菴薙・縺ｿ繧偵さ繝ｼ繝峨ヶ繝ｭ繝・け縺ｫ蜈･繧後ｋ`;
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
+
+■ 質問・迷っている場合
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【Functionalの状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文はコードブロック（\`\`\`）で囲んでコピペしやすく出力すること
+- 英文の直後に日本語で翻訳を1行添える
+- さらに1〜2文で簡単な解説（なぜその表現か・部位名の根拠など）を日本語で添える
+- 提案が複数ある場合は案1・案2の形で並べる
+- 前置きや締めの挨拶は不要
+- 出力の英文部分は「Fungus: 」などの項目名プレフィックスは含めず、英文本体のみをコードブロックに入れる`;
     openChatGPT(chatText);
   };
 
   const handleChatAppearance = extras => {
     const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
-    const chatText = `縺ゅ↑縺溘・eBay縺ｧ繧ｫ繝｡繝ｩ繝ｻ繝ｬ繝ｳ繧ｺ繧呈律譛ｬ縺九ｉ豬ｷ螟悶↓雋ｩ螢ｲ縺吶ｋ繧ｻ繝ｩ繝ｼ縺ｮ繧｢繧ｷ繧ｹ繧ｿ繝ｳ繝医〒縺吶・蜃ｺ蜩∝膚蜩・ｼ・{ebayTitle || titleCandidates[0] || '・域悴險ｭ螳夲ｼ・}
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
 
-莉･荳九・蜈･蜉帛・螳ｹ縺ｫ蠢懊§縺ｦ蟇ｾ蠢懊＠縺ｦ縺上□縺輔＞縲・笆 逞・憾縺梧・遒ｺ縺ｫ譖ｸ縺九ｌ縺ｦ縺・ｋ蝣ｴ蜷・竊・eBay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・↓螟画鋤縺励※縺上□縺輔＞縲・
-笆 雉ｪ蝠上・霑ｷ縺｣縺ｦ縺・ｋ蝣ｴ蜷・竊・蜃ｺ蜩∝膚蜩∝錐縺九ｉ繧ｫ繝｡繝ｩ縺ｮ讒矩繝ｻ迚ｹ蠕ｴ繧呈耳貂ｬ縺励∵怙驕ｩ縺ｪ闍ｱ譁・｡ｨ迴ｾ繧呈署譯医＠縺ｦ縺上□縺輔＞縲・譛邨ら噪縺ｪ繧ｴ繝ｼ繝ｫ縺ｯ縲憩Bay繝舌う繝､繝ｼ蜷代￠縺ｮ閾ｪ辟ｶ縺ｪ闍ｱ隱・譁・阪〒縺吶・
-縲植ppearance縺ｮ迥ｶ諷九・雉ｪ蝠上・${inputs.length ? inputs.join('\n') : '・亥・蜉帙↑縺暦ｼ・}
+以下の入力内容に応じて対応してください。
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
 
-縲仙・蜉帙Ν繝ｼ繝ｫ繝ｻ蜴ｳ螳医・- 闍ｱ譁・・繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け・・`\`\`・峨〒蝗ｲ繧薙〒繧ｳ繝斐・縺励ｄ縺吶￥蜃ｺ蜉帙☆繧九％縺ｨ
-- 闍ｱ譁・・逶ｴ蠕後↓譌･譛ｬ隱槭〒鄙ｻ險ｳ繧・陦梧ｷｻ縺医ｋ
-- 縺輔ｉ縺ｫ1縲・譁・〒邁｡蜊倥↑隗｣隱ｬ・医↑縺懊◎縺ｮ陦ｨ迴ｾ縺九・驛ｨ菴榊錐縺ｮ譬ｹ諡縺ｪ縺ｩ・峨ｒ譌･譛ｬ隱槭〒豺ｻ縺医ｋ
-- 謠先｡医′隍・焚縺ゅｋ蝣ｴ蜷医・譯・繝ｻ譯・縺ｮ蠖｢縺ｧ荳ｦ縺ｹ繧・- 蜑咲ｽｮ縺阪ｄ邱繧√・謖ｨ諡ｶ縺ｯ荳崎ｦ・- 蜃ｺ蜉帙・闍ｱ譁・Κ蛻・・縲熊ungus: 縲阪↑縺ｩ縺ｮ鬆・岼蜷阪・繝ｬ繝輔ぅ繝・け繧ｹ縺ｯ蜷ｫ繧√★縲∬恭譁・悽菴薙・縺ｿ繧偵さ繝ｼ繝峨ヶ繝ｭ繝・け縺ｫ蜈･繧後ｋ`;
+■ 質問・迷っている場合
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【Appearanceの状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 英文はコードブロック（\`\`\`）で囲んでコピペしやすく出力すること
+- 英文の直後に日本語で翻訳を1行添える
+- さらに1〜2文で簡単な解説（なぜその表現か・部位名の根拠など）を日本語で添える
+- 提案が複数ある場合は案1・案2の形で並べる
+- 前置きや締めの挨拶は不要
+- 出力の英文部分は「Fungus: 」などの項目名プレフィックスは含めず、英文本体のみをコードブロックに入れる`;
     openChatGPT(chatText);
   };
 
@@ -1227,13 +1181,21 @@ function App() {
 
   const handleVerifyFeatures = () => {
     const features = itemSpecifics['Features'] || '';
-    const chatText = `縺ゅ↑縺溘・繧ｫ繝｡繝ｩ縺ｮ繧ｹ繝壹ャ繧ｯ縺ｫ隧ｳ縺励＞蟆る摩螳ｶ縺ｧ縺吶・莉･荳九・繧ｫ繝｡繝ｩ縺ｮFeatures・域ｩ溯・・峨Μ繧ｹ繝医ｒ螳滄圀縺ｮ繧ｹ繝壹ャ繧ｯ縺ｨ蜴ｳ蟇・↓辣ｧ蜷医＠縺ｦ縺上□縺輔＞縲・縲後％縺ｮ繧ｫ繝｡繝ｩ縺檎｢ｺ螳溘↓縺薙・讖溯・繧呈戟縺｣縺ｦ縺・ｋ縲阪→險縺医ｋ繧ゅ・縺縺代ｒ谿九＠縲∝ｰ代＠縺ｧ繧ゆｸ咲｢ｺ縺九↑繧ゅ・縺ｯ蜑企勁縺励※縺上□縺輔＞縲りｿｷ縺｣縺溘ｉ蜑企勁繧貞━蜈医＠縺ｦ縺上□縺輔＞縲・
-縲舌き繝｡繝ｩ縲・{ebayTitle}
-縲千樟蝨ｨ縺ｮFeatures縲・{features}
+    const chatText = `あなたはカメラのスペックに詳しい専門家です。
+以下のカメラのFeatures（機能）リストを実際のスペックと厳密に照合してください。
+「このカメラが確実にこの機能を持っている」と言えるものだけを残し、少しでも不確かなものは削除してください。迷ったら削除を優先してください。
 
-縲親Bay縺ｮ驕ｸ謚櫁い繝ｪ繧ｹ繝医・Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater
+【カメラ】${ebayTitle}
+【現在のFeatures】${features}
 
-蜃ｺ蜉帛ｽ｢蠑擾ｼ・- 蜑企勁縺励◆鬆・岼縺ｨ縺昴・逅・罰繧堤ｮ・擅譖ｸ縺阪〒隱ｬ譏・- 霑ｽ蜉縺吶∋縺埼・岼縺後≠繧後・逅・罰縺ｨ荳邱偵↓邂・擅譖ｸ縺阪〒謠先｡・- 譛蠕後↓縲後蝉ｿｮ豁｣蠕後・Features・医さ繝斐・逕ｨ・峨代阪→縺・≧隕句・縺励ｒ縺､縺代※縲∵ｭ｣縺励＞Features縺ｮ縺ｿ繧偵き繝ｳ繝槫玄蛻・ｊ縺ｧ1陦後〒蜃ｺ蜉・- 繧ｳ繝斐・逕ｨ縺ｮ陦後・繧ｳ繝ｼ繝峨ヶ繝ｭ繝・け・・`\`\`・峨〒蝗ｲ繧`;
+【eBayの選択肢リスト】
+Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adjustment, Electric Drive, Lomographic Camera, Manual Program Modes, Multiple Exposure, Panorama Setting, Red Eye Reduction, Scratch Resistant, Selfie Mirror, Shock-Proof, Shooting-Modes, Timer, UV Filter, Waterproof/Underwater
+
+出力形式：
+- 削除した項目とその理由を箇条書きで説明
+- 追加すべき項目があれば理由と一緒に箇条書きで提案
+- 最後に「【修正後のFeatures（コピペ用）】」という見出しをつけて、正しいFeaturesのみをカンマ区切りで1行で出力
+- コピペ用の行はコードブロック（\`\`\`）で囲む`;
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`, '_blank', 'noopener');
   };
 
@@ -1281,7 +1243,7 @@ function App() {
   const itemSpecificsPanel = (
     <>
       <button className="btn bsec bfull" onClick={handleGenerateItemSpecifics} disabled={itemSpecBusy||!ebayTitle} style={{marginTop:8}}>
-        {itemSpecBusy?<><span className="spin"></span> Item Specifics逕滓・荳ｭ...</>:'Item Specifics逕滓・'}
+        {itemSpecBusy?<><span className="spin"></span> Item Specifics生成中...</>:'Item Specifics生成'}
       </button>
       {itemSpecError&&<div className="aapp" style={{color:'var(--red)',marginTop:8}}>{itemSpecError}</div>}
       {Object.keys(itemSpecifics).length>0&&(
@@ -1295,7 +1257,7 @@ function App() {
                 <div className="input-label" style={{marginTop:0}}>{k}</div>
                 {kind==='AI' && k==='Features' && itemSpecifics['Features'] && (
                   <button className="rfbtn" onClick={handleVerifyFeatures} style={{marginBottom:4}}>
-                    ChatGPT縺ｧ讀懆ｨｼ
+                    ChatGPTで検証
                   </button>
                 )}
               </div>
@@ -1311,9 +1273,9 @@ function App() {
                   type="button"
                   className={`spec-copy-btn ${copiedSpecKey===`${kind}:${k}`?'done':''}`}
                   onClick={()=>copyItemSpecificValue(`${kind}:${k}`,kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? ''))}
-                  title="繧ｳ繝斐・"
+                  title="コピー"
                 >
-                  {copiedSpecKey===`${kind}:${k}`?'笨・:'筴・}
+                  {copiedSpecKey===`${kind}:${k}`?'✓':'⧉'}
                 </button>
               </div>
             </div>
@@ -1343,7 +1305,8 @@ function App() {
       })}
       {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
         <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
-          ChatGPT縺ｧ逶ｸ隲・        </button>
+          ChatGPTで相談
+        </button>
       )}
     </div>
   );
@@ -1365,10 +1328,10 @@ function App() {
                 type="text"
                 value={draftSearch}
                 onChange={e=>setDraftSearch(e.target.value)}
-                placeholder="讀懃ｴ｢"
+                placeholder="検索"
                 autoFocus
               />
-              <button className="btn bsec bsm" onClick={()=>setShowDraftModal(false)}>髢峨§繧・/button>
+              <button className="btn bsec bsm" onClick={()=>setShowDraftModal(false)}>閉じる</button>
             </div>
             <div className="draft-list">
               {filteredDrafts.length ? filteredDrafts.map(d=>(
@@ -1377,21 +1340,21 @@ function App() {
                     <img src={d.photos[0].cloudinaryUrl} alt="" style={{width:64,height:64,objectFit:'cover',borderRadius:6,marginRight:10,flexShrink:0}} />
                   )}
                   <div className="draft-meta">
-                    <div className="draft-label">{d.label || '・域悴蜈･蜉幢ｼ・}</div>
+                    <div className="draft-label">{d.label || '（未入力）'}</div>
                     <div className="draft-date">{d.savedAt || ''}</div>
                   </div>
                   <div className="draft-actions">
-                    <button className="btn bblu bsm" onClick={()=>handleSelectDraft(d)}>驕ｸ謚・/button>
-                    <button className="btn bsec bsm" onClick={()=>handleDeleteDraft(d.id)}>蜑企勁</button>
+                    <button className="btn bblu bsm" onClick={()=>handleSelectDraft(d)}>選択</button>
+                    <button className="btn bsec bsm" onClick={()=>handleDeleteDraft(d.id)}>削除</button>
                   </div>
                 </div>
               )) : (
-                <div className="empty"><h3>菫晏ｭ倥ョ繝ｼ繧ｿ縺後≠繧翫∪縺帙ｓ</h3></div>
+                <div className="empty"><h3>保存データがありません</h3></div>
               )}
             </div>
             <div className="draft-foot">
-              <button className="btn bsec bsm" onClick={handleDeleteAllDrafts}>蜈ｨ莉ｶ蜑企勁</button>
-              <span style={{fontSize:11,color:'var(--mut)',alignSelf:'center'}}>{filteredDrafts.length} 莉ｶ</span>
+              <button className="btn bsec bsm" onClick={handleDeleteAllDrafts}>全件削除</button>
+              <span style={{fontSize:11,color:'var(--mut)',alignSelf:'center'}}>{filteredDrafts.length} 件</span>
             </div>
           </div>
         </div>
@@ -1400,8 +1363,8 @@ function App() {
         <div className="draft-overlay">
           <div className="draft-modal">
             <div className="draft-head">
-              <div style={{fontWeight:700,flex:1}}>Anthropic API繧ｭ繝ｼ險ｭ螳・/div>
-              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>髢峨§繧・/button>
+              <div style={{fontWeight:700,flex:1}}>Anthropic APIキー設定</div>
+              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>閉じる</button>
             </div>
             <div className="draft-list">
               <input
@@ -1418,40 +1381,41 @@ function App() {
                 className="btn bprim bsm"
                 onClick={()=>{localStorage.setItem(API_KEY_STORAGE_KEY, apiKeyInput);setApiKeyModalOpen(false);}}
               >
-                菫晏ｭ・              </button>
-              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>髢峨§繧・/button>
+                保存
+              </button>
+              <button className="btn bsec bsm" onClick={()=>setApiKeyModalOpen(false)}>閉じる</button>
             </div>
           </div>
         </div>
       )}
-      {/* 笏笏 Form panel 笏笏 */}
+      {/* ── Form panel ── */}
       <div className="fpanel">
         <div className="fpanel-header">
           <span className="fhtxt">Listing Generator</span>
-          <button className="hbtn" onClick={handleSave} title="菫晏ｭ・>沈</button>
-          <button className="hbtn" onClick={handleClear} title="繧ｯ繝ｪ繧｢">C</button>
-          <button className="hbtn" onClick={openDraftModal} title="讀懃ｴ｢">竚・/button>
-          <button className="hbtn" onClick={()=>setApiKeyModalOpen(true)} title="API繧ｭ繝ｼ險ｭ螳・>笞・/button>
+          <button className="hbtn" onClick={handleSave} title="保存">💾</button>
+          <button className="hbtn" onClick={handleClear} title="クリア">C</button>
+          <button className="hbtn" onClick={openDraftModal} title="検索">⌕</button>
+          <button className="hbtn" onClick={()=>setApiKeyModalOpen(true)} title="APIキー設定">⚙</button>
         </div>
         <div className="fcontent">
 
           <div className="sec">
-            <div className="sttl">繧ｫ繝・ざ繝ｪ繝ｼ</div>
+            <div className="sttl">カテゴリー</div>
             <div className="tgrid" style={{gridTemplateColumns:'repeat(2,1fr)'}}>
-              <div className={`tbtn ${!isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('camera')}>胴 繧ｫ繝｡繝ｩ</div>
-              <div className={`tbtn ${isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('watch')}>竚・閻墓凾險・/div>
+              <div className={`tbtn ${!isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('camera')}>📷 カメラ</div>
+              <div className={`tbtn ${isWatch?'on':''}`} style={{fontSize:14,padding:11}} onClick={()=>setCategory('watch')}>⌚ 腕時計</div>
             </div>
           </div>
 
           {!isWatch&&<div className="sec">
-            <div className="sttl">蝠・刀繧ｿ繧､繝・/div>
+            <div className="sttl">商品タイプ</div>
             <div className="tgrid">
               {TYPES.map(t=><div key={t} className={`tbtn ${pType===t?'on':''}`} onClick={()=>{setPType(t);setBundles([]);}}>{t}</div>)}
             </div>
           </div>}
 
           <div className="sec">
-            <div className="sttl">繧ｳ繝ｳ繝・ぅ繧ｷ繝ｧ繝ｳ</div>
+            <div className="sttl">コンディション</div>
             <div className="cwrap">
               {CONDITIONS.map(c=><div key={c} className={`cbtn ${cond===c?'on':''}`} onClick={()=>setCond(c)}>{c}</div>)}
             </div>
@@ -1459,14 +1423,14 @@ function App() {
 
           {!isWatch&&<>
           <div className="sec">
-            <div className="sttl">蝓ｺ譛ｬ諠・ｱ</div>
+            <div className="sttl">基本情報</div>
             <div className="dz"
               onClick={() => fileRef.current.click()}
               onDragOver={e => e.preventDefault()}
               onDrop={e => { e.preventDefault(); handleFiles(e.dataTransfer.files); }}
             >
               <div style={{fontSize:24}}></div>
-              <div style={{marginTop:6, fontSize:12, color:'var(--mut)'}}>繝峨Ο繝・・ or 繧ｯ繝ｪ繝・け縺ｧ蜀咏悄繧定ｿｽ蜉</div>
+              <div style={{marginTop:6, fontSize:12, color:'var(--mut)'}}>ドロップ or クリックで写真を追加</div>
             </div>
             <input
               ref={fileRef}
@@ -1499,7 +1463,7 @@ function App() {
             <div className="input-label">Model</div>
             <input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="AE-1 35mm SLR Film Camera Body" />
 
-            <div className="input-label">迚ｹ險倥く繝ｼ繝ｯ繝ｼ繝会ｼ井ｻｻ諢擾ｼ・/div>
+            <div className="input-label">特記キーワード（任意）</div>
             <div className="chklist">
               {SPECIALS.map(s=>(
                 <div key={s} className={`chkbtn ${specials.includes(s)?'on':''}`} onClick={()=>toggleSpecial(s)}>
@@ -1508,7 +1472,7 @@ function App() {
               ))}
             </div>
 
-            <div className="input-label">莉伜ｱ槫刀 w/・井ｻｻ諢擾ｼ・/div>
+            <div className="input-label">付属品 w/（任意）</div>
             <div className="chklist">
               {WITH_ITEMS.map(w=>(
                 <div key={w} className={`chkbtn ${withItems.includes(w)?'on':''}`} onClick={()=>toggleWith(w)}>
@@ -1517,7 +1481,7 @@ function App() {
               ))}
             </div>
 
-            <div className="input-label">繧ｫ繝ｩ繝ｼ・井ｻｻ諢擾ｼ・/div>
+            <div className="input-label">カラー（任意）</div>
             <div className="chklist" style={{marginBottom:6}}>
               {['Black','Silver'].map(c=>(
                 <div key={c} className={`chkbtn ${color===c?'on':''}`} onClick={()=>setColor(p=>p===c?'':c)}>
@@ -1527,7 +1491,7 @@ function App() {
             </div>
             <input type="text" value={color} onChange={e=>setColor(e.target.value)} placeholder="Black / Silver / Chrome / White ..." />
 
-            <div className="input-label">S/N or S/C・井ｻｻ諢擾ｼ・/div>
+            <div className="input-label">S/N or S/C（任意）</div>
             <div className="sn-wrap">
               <div className="sn-toggle-row">
                 {['S/N','S/C'].map(t=>(
@@ -1543,9 +1507,10 @@ function App() {
             </div>
 
             <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>
-              繧ｿ繧､繝医Ν繧堤ｵ・∩遶九※繧・            </button>
+              タイトルを組み立てる
+            </button>
             {titleTools}
-            <div className="input-label">遒ｺ螳壹ち繧､繝医Ν蜈･蜉帶ｬ・/div>
+            <div className="input-label">確定タイトル入力欄</div>
             <div className="final-title-box">
               <div className="spec-input-wrap" style={{flex:1,minWidth:0}}>
                 <input
@@ -1560,18 +1525,18 @@ function App() {
                   className={`spec-copy-btn ${finalTitleCopied?'done':''}`}
                   onClick={handleCopyFinalTitle}
                   disabled={!(ebayTitle || finalTitleInput).trim()}
-                  title="繧ｳ繝斐・"
+                  title="コピー"
                 >
-                  {finalTitleCopied?'笨・:'筴・}
+                  {finalTitleCopied?'✓':'⧉'}
                 </button>
               </div>
-              <button className="btn bprim bsm" onClick={handleConfirmTitle}>遒ｺ螳・/button>
+              <button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button>
             </div>
-            <label>繧ｷ繝ｪ繧｢繝ｫ繝翫Φ繝舌・・医・繝・ぅ・・/label>
+            <label>シリアルナンバー（ボディ）</label>
             <input type="text" value={serialBody} onChange={e=>setSerialBody(e.target.value)} placeholder="1234567" />
             <div style={{display:'flex',alignItems:'center',gap:8,marginTop:10}}>
               <input type="checkbox" id="lensSerialChk" checked={hasLensSerial} onChange={e=>setHasLensSerial(e.target.checked)} />
-              <label htmlFor="lensSerialChk" style={{marginTop:0,marginBottom:0}}>繝ｬ繝ｳ繧ｺ繧ｷ繝ｪ繧｢繝ｫ</label>
+              <label htmlFor="lensSerialChk" style={{marginTop:0,marginBottom:0}}>レンズシリアル</label>
             </div>
             {hasLensSerial && (
               <input type="text" value={serialLens} onChange={e=>setSerialLens(e.target.value)} placeholder="1234567" style={{marginTop:6}} />
@@ -1582,13 +1547,13 @@ function App() {
             <div className="sttl">Appearance</div>
             <div className="frow" style={{flexDirection:'column',gap:6}}>
               <div className={`fopt ${appChoice==='beautiful'?'on':''}`} onClick={()=>setAppChoice('beautiful')}>
-                Appearance is beautiful. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>竊・Mint莉･荳・/span>
+                Appearance is beautiful. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Mint以上</span>
               </div>
               <div className={`fopt ${appChoice==='scuffs'?'on':''}`} onClick={()=>setAppChoice('scuffs')}>
-                Tiny scuffs from normal use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>竊・Near MINT縺ｮ譎・/span>
+                Tiny scuffs from normal use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Near MINTの時</span>
               </div>
               <div className={`fopt ${appChoice==='signs'?'on':''}`} onClick={()=>setAppChoice('signs')}>
-                It shows signs of use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>竊・Exc+5莉･荳九・譎・/span>
+                It shows signs of use. <span style={{color:'var(--mut)',fontSize:10,marginLeft:6}}>← Exc+5以下の時</span>
               </div>
             </div>
             <ExtraEditor
@@ -1629,7 +1594,7 @@ function App() {
           <div className="sec">
             <div className="sttl">Functional</div>
             <div className="frow">
-              <div className={`fopt ${funcDef?'on':''}`} onClick={()=>setFuncDef(p=>!p)}>笨・It works properly.</div>
+              <div className={`fopt ${funcDef?'on':''}`} onClick={()=>setFuncDef(p=>!p)}>✓ It works properly.</div>
             </div>
             <ExtraEditor
               extras={funcExtras}
@@ -1641,7 +1606,7 @@ function App() {
           </div>
 
           <div className="sec">
-            <div className="sttl">莉伜ｱ槫刀</div>
+            <div className="sttl">付属品</div>
             <div className="bgrid">
               {bOpts.map(n=>(
                 <div key={n} className={`bi ${bundles.includes(n)?'on':''}`} onClick={()=>toggleBundle(n)}>
@@ -1659,35 +1624,35 @@ function App() {
 
           {isWatch&&<>
             <div className="sec">
-              <div className="sttl">閻墓凾險・蝓ｺ譛ｬ諠・ｱ</div>
-              <div className="input-label">蜈磯ｭ菫ｮ鬟ｾ隱・/div><div className="chklist">{WATCH_MODIFIERS.map(x=><div key={x.key} className={`chkbtn ${wModifier===x.key?'on':''}`} onClick={()=>setWModifier(x.key)}><span className="dot" />{x.label}</div>)}</div>
+              <div className="sttl">腕時計 基本情報</div>
+              <div className="input-label">先頭修飾語</div><div className="chklist">{WATCH_MODIFIERS.map(x=><div key={x.key} className={`chkbtn ${wModifier===x.key?'on':''}`} onClick={()=>setWModifier(x.key)}><span className="dot" />{x.label}</div>)}</div>
               {wModifier==='vintageYear'&&<input type="text" value={wModifierYear} onChange={e=>setWModifierYear(e.target.value)} placeholder="1970s" style={{marginTop:7}} />}
               <div className="input-label">Brand</div><input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="RADO / SEIKO / Longines ..." />
               <div className="input-label">Line / SubModel</div><input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="DiaStar" />
               <div className="input-label">Reference Number</div><input type="text" value={wRefNumber} onChange={e=>setWRefNumber(e.target.value)} />
-              <div className="input-label">蜿ｯ螟画棧・医き繝ｳ繝槫玄蛻・ｊ・・/div><input type="text" value={wVariableSlots} onChange={e=>setWVariableSlots(e.target.value)} placeholder="28mm, Gold Dial, Water Resistant" />
+              <div className="input-label">可変枠（カンマ区切り）</div><input type="text" value={wVariableSlots} onChange={e=>setWVariableSlots(e.target.value)} placeholder="28mm, Gold Dial, Water Resistant" />
               <div className="input-label">Movement</div><div className="chklist">{WATCH_MOVEMENTS.map(x=><div key={x} className={`chkbtn ${wMovement===x?'on':''}`} onClick={()=>setWMovement(x)}><span className="dot" />{x}</div>)}</div>
               <div className="input-label">Gender</div><div className="chklist">{WATCH_GENDERS.map(x=><div key={x} className={`chkbtn ${wGender===x?'on':''}`} onClick={()=>setWGender(x)}><span className="dot" />{x}</div>)}</div>
-              <div className="input-label">Accessories・医ち繧､繝医Ν w/・・/div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
+              <div className="input-label">Accessories（タイトル w/）</div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
               <div className="input-label">Serial Number</div><input type="text" value={wSerial} onChange={e=>setWSerial(e.target.value)} />
-              <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>繧ｿ繧､繝医Ν繧堤ｵ・∩遶九※繧・/button>
+              <button className="btn bprim bfull" onClick={handleGenTitle} style={{marginTop:12}}>タイトルを組み立てる</button>
               {titleTools}
-              <div className="input-label">遒ｺ螳壹ち繧､繝医Ν蜈･蜉帶ｬ・/div><div className="final-title-box"><div className="spec-input-wrap" style={{flex:1,minWidth:0}}><input type="text" value={finalTitleInput} onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}} style={{borderColor:'var(--acc)'}}/><button type="button" className={`spec-copy-btn ${finalTitleCopied?'done':''}`} onClick={handleCopyFinalTitle}>{finalTitleCopied?'笨・:'筴・}</button></div><button className="btn bprim bsm" onClick={handleConfirmTitle}>遒ｺ螳・/button></div>
+              <div className="input-label">確定タイトル入力欄</div><div className="final-title-box"><div className="spec-input-wrap" style={{flex:1,minWidth:0}}><input type="text" value={finalTitleInput} onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}} style={{borderColor:'var(--acc)'}}/><button type="button" className={`spec-copy-btn ${finalTitleCopied?'done':''}`} onClick={handleCopyFinalTitle}>{finalTitleCopied?'✓':'⧉'}</button></div><button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button></div>
             </div>
             <div className="sec"><div className="sttl">Appearance</div>
               <div className="input-label">Case</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wCaseChoice===x?'on':''}`} onClick={()=>setWCaseChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)}/>
               <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)}/>
               <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)}/>
             </div>
-            <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm蜊倅ｽ・/div></div>
-            <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>笨・It works properly.</div></div>
+            <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
+            <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div></div>
             <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}</span></div>)}</div></div>
           </>}
 
         </div>
       </div>
 
-      {/* 笏笏 Right panel 笏笏 */}
+      {/* ── Right panel ── */}
       <div className="rpanel">
         <div className="rtabs">
           {[['html',' HTML']].map(([id,lbl])=>(
@@ -1700,19 +1665,19 @@ function App() {
             <div className="html-area">
               {itemSpecificsPanel}
               <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8,flexShrink:0,marginTop:12}}>
-                {genBusy&&<span style={{display:'flex',alignItems:'center',gap:5,color:'var(--mut)',fontSize:12}}><span className="spin"></span>AI蜃ｦ逅・ｸｭ...</span>}
-                <button className="btn bprim" onClick={handleGenerate} disabled={genBusy}>､・HTML逕滓・</button>
+                {genBusy&&<span style={{display:'flex',alignItems:'center',gap:5,color:'var(--mut)',fontSize:12}}><span className="spin"></span>AI処理中...</span>}
+                <button className="btn bprim" onClick={handleGenerate} disabled={genBusy}>🤖 HTML生成</button>
               </div>
               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
-                <span style={{fontSize:11,color:'var(--mut)'}}>eBay縺ｮ隱ｬ譏取ｬ・ｼ・TML繝｢繝ｼ繝会ｼ峨↓雋ｼ繧贋ｻ倥￠</span>
+                <span style={{fontSize:11,color:'var(--mut)'}}>eBayの説明欄（HTMLモード）に貼り付け</span>
                 <div style={{display:'flex',gap:7,alignItems:'center'}}>
-                  {copied&&<span className="ok">笨・繧ｳ繝斐・螳御ｺ・/span>}
-                  <button className="btn bblu bsm" onClick={handleCopy} disabled={!html}>搭 繧ｳ繝斐・</button>
+                  {copied&&<span className="ok">✓ コピー完了</span>}
+                  <button className="btn bblu bsm" onClick={handleCopy} disabled={!html}>📋 コピー</button>
                 </div>
               </div>
               {html
                 ?<div className="hout">{html}</div>
-                :<div className="empty" style={{flex:1}}><div style={{fontSize:28,marginBottom:8}}>捗</div><h3>HTML縺梧悴逕滓・</h3><p style={{fontSize:11,marginTop:4}}>蟾ｦ縺ｮ繝輔か繝ｼ繝繧貞・蜉帙＠縺ｦ<br/>縲粂TML逕滓・縲阪ｒ謚ｼ縺励※縺上□縺輔＞</p></div>
+                :<div className="empty" style={{flex:1}}><div style={{fontSize:28,marginBottom:8}}>💻</div><h3>HTMLが未生成</h3><p style={{fontSize:11,marginTop:4}}>左のフォームを入力して<br/>「HTML生成」を押してください</p></div>
               }
             </div>
           )}
