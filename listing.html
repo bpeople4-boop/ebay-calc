@@ -193,6 +193,7 @@ const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','
 const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
 const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
 const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra Belt(s)','Chain','Watch Winder'];
+const WATCH_BUNDLE_LABELS_JP = {'Box':'箱','Case':'ケース','Warranty Card / Papers':'保証書・書類','Manual':'説明書','Extra Belt(s)':'予備ベルト','Chain':'チェーン','Watch Winder':'ワインダー'};
 const WATCH_ITEM_SPEC_FIELDS = ['Brand','Department','Model','Reference Number','Movement','Case Material','Case Size','Case Color','Dial Color','Band Material','Band Color','Water Resistance','Features','Country/Region of Manufacture','Year Manufactured','Type'];
 const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}));
 
@@ -818,6 +819,7 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
 
 // ── App ──
 function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat,presets,onAddPreset}) {
+  const [posPreset,setPosPreset]=useState(null);
   return (
     <div className="extra-list">
       {presets && presets.length>0 && (
@@ -827,16 +829,23 @@ function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat,presets,onAddPreset}
             return (
               <div key={i} className={`tbtn ${used?'on':''}`} style={{fontSize:11,padding:'5px 8px',opacity:used?0.5:1,cursor:used?'default':'pointer'}} onClick={()=>{
                 if(used) return;
-                if(p.needsPosition){
-                  const pos=window.prompt('何時の位置の傷ですか？(1〜12の数字を入力)','8');
-                  if(pos===null || !pos.trim()) return;
-                  onAddPreset({label:p.label, jp:p.jp.replace('{POS}',pos.trim()), en:p.en.replace('{POS}',pos.trim())});
-                } else {
-                  onAddPreset({label:p.label, jp:p.jp, en:p.en});
-                }
+                if(p.needsPosition){ setPosPreset(p); return; }
+                onAddPreset({label:p.label, jp:p.jp, en:p.en});
               }}>{used?'✓ ':''}{p.label}</div>
             );
           })}
+        </div>
+      )}
+      {posPreset && (
+        <div style={{display:'flex',flexWrap:'wrap',alignItems:'center',gap:4,marginBottom:6,padding:6,border:'1px solid var(--bdr)',borderRadius:6}}>
+          <span style={{fontSize:11,color:'var(--mut)',marginRight:4}}>何時の位置？</span>
+          {Array.from({length:12},(_,i)=>i+1).map(n=>(
+            <div key={n} className="tbtn" style={{fontSize:11,padding:'4px 8px'}} onClick={()=>{
+              onAddPreset({label:posPreset.label, jp:posPreset.jp.replace('{POS}',n), en:posPreset.en.replace('{POS}',n)});
+              setPosPreset(null);
+            }}>{n}</div>
+          ))}
+          <button className="xbtn" onClick={()=>setPosPreset(null)}>✕</button>
         </div>
       )}
       <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>＋ 詳細を追加</button>
@@ -1789,7 +1798,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             </div>
             <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
             <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
-            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}</span></div>)}</div></div>
+            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div></div>
           </>}
 
         </div>
