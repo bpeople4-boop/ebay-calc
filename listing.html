@@ -196,6 +196,22 @@ const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra
 const WATCH_ITEM_SPEC_FIELDS = ['Brand','Department','Model','Reference Number','Movement','Case Material','Case Size','Case Color','Dial Color','Band Material','Band Color','Water Resistance','Features','Country/Region of Manufacture','Year Manufactured','Type'];
 const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}));
 
+const WATCH_CASE_PRESETS = [
+  {label:'夜光欠損', jp:'夜光塗料の一部が欠けています。', en:'Some of the luminous material is missing.'},
+  {label:'リューズ塗装剥げ', jp:'リューズの塗装が剥がれています。', en:'The paint on the crown of the wristwatch is peeling.'},
+];
+const WATCH_CRYSTAL_PRESETS = [
+  {label:'風防内側汚れ', jp:'風防の内側に汚れがあります。', en:'The inside of the windshield is dirty.'},
+  {label:'位置指定の傷', jp:'全体的にクリアですが、表面に軽い傷があります。指定位置にごく僅かな傷がありますが目立ちません。', en:"Clear overall with minor surface scratches. There is a very slight scratch at the [X] o'clock position, but it is not noticeable."},
+];
+const WATCH_BELT_PRESETS = [
+  {label:'ベルト交換推奨', jp:'ベルトはお好みのものへの交換をおすすめします。', en:'We recommend replacing the strap with one of your choice.'},
+];
+const WATCH_FUNC_PRESETS = [
+  {label:'回転ベゼル', jp:'ベゼルは左右に回転します。', en:'The bezel rotates left and right.'},
+  {label:'夜光コーティング剥離', jp:'夜光コーティングの一部が剥がれています。', en:'Some of the luminous coating has peeled off.'},
+];
+
 const HAS_FINDER = new Set(['Film Camera','Digital Camera','Movie Camera','Camcorder']);
 const OP_ITEMS = ['Fungus','Haze','Scratch','Dust'];
 const OVERALL_OPTS = [
@@ -800,9 +816,14 @@ function OpBox({title,op,setOp,showBalsam,isOpen=true,onToggle}) {
 }
 
 // ── App ──
-function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat}) {
+function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat,presets,onAddPreset}) {
   return (
     <div className="extra-list">
+      {presets && presets.length>0 && (
+        <div style={{display:'flex',flexWrap:'wrap',gap:4,marginBottom:6}}>
+          {presets.map((p,i)=><div key={i} className="tbtn" style={{fontSize:11,padding:'5px 8px'}} onClick={()=>onAddPreset(p)}>{p.label}</div>)}
+        </div>
+      )}
       <button className="btn bsec bsm" onClick={onAdd} disabled={extras.length>=5}>＋ 詳細を追加</button>
       {extras.map(x=>(
         <div key={x.id} className="extra-card">
@@ -1747,12 +1768,12 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
               <div className="input-label">確定タイトル入力欄</div><div className="final-title-box"><div className="spec-input-wrap" style={{flex:1,minWidth:0}}><input type="text" value={finalTitleInput} onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}} style={{borderColor:'var(--acc)'}}/><button type="button" className={`spec-copy-btn ${finalTitleCopied?'done':''}`} onClick={handleCopyFinalTitle}>{finalTitleCopied?'✓':'⧉'}</button></div><button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button></div>
             </div>
             <div className="sec"><div className="sttl">Appearance</div>
-              <div className="input-label">Case</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wCaseChoice===x?'on':''}`} onClick={()=>setWCaseChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)}/>
-              <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)}/>
-              <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)}/>
+              <div className="input-label">Case</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wCaseChoice===x?'on':''}`} onClick={()=>setWCaseChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)} presets={WATCH_CASE_PRESETS} onAddPreset={p=>addPresetExtra(setWCaseExtras,p)}/>
+              <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)} presets={WATCH_CRYSTAL_PRESETS} onAddPreset={p=>addPresetExtra(setWCrystalExtras,p)}/>
+              <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)} presets={WATCH_BELT_PRESETS} onAddPreset={p=>addPresetExtra(setWBeltExtras,p)}/>
             </div>
             <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
-            <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div></div>
+            <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
             <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}</span></div>)}</div></div>
           </>}
 
