@@ -483,7 +483,7 @@ function genWatchHTML(d) {
   const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
   const funcBase=d.wFuncDef ? `The watch has been thoroughly inspected and tested.<br>\nIt is fully functional, and all features operate smoothly and accurately.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const functional=[funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
-  const bundleLines=d.wBundles.map(x=>`-${esc(x)}`).join('<br>\n');
+  const bundleLines=[...d.wBundles, ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
@@ -938,6 +938,7 @@ function App() {
   const [wFuncDef,setWFuncDef]=useState(true);
   const [wFuncExtras,setWFuncExtras]=useState([]);
   const [wBundles,setWBundles]=useState([]);
+  const [wBundleOther,setWBundleOther]=useState('');
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -1000,7 +1001,7 @@ function App() {
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
-    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,wBundleOther,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
@@ -1047,7 +1048,7 @@ function App() {
     setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
     setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
     setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? '');
-    setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []);
+    setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []); setWBundleOther(draft.wBundleOther ?? '');
     setWFuncExtras(draft.wFuncExtras ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
     setHtml(draft.html ?? '');
@@ -1103,7 +1104,7 @@ function App() {
     setWSlotSize(''); setWSlotDial(''); setWSlotWater(''); setWSlotMaterial(''); setWSlotFunction(''); setWSlotDecoration('');
     setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
     setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
-    setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]);
+    setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]); setWBundleOther('');
     setWFuncExtras([]);
     setPhotos([]);
     setItemSpecifics({});
@@ -1322,7 +1323,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles})
+        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,wBundleOther})
         : genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
@@ -1818,7 +1819,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             </div>
             <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
             <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
-            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div></div>
+            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div><div className="input-label" style={{marginTop:8}}>その他（カンマ区切りで自由入力）</div><input type="text" value={wBundleOther} onChange={e=>setWBundleOther(e.target.value)} placeholder="Extra Winder, Spare Pin" /></div>
           </>}
 
         </div>
