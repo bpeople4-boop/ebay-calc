@@ -715,7 +715,7 @@ ${isWatch ? `=== Wristwatch rules ===
 - Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
 - その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。
 - Style：必ず次のリストの値のみを使うこと（カンマ区切りで複数可）：Casual, Classic, Dress/Formal, Formal, Luxury, Sport, Diving, Military, Fashion。モデル名や製品ラインの固有名詞（例："Professional"のようなモデル名の一部）をそのままStyleの値として使わないこと。リストに当てはまるものが判断できない場合は空欄にする。
-- 商品写真が提供されている場合は、写真の情報をタイトルよりも優先して判断すること。特にWater Resistance（文字盤に印字された防水表記）、Bezel Color、Case Color、Band Color、Watch Shape、Caseback、Indices、Band/Strapは写真から読み取れる場合、写真の内容を優先する。写真が提供されていない場合は従来通りタイトル・型番から推測する。` : ''}
+- 商品写真が提供されている場合、写真に写っている実際の見た目を最優先の情報源とすること。型番から連想される一般的な仕様（型番の別バリエーションで一般的な値など）よりも、写真で実際に見えるものを常に優先すること。特にWater Resistance（文字盤に印字された防水表記の数字を最優先で読み取る。印字が読めない場合のみ型番から推測する）、Band Material・Band/Strap（写真でブレスレット状の金属連結が見えるなら"Stainless Steel"や"Bracelet"、革ベルトの質感が見えるなら"Leather"、ゴム/シリコン素材の質感が見えるなら"Rubber"というように、実際に見える素材で判断し、同型番の別バリエーションで一般的な素材を推測で使わないこと）、Bezel Color、Case Color、Band Color、Watch Shape、Caseback、Indicesを写真ベースで判断すること。写真と型番の一般知識が矛盾する場合は必ず写真を信じること。写真が提供されていない場合のみ、従来通りタイトル・型番から推測する。` : ''}
 
 Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
       messages:[{role:'user',content: photoUrls.length ? [...photoUrls.map(url=>({type:'image',source:{type:'url',url}})), {type:'text',text:prompt}] : prompt}]
