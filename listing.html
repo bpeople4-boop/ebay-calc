@@ -202,8 +202,31 @@ const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
 const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
 const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra Belt(s)','Chain','Watch Winder'];
 const WATCH_BUNDLE_LABELS_JP = {'Box':'箱','Case':'ケース','Warranty Card / Papers':'保証書・書類','Manual':'説明書','Extra Belt(s)':'予備ベルト','Chain':'チェーン','Watch Winder':'ワインダー'};
-const WATCH_ITEM_SPEC_FIELDS = ['Brand','Department','Model','Reference Number','Movement','Case Material','Case Size','Case Color','Dial Color','Band Material','Band Color','Water Resistance','Features','Country/Region of Manufacture','Year Manufactured','Type'];
-const WATCH_ITEM_SPEC_ORDER = WATCH_ITEM_SPEC_FIELDS.map(key=>({key,kind:'AI'}));
+const WATCH_ITEM_SPEC_AI_FIELDS = ['Brand','Department','Reference Number','Model','Features','Movement','Dial Color','Band Color','Case Color','Band Material','Case Material','Water Resistance','Year Manufactured','Case Size','Country of Origin','Watch Shape','Style','Caseback','Band Width','Lug Width','Indices','Band/Strap','Bezel Color'];
+const WATCH_ITEM_SPEC_FIXED_VALUES = {
+'Type': 'Wristwatch',
+'Customized': 'No',
+'Manufacturer Warranty': 'None',
+'Handmade': 'No',
+'With Service Records': 'No',
+'Unit Quantity': '1',
+'Unit Type': 'Unit',
+'California Prop 65 Warning': '',
+'UPC': 'N/A',
+'Max Wrist Size': 'N/A',
+'Seller Warranty': 'No',
+};
+const watchSpecEntry = key => ({ key, kind: WATCH_ITEM_SPEC_FIXED_VALUES.hasOwnProperty(key) ? 'FIXED' : 'AI' });
+const WATCH_ITEM_SPEC_ORDER = [
+'Brand','Department','Type','Reference Number','Customized','Style','Model','Features','Movement',
+'Dial Color','Band Color','Bezel Color','Case Color','Band Material','Display','Case Material',
+'Water Resistance','Year Manufactured','With Original Box/Packaging','With Papers','Indices','UPC',
+'Case Size','Watch Shape','Number of Jewels','Band/Strap','Country of Origin','Dial Pattern','Caseback',
+'Bezel Type','Vintage','Band Width','Lug Width','Theme','Case Finish','With Manual/Booklet',
+'Seller Warranty','With Service Records','Handmade','Case Thickness','Manufacturer Warranty',
+'Escapement Type','Max Wrist Size','Closure','Handedness','California Prop 65 Warning',
+'Unit Quantity','Unit Type',
+].map(watchSpecEntry);
 
 const WATCH_CASE_PRESETS = [
   {label:'夜光欠損', jp:'夜光塗料の一部が欠けています。', en:'Some of the luminous material is missing.'},
@@ -606,7 +629,7 @@ function watchStaticSections(){return `<div class="wt-divider"><span class="line
 async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender=''}) {
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
   if(!apiKey) throw new Error('Anthropic API key is not set.');
-  const fields = isWatch ? WATCH_ITEM_SPEC_FIELDS : (ITEM_SPEC_FIELDS[pType] || []);
+  const fields = isWatch ? WATCH_ITEM_SPEC_AI_FIELDS : (ITEM_SPEC_FIELDS[pType] || []);
   const prompt = `Confirmed eBay title (primary source): ${ebayTitle || ''}
 Product type: ${pType}
 Condition: ${cond || ''}
@@ -681,7 +704,14 @@ ${isWatch ? `=== Wristwatch rules ===
 - Output all values in English.
 - Department：wGender の値（${wGender || ''}）をそのまま使う。
 - Movement：wMovement の値（${wMovement || ''}）を参考にしつつ、eBay表記に合わせる。Automaticはそのまま、Hand-windingはManual表記が一般的ならそちらを優先してよい。
-- Country/Region of Manufacture：ブランド名から推定してよい。RADO / Longines / TAG Heuer / Bulgari（時計部門）/ Oris は Switzerland、SEIKO は Japan、Gucci / Fendi は Italy、Dior / Hermès は France。不明な場合は空欄のままでよい。
+- Country of Origin：ブランド名から推定してよい。RADO / Longines / TAG Heuer / Bulgari（時計部門）/ Oris は Switzerland、SEIKO は Japan、Gucci / Fendi は Italy、Dior / Hermès は France。不明な場合は空欄のままでよい。
+- Watch Shape：文字盤の形状。写真がない場合はモデル名から一般的な形状を推測（不明ならRound）。
+- Style：Casual, Classic, Dress/Formal, Formal, Luxury, Sport等から該当するものをカンマ区切りで。
+- Caseback：Solid, Exhibition/Display, Screw-downなどモデルの一般的仕様から推測。不明なら空欄。
+- Band Width, Lug Width：型番から分かる場合のみmm単位で記入。不明なら空欄。
+- Indices：Baton Indexes, Roman Numerals, Arabic Numerals, Diamond Indexesなどから推測。不明なら空欄。
+- Band/Strap：Bracelet, Leather Strap, Rubber Strap, NATO Strapなどからモデルの標準仕様を推測。不明なら空欄。
+- Bezel Color：写真がない場合はCase Colorと同じと仮定してよい。不明なら空欄。
 - Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
 - その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。` : ''}
 
@@ -698,7 +728,16 @@ Before outputting JSON, briefly think through each field one by one on separate 
   const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
   if(!jsonMatch) throw new Error('JSON not found in response');
   const parsed = JSON.parse(jsonMatch[0]);
-  return fields.reduce((acc,key)=>({...acc,[key]:parsed[key] || ''}),{});
+  const result = fields.reduce((acc,key)=>({...acc,[key]:parsed[key] || ''}),{});
+  if (isWatch) {
+    const yearMatch = (result['Year Manufactured']||'').match(/\d{4}/);
+    result['Display'] = wMovement === 'Digital' ? 'Digital' : 'Analog';
+    result['Vintage'] = yearMatch ? (new Date().getFullYear() - parseInt(yearMatch[0],10) >= 20 ? 'Yes' : 'No') : '';
+    result['With Original Box/Packaging'] = bundles.includes('Box') ? 'Yes' : 'No';
+    result['With Papers'] = bundles.includes('Warranty Card / Papers') ? 'Yes' : 'No';
+    result['With Manual/Booklet'] = bundles.includes('Manual') ? 'Yes' : 'No';
+  }
+  return result;
 }
 
 function buildTitleAuto({cond, specials, withItems, color, snType, snValue, brand, model}) {
@@ -1433,7 +1472,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
               <div className="spec-input-wrap">
                 <input
                   type="text"
-                  value={kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? '')}
+                  value={kind==='AI' ? (itemSpecifics[k]||'') : ((isWatch ? WATCH_ITEM_SPEC_FIXED_VALUES : ITEM_SPEC_FIXED_VALUES)[k] ?? '')}
                   onChange={kind==='AI' ? e=>setItemSpecificValue(k,e.target.value) : undefined}
                   readOnly={kind==='FIXED'}
                   placeholder="N/A"
@@ -1441,7 +1480,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                 <button
                   type="button"
                   className={`spec-copy-btn ${copiedSpecKey===`${kind}:${k}`?'done':''}`}
-                  onClick={()=>copyItemSpecificValue(`${kind}:${k}`,kind==='AI' ? (itemSpecifics[k]||'') : (ITEM_SPEC_FIXED_VALUES[k] ?? ''))}
+                  onClick={()=>copyItemSpecificValue(`${kind}:${k}`,kind==='AI' ? (itemSpecifics[k]||'') : ((isWatch ? WATCH_ITEM_SPEC_FIXED_VALUES : ITEM_SPEC_FIXED_VALUES)[k] ?? ''))}
                   title="コピー"
                 >
                   {copiedSpecKey===`${kind}:${k}`?'✓':'⧉'}
