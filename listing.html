@@ -782,7 +782,8 @@ Return ONLY a JSON array (no markdown, no explanation outside the JSON) where ea
   let data = {};
   try{ data = raw ? JSON.parse(raw) : {}; }catch{}
   if(!res.ok) throw new Error(data.error?.message || data.error || `Anthropic request failed: ${res.status}`);
-  const text = data.content?.[0]?.text || '';
+  const textBlock = (data.content || []).find(block => block.type === 'text');
+  const text = textBlock?.text || '';
   const cleaned = text.replace(/```json|```/g,'').trim();
   const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
   if(!jsonMatch) throw new Error('JSON not found in response');
