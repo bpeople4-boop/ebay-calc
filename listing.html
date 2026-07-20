@@ -713,7 +713,8 @@ ${isWatch ? `=== Wristwatch rules ===
 - Band/Strap：Bracelet, Leather Strap, Rubber Strap, NATO Strapなどからモデルの標準仕様を推測。不明なら空欄。
 - Bezel Color：写真がない場合はCase Colorと同じと仮定してよい。不明なら空欄。
 - Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
-- その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。` : ''}
+- その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。
+- Style：必ず次のリストの値のみを使うこと（カンマ区切りで複数可）：Casual, Classic, Dress/Formal, Formal, Luxury, Sport, Diving, Military, Fashion。モデル名や製品ラインの固有名詞（例："Professional"のようなモデル名の一部）をそのままStyleの値として使わないこと。リストに当てはまるものが判断できない場合は空欄にする。` : ''}
 
 Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
       messages:[{role:'user',content:prompt}]
