@@ -772,7 +772,7 @@ Return ONLY a JSON array (no markdown, no explanation outside the JSON) where ea
       'anthropic-dangerous-direct-browser-access':'true'
     },
     body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',
+      model:'claude-sonnet-5',
       max_tokens:2000,
       system:`You are an expert appraiser of vintage watches and cameras helping verify eBay Item Specifics accuracy. You will be shown product photos, a set of already-generated Item Specifics values, and a screenshot of eBay's own AI-suggested item specifics for comparison. Judge disagreements strictly based on what is visible in the actual product photos, not on generic assumptions about the model or brand. Output ONLY valid JSON, no markdown formatting, no explanation outside the JSON array.`,
       messages:[{role:'user',content}]
