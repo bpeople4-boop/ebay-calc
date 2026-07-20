@@ -626,7 +626,7 @@ function watchStaticSections(){return `<div class="wt-divider"><span class="line
 <p class="wt-footer-arigato"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784421458/arigato_icon_transparent_tcakik.png" alt="Arigato"><span>ARIGATO</span></p>
 <p class="wt-footer-note">Thank you for viewing this listing</p>`;}
 // ── OpBox ──
-async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender=''}) {
+async function generateItemSpecifics({pType,brand,model,cond,color,bundles,ebayTitle,isWatch=false,wRefNumber='',wMovement='',wGender='',photoUrls=[]}) {
   const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
   if(!apiKey) throw new Error('Anthropic API key is not set.');
   const fields = isWatch ? WATCH_ITEM_SPEC_AI_FIELDS : (ITEM_SPEC_FIELDS[pType] || []);
@@ -714,10 +714,11 @@ ${isWatch ? `=== Wristwatch rules ===
 - Bezel Color：写真がない場合はCase Colorと同じと仮定してよい。不明なら空欄。
 - Water Resistance：型番・商品名から判断できる場合のみ「30m (3 ATM)」のような形式で記入し、不明なら空欄にする。
 - その他のフィールドは商品名・ブランド・型番から常識的に推測して埋める。分からない項目は空欄でよい。
-- Style：必ず次のリストの値のみを使うこと（カンマ区切りで複数可）：Casual, Classic, Dress/Formal, Formal, Luxury, Sport, Diving, Military, Fashion。モデル名や製品ラインの固有名詞（例："Professional"のようなモデル名の一部）をそのままStyleの値として使わないこと。リストに当てはまるものが判断できない場合は空欄にする。` : ''}
+- Style：必ず次のリストの値のみを使うこと（カンマ区切りで複数可）：Casual, Classic, Dress/Formal, Formal, Luxury, Sport, Diving, Military, Fashion。モデル名や製品ラインの固有名詞（例："Professional"のようなモデル名の一部）をそのままStyleの値として使わないこと。リストに当てはまるものが判断できない場合は空欄にする。
+- 商品写真が提供されている場合は、写真の情報をタイトルよりも優先して判断すること。特にWater Resistance（文字盤に印字された防水表記）、Bezel Color、Case Color、Band Color、Watch Shape、Caseback、Indices、Band/Strapは写真から読み取れる場合、写真の内容を優先する。写真が提供されていない場合は従来通りタイトル・型番から推測する。` : ''}
 
 Before outputting JSON, briefly think through each field one by one on separate lines prefixed with "- ", considering the specific model's known characteristics, then output a line "JSON:" followed by the final JSON object only.`,
-      messages:[{role:'user',content:prompt}]
+      messages:[{role:'user',content: photoUrls.length ? [...photoUrls.map(url=>({type:'image',source:{type:'url',url}})), {type:'text',text:prompt}] : prompt}]
     })
   });
   const raw = await res.text();
@@ -1377,7 +1378,8 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setItemSpecBusy(true);
     setItemSpecError('');
     try{
-      const specs=await generateItemSpecifics({pType,brand,model,cond,color,bundles:isWatch?wBundles:bundles,ebayTitle,isWatch,wRefNumber,wMovement,wGender});
+      const photoUrls = photos.filter(p=>p.cloudinaryUrl).slice(0,3).map(p=>p.cloudinaryUrl);
+      const specs=await generateItemSpecifics({pType,brand,model,cond,color,bundles:isWatch?wBundles:bundles,ebayTitle,isWatch,wRefNumber,wMovement,wGender,photoUrls});
       setItemSpecifics(specs);
     }catch(e){
       setItemSpecError(e.message || 'Item Specifics generation failed.');
