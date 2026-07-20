@@ -1655,7 +1655,6 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
             </div>
           </div>
 
-          {!isWatch&&<>
           <div className="sec">
             <div className="sttl">基本情報</div>
             <div className="dz"
@@ -1692,6 +1691,11 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
                 ))}
               </div>
             )}
+          </div>
+
+          {!isWatch&&<>
+          <div className="sec">
+            <div className="sttl">カメラ情報</div>
             <div className="input-label">Brand</div>
             <input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="Canon / Nikon / Mamiya ..." />
             <div className="input-label">Model</div>
