@@ -1470,6 +1470,7 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
   const handlePasteSuggested = e => {
     const items = e.clipboardData && e.clipboardData.items;
     if (!items) return;
+    const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp'];
     for (const item of items) {
       if (item.type && item.type.startsWith('image/')) {
         const file = item.getAsFile();
@@ -1477,7 +1478,10 @@ Auto Exposure, Built-in Flash, Built-In Light Meter, Date Imprint, Dioptric Adju
         reader.onload = ev => {
           const dataUrl = ev.target.result;
           const base64 = dataUrl.split(',')[1];
-          setSuggestedScreenshot({dataUrl, base64, mediaType: item.type});
+          const match = dataUrl.match(/^data:([^;]+);base64,/);
+          let mediaType = match ? match[1] : item.type;
+          if (!ALLOWED_TYPES.includes(mediaType)) mediaType = 'image/png';
+          setSuggestedScreenshot({dataUrl, base64, mediaType});
         };
         reader.readAsDataURL(file);
         break;
