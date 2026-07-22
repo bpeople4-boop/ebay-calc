@@ -392,7 +392,7 @@ function genHTML(d) {
   const opSections = [];
   if(lensOpen) opSections.push(buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras)));
   if(finderOpen && HAS_FINDER.has(pType)) opSections.push(buildOpSection(finOp,'finder',false,extrasHtml(finExtras)));
-  const opH = opSections.join('<br>\n');
+  const opH = opSections.join('<br><br>\n');
 
   const funcExtra = extrasHtml(funcExtras);
   const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
@@ -411,6 +411,16 @@ function genHTML(d) {
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
 .wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
+.wt-sat-wrap{padding:4px 30px 26px;display:flex;justify-content:center}
+.wt-sat-box{border-top:3px solid #2E7D32;border-left:1px solid #D9D9D9;border-right:1px solid #D9D9D9;border-bottom:1px solid #D9D9D9;border-radius:4px;padding:16px 22px;width:100%;max-width:460px;box-sizing:border-box;background:#F4F9F4}
+.wt-sat-title{font-size:14px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#2E7D32;text-align:center;margin:0 0 10px 0;display:flex;align-items:center;justify-content:center;gap:8px}
+.wt-sat-icon{width:52px;height:52px;display:inline-block;flex-shrink:0}
+.wt-sat-stats{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 14px;padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid #F0F0F0}
+.wt-sat-stats .wt-sat-stat-item{font-size:13px;letter-spacing:0.3px;color:#1A1A1A;white-space:nowrap}
+.wt-sat-stats .wt-sat-stat-item:before{content:"\\2713";display:inline-block;margin-right:3px;font-weight:700;color:#2E7D32}
+.wt-sat-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.wt-sat-label{font-size:13.5px;letter-spacing:0.3px;color:#1A1A1A}
+.wt-sat-stars{color:#D4A93A;font-size:15px;letter-spacing:2px;white-space:nowrap}
 .wt-main h3{position:relative;font-weight:700;font-size:13px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase;word-break:break-word}
 .wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}
 .wt-main .wt-price-note{font-weight:700;font-size:18px!important;letter-spacing:0.5px;margin:0;padding:0 0 18px 0;text-align:center;color:#D4A93A}
@@ -430,9 +440,14 @@ function genHTML(d) {
 @media (max-width:600px){
 .wt-main{padding:0 12px 28px 12px}
 .wt-main .wt-body{padding:0 14px 18px}
+.wt-sat-wrap{padding:4px 14px 22px}
 .wt-main p{font-size:16px;line-height:1.8;padding:0 4px 18px}
 .wt-main h1{font-size:24px!important;padding:26px 0 18px 0}
 .wt-main h3{font-size:13.5px!important}
+.wt-sat-title{font-size:14.5px}
+.wt-sat-stats .wt-sat-stat-item{font-size:13px}
+.wt-sat-label{font-size:14px}
+.wt-sat-stars{font-size:16px}
 }
 </style>
 <div class="wt-main">
@@ -450,6 +465,21 @@ function genHTML(d) {
 <h3>Serial Number</h3>
 <div class="wt-body"><p>${serialTxt}</p></div>
 </section>
+<div class="wt-sat-wrap">
+<div class="wt-sat-box">
+<div class="wt-sat-title"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784454853/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8819%E6%97%A5_18_35_03_ggyqif.png" alt="Trusted" class="wt-sat-icon">Trusted by Hundreds of Buyers</div>
+<div class="wt-sat-stats">
+<span class="wt-sat-stat-item">202 Transactions</span>
+<span class="wt-sat-stat-item">$54,800+ in Sales</span>
+<span class="wt-sat-stat-item">0.00% Defect Rate</span>
+<span class="wt-sat-stat-item">100% On-Time Tracking</span>
+</div>
+<div class="wt-sat-row"><span class="wt-sat-label">Accurate Description</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Reasonable Shipping Cost</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Shipping Speed</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+<div class="wt-sat-row"><span class="wt-sat-label">Communication</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
+</div>
+</div>
 <section>
 <h3>Appearance</h3>
 <div class="wt-body"><p>${appH}</p></div>
