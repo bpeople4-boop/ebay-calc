@@ -382,105 +382,95 @@ function genHTML(d) {
     : `Body:${serialBody||'—'}`;
 
   let appH = '';
-  if(appChoice==='beautiful') appH = '<div><b><span style="color:rgb(255,0,16);">Appearance is beautiful.</span></b></div>';
-  else if(appChoice==='scuffs') appH = '<div>Tiny scuffs from normal use.</div>';
-  else appH = '<div>It shows signs of use.</div>';
+  if(appChoice==='beautiful') appH = '<span class="wt-emph">Appearance is beautiful.</span>';
+  else if(appChoice==='scuffs') appH = 'Tiny scuffs from normal use.';
+  else appH = 'It shows signs of use.';
   const appExtra = extrasHtml(appExtras);
-  if(appExtra) appH += '\n' + appExtra;
-  appH += '\n<div>* Please check photos.</div>';
+  if(appExtra) appH += '<br>\n' + appExtra;
+  appH += '<br>\n* Please check photos.';
 
   const opSections = [];
   if(lensOpen) opSections.push(buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras)));
   if(finderOpen && HAS_FINDER.has(pType)) opSections.push(buildOpSection(finOp,'finder',false,extrasHtml(finExtras)));
-  const opH = opSections.join(`\n</section><section class="product_dec">\n`);
+  const opH = opSections.join('<br>\n');
 
   const funcExtra = extrasHtml(funcExtras);
   const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
   const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
   const noteLines = [];
   if(noCharger) noteLines.push('*Battery charger is not included.');
-  const noteH = noteLines.length ? `<div style="color:#000000;">${noteLines.join('<br>\n')}</div>` : '';
+  const noteH = noteLines.length ? noteLines.join('<br>\n') : '';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
 
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 <style>
-  .template__main{word-break:break-word;max-width:100%;background:#fff;border:1px solid #000;padding:0 20px 30px 20px!important;-webkit-box-sizing:border-box;box-sizing:border-box;word-break:break-all}
-  .template__main h1{font-family:"Verdana",sans-serif,sans-serif!important;font-style:italic;font-weight:bold;font-size:22px!important;margin:30px 0;text-align:center;color:#FF0010;word-break:break-word}
-  .template__main h2{position:relative;background-color:#FFF100;font-family:"Verdana",sans-serif,sans-serif!important;font-style:italic;font-size:18px!important;margin:15px 0 15px 0;padding:10px 10px;line-height:1.2;text-align:left;color:#000;word-break:break-word}
-  .template__main h2:before{position:absolute;content:"";width:0;height:0;border-style:solid;border-width:15px 14px 0 14px;border-color:#FFF100 transparent transparent transparent;bottom:-10px}
-  .template__main h3{position:relative;font-weight:bold;font-size:18px!important;margin:0;padding:15px 10px 5px 20px;color:#111;word-break:break-word}
-  .template__main h3:before{position:absolute;left:5px;content:"\\025a0";color:#FF0010}
-  .template__main .product_dec{font-style:italic;font-size:18px!important;margin:0;padding:0 0 20px 0;text-align:left;color:#111}
-  .template__main section{padding-bottom:20px}
-  .template__main .img-area{text-align:center}
-  .template__main img{max-width:100%;object-fit:cover}
+.wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
+.wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9;word-break:break-word}
+.wt-crest{text-align:center;padding-top:26px}
+.wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
+.wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
+.wt-main h3{position:relative;font-weight:700;font-size:13px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase;word-break:break-word}
+.wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}
+.wt-main .wt-body{padding:0 30px 18px}
+.wt-main p{word-break:break-word;font-weight:400;margin:0;padding:0 10px 18px;font-size:18px;line-height:1.8;text-align:left;color:#1A1A1A}
+.wt-emph{color:#0A0A0A;font-weight:700}
+.wt-main section{padding-bottom:6px}
+.wt-main .img-area{text-align:center}
+.wt-main img{max-width:100%;object-fit:cover}
+.wt-divider{text-align:center;padding:18px 0}
+.wt-divider .dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:#B0B0B0}
+.wt-divider .line{display:inline-block;width:40px;height:1px;background:#E5E5E5;vertical-align:middle;margin:0 8px}
+@media (max-width:600px){
+.wt-main{padding:0 12px 28px 12px}
+.wt-main .wt-body{padding:0 14px 18px}
+.wt-main p{font-size:16px;line-height:1.8;padding:0 4px 18px}
+.wt-main h1{font-size:24px!important;padding:26px 0 18px 0}
+.wt-main h3{font-size:13.5px!important}
+}
 </style>
-<div class="template__main">
-  <div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/77.jpg" width="100%" alt="Cover Image"></div>
-  <h1>${ttl}</h1>
-  <section class="product_dec">
-    <h2>Description</h2>
-    <div><font color="#ff0010">&lt; For U.S. Buyers &gt;<br></font>Import duties and taxes are already included in the price or shipping cost.</div>
-    <div>No additional charges will be required at delivery.</div><div><br></div>
-    <div><span style="color:rgb(255,0,16);">&lt; For Buyers Outside the U.S. &gt;</span></div>
-    <div>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</div><div><br></div>
-    <h3>Total Condition<br><span style="color:rgb(255,0,16);">${htmlCondition}</span></h3><div><br></div>
-    <h3>Serial Number</h3>&nbsp; &nbsp; ${serialTxt}
-  </section>
-  <section class="product_dec">
-    <h3>Appearance</h3>
-    ${appH}
-    <div><br></div>
-    <h3>Optics</h3>
-    ${opH}
-  </section>
-  <section class="product_dec">
-    <h3>Functional</h3><b><span style="color:rgb(255,0,16);">${funcTxtFull}</span></b>
-  </section>
-  <section class="product_dec">
-    <h3>Bundled Items</h3>
-    <div><font color="#000000">${bH}</font><br></div>
-    ${noteH}
-    <br>
-    All you can see on the picture will be included in a set of a package.<br><br>
-    Please refer to the pictures for more details.<br>
-    Please check the pictures and don't hesitate to ask any questions about the item!<br>Thank you.
-    <h2>Payment</h2>
-    <div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&height=370&fit=bounds" alt="Payment"></div>
-    Payment is due within <u>3 days</u> of the auction end.<br>
-    We will ship the item <u>3 business days</u> after your payment clears.
-    <h2>Shipping</h2>
-    We will send your goods by <b><font color="#0039f3">FedEx or DHL</font></b>.<br><br>
-    We will provide you with a tracking number.<br>Please bid with confidence.<br><br>
-    We only ship to addresses registered with Ebay.<br><br>
-    <font color="#ff0010">We ship Monday through Friday Japan time.<br>
-    On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</font>
-    <h2>Clean</h2>
-    All products are disinfected with alcohol and meticulously cleaned.
-    <div style="margin-top:10px;margin-left:40px;"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3131_3.jpg?" width="600px"></div>
-  </section>
-  <section class="product_dec">
-    <h2>Packing and Storage</h2>
-    <font color="#ff0010">Storage Method</font><br><br>
-    All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.<br><br>
-    <font color="#ff0010">Packing</font><br><br>
-    The packaging is strictly handled by professionals.
-    <div style="margin-top:10px;margin-left:40px;"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3042_2_(2).jpg?" width="600px"></div>
-    <div style="margin-top:10px;margin-left:40px;"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3043_2_(1).jpg?" width="600px"></div>
-    <h2>Returns</h2>
-    <font color="#ff0010">Unconditional Return Policy</font><br><br>
-    Customer service and satisfaction are very important to us.<br>
-    All return requests must be made within 30 days of the receipt of the item.<br><br>
-    <font color="#ff0010">Please contact me first for return before you ship it back to me.<br>
-    The postage of the returned goods is a buyer burden.</font>
-    <h2>International Buyers</h2>
-    Please Note:<br>
-    Import duties, taxes, and charges are not included in the item price or shipping cost.<br>
-    These charges are the buyer's responsibility.<br>
-    Please check with your country's customs office to determine what these additional costs will be prior to bidding or buying.
-  </section>
+<div class="wt-main">
+<div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/77.jpg" alt="Cover Image"></div>
+<h1>${ttl}</h1>
+<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+<section>
+<div class="wt-body">
+<p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p>
+<p><span class="wt-emph">&lt; For Buyers Outside the U.S. &gt;</span><br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>Please check with your country's customs office for more details.</p>
+</div>
+<h3>Total Condition</h3>
+<div class="wt-body"><p><span class="wt-emph">${htmlCondition}</span></p></div>
+<h3>Serial Number</h3>
+<div class="wt-body"><p>${serialTxt}</p></div>
+</section>
+<section>
+<h3>Appearance</h3>
+<div class="wt-body"><p>${appH}</p></div>
+<h3>Optics</h3>
+<div class="wt-body"><p>${opH}</p></div>
+</section>
+<section>
+<h3>Functional</h3>
+<div class="wt-body"><p><span class="wt-emph">${funcTxtFull}</span></p></div>
+</section>
+<section>
+<h3>Bundled Items</h3>
+<div class="wt-body"><p>${bH}${noteH?'<br>'+noteH:''}<br><br>All you can see on the picture will be included in a set of a package.<br>Please refer to the pictures for more details.<br>Please check the pictures and don't hesitate to ask any questions about the item! Thank you.</p></div>
+</section>
+<div class="wt-divider"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+<h3>Payment</h3>
+<div class="wt-body"><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/_.jpg?width=590&amp;height=370&amp;fit=bounds" alt="Payment"></div><p>Payment is due within <u>3 days</u> of the auction end.<br>We will ship the item <u>3 business days</u> after your payment clears.</p></div>
+<h3>Shipping</h3>
+<div class="wt-body"><p>We will send your goods by <span class="wt-emph">FedEx or DHL</span>.<br>We will provide you with a tracking number. Please bid with confidence.<br><br>We only ship to addresses registered with Ebay.<br><br><span class="wt-emph">We ship Monday through Friday Japan time.<br>On Sundays (Japan time), pickups are closed and shipping will be arranged the next day.</span></p></div>
+<h3>Clean</h3>
+<div class="wt-body"><p>All products are disinfected with alcohol and meticulously cleaned.</p><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3131_3.jpg?" alt="Clean"></div></div>
+<h3>Packing and Storage</h3>
+<div class="wt-body"><p><span class="wt-emph">Storage Method</span><br>All products are stored in temperature- and humidity-controlled warehouses 24 hours a day, 7 days a week.</p><p><span class="wt-emph">Packing</span><br>The packaging is strictly handled by professionals.</p><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3042_2_(2).jpg?" alt="Packing"></div><div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/IMG_3043_2_(1).jpg?" alt="Packing"></div></div>
+<h3>Returns</h3>
+<div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>All return requests must be made within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div>
+<h3>International Buyers</h3>
+<div class="wt-body"><p>Please Note:<br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility.<br>Please check with your country's customs office to determine what these additional costs will be prior to bidding or buying.</p></div>
 </div>`;
 }
 
