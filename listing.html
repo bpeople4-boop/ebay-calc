@@ -413,6 +413,7 @@ function genHTML(d) {
 .wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
 .wt-main h3{position:relative;font-weight:700;font-size:13px!important;letter-spacing:2px;margin:0;padding:16px 0 6px 20px;color:#6B6B6B;text-transform:uppercase;word-break:break-word}
 .wt-main h3:before{position:absolute;left:2px;top:20px;content:"";width:6px;height:6px;background:#0A0A0A;border-radius:50%}
+.wt-main .wt-price-note{font-weight:700;font-size:18px!important;letter-spacing:0.5px;margin:0;padding:0 0 18px 0;text-align:center;color:#D4A93A}
 .wt-main .wt-body{padding:0 30px 18px}
 .wt-main p{word-break:break-word;font-weight:400;margin:0;padding:0 10px 18px;font-size:18px;line-height:1.8;text-align:left;color:#1A1A1A}
 .wt-emph{color:#0A0A0A;font-weight:700}
@@ -422,6 +423,10 @@ function genHTML(d) {
 .wt-divider{text-align:center;padding:18px 0}
 .wt-divider .dot{display:inline-block;width:4px;height:4px;border-radius:50%;background:#B0B0B0}
 .wt-divider .line{display:inline-block;width:40px;height:1px;background:#E5E5E5;vertical-align:middle;margin:0 8px}
+.wt-footer-note{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:#B0B0B0;text-align:center;padding:4px 30px 0}
+.wt-footer-arigato{text-align:center;font-size:18px;font-weight:700;letter-spacing:3px;color:#D4A93A;padding:0 30px 6px;margin:0}
+.wt-footer-arigato img{width:36px;height:36px;vertical-align:middle;margin-right:8px;display:inline-block}
+.wt-footer-arigato span{vertical-align:middle}
 @media (max-width:600px){
 .wt-main{padding:0 12px 28px 12px}
 .wt-main .wt-body{padding:0 14px 18px}
@@ -434,6 +439,7 @@ function genHTML(d) {
 <div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/77.jpg" alt="Cover Image"></div>
 <h1>${ttl}</h1>
 <div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+<p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
 <section>
 <div class="wt-body">
 <p><span class="wt-emph">&lt; For U.S. Buyers &gt;</span><br>Import duties and taxes are already included in the price or shipping cost.<br>No additional charges will be required at delivery.</p>
@@ -471,6 +477,8 @@ function genHTML(d) {
 <div class="wt-body"><p><span class="wt-emph">Unconditional Return Policy</span><br><br>Customer service and satisfaction are very important to us.<br>All return requests must be made within 30 days of the receipt of the item.<br><br><span class="wt-emph">Please contact me first for return before you ship it back to me.<br>The postage of the returned goods is a buyer burden.</span></p></div>
 <h3>International Buyers</h3>
 <div class="wt-body"><p>Please Note:<br>Import duties, taxes, and charges are not included in the item price or shipping cost.<br>These charges are the buyer's responsibility.<br>Please check with your country's customs office to determine what these additional costs will be prior to bidding or buying.</p></div>
+<p class="wt-footer-arigato"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784421458/arigato_icon_transparent_tcakik.png" alt="Arigato"><span>ARIGATO</span></p>
+<p class="wt-footer-note">Thank you for viewing this listing</p>
 </div>`;
 }
 
