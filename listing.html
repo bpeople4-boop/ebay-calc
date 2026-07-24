@@ -770,61 +770,6 @@ Before outputting JSON, briefly think through each field one by one on separate 
   return result;
 }
 
-async function compareItemSpecifics({confirmedInformation, screenshots, photoUrls}) {
-  const apiKey = localStorage.getItem(API_KEY_STORAGE_KEY);
-  if(!apiKey) throw new Error('Anthropic API key is not set.');
-  const prompt = `Confirmed information entered directly by the seller:
-${JSON.stringify(confirmedInformation, null, 2)}
-
-The screenshot images attached after the product photos are ${screenshots.length} screenshot(s) of eBay's listing form / "Suggested item specifics" feature for this same watch. They may show different sections of the same form, so cross-reference all of them.
-
-Evaluate every item and value suggested by eBay in the screenshots. For each item, determine:
-1. Whether that item can actually vary between individual watches or variants within this model.
-2. Whether the actual value can be determined confidently from the product photos or the confirmed seller information above.
-
-Classify the result as follows:
-(a) If eBay's suggested value agrees with the confirmed information or product photos, or the item has no realistic variation concern for this model, OMIT it from the output.
-(b) If eBay's suggested value is wrong and the correct value can be determined from the product photos or confirmed information, output judgment "corrected", the correct value, and a specific reason explaining where in the photo or confirmed information the correct value is established.
-(c) If the item may vary but its actual value cannot be determined from either the photos or confirmed information, output judgment "na_recommended" and explain why N/A is safer. Omit the value key for this judgment.
-
-Return ONLY a JSON array (no markdown, no explanation outside the JSON) where each element has exactly these keys:
-{"item": "field name", "judgment": "corrected" or "na_recommended", "value": "correct value (include only for corrected)", "reason": "a concise Japanese explanation"}
-
-Do not output correct or harmless eBay suggestions. Base judgments on this individual watch, not generic model assumptions.`;
-
-  const content = [
-    ...photoUrls.map(url=>({type:'image',source:{type:'url',url}})),
-    ...screenshots.map(s=>({type:'image', source:{type:'base64', media_type: s.mediaType, data: s.base64}})),
-    {type:'text', text: prompt}
-  ];
-
-  const res = await fetch('https://api.anthropic.com/v1/messages',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'x-api-key':apiKey,
-      'anthropic-version':'2023-06-01',
-      'anthropic-dangerous-direct-browser-access':'true'
-    },
-    body:JSON.stringify({
-      model:'claude-sonnet-5',
-      max_tokens:8000,
-      system:`You are an expert watch appraiser verifying eBay Suggested item specifics. Use seller-confirmed information and visible evidence in the actual product photos. Distinguish model-wide facts from attributes that can vary by reference, production period, or individual watch. Never guess an individual value from generic model knowledge. Output ONLY valid JSON matching the requested array schema, with no markdown or explanation outside it.`,
-      messages:[{role:'user',content}]
-    })
-  });
-  const raw = await res.text();
-  let data = {};
-  try{ data = raw ? JSON.parse(raw) : {}; }catch{}
-  if(!res.ok) throw new Error(data.error?.message || data.error || `Anthropic request failed: ${res.status}`);
-  const textBlock = (data.content || []).find(block => block.type === 'text');
-  const text = textBlock?.text || '';
-  const cleaned = text.replace(/```json|```/g,'').trim();
-  const jsonMatch = cleaned.match(/\[[\s\S]*\]/);
-  if(!jsonMatch) throw new Error('JSON not found in response');
-  return JSON.parse(jsonMatch[0]);
-}
-
 function buildTitleAuto({cond, specials, withItems, color, snType, snValue, brand, model}) {
   const makeTitle = ({keepFrom=true, compactF=false, keepColor=true, keepItems=true, keepSn=true}={}) => {
     const condition = keepItems && withItems.length
@@ -1071,11 +1016,6 @@ function App() {
   const [finalTitleCopied,setFinalTitleCopied]=useState(false);
   const [finalTitleConfirmed,setFinalTitleConfirmed]=useState(false);
   const [itemSpecifics,setItemSpecifics]=useState({});
-  const [suggestedScreenshots,setSuggestedScreenshots]=useState([]);
-  const [comparisonResults,setComparisonResults]=useState([]);
-  const [comparisonBusy,setComparisonBusy]=useState(false);
-  const [comparisonError,setComparisonError]=useState('');
-  const [copiedCompareKey,setCopiedCompareKey]=useState('');
   const [currentDraftId,setCurrentDraftId]=useState(null);
   const [savedToast,setSavedToast]=useState(false);
   const [showDraftModal,setShowDraftModal]=useState(false);
@@ -1420,6 +1360,24 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     openChatGPT(chatText);
   };
 
+  const handleChatItemSpecifics = () => {
+    const chatText = `あなたはeBayで腕時計を日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
+
+これから、①実物の写真、②eBayのSuggested item specifics画面のスクリーンショットを貼ります。
+
+以下を確認してください。
+・eBayが提案してる項目の中に、写真から見て明らかに間違っている値がないか
+・そのモデルにバリエーション（仕様違い）が存在しうる項目で、写真だけでは判断できないものがないか
+
+問題があれば、項目ごとに
+①そのままでOK
+②〇〇の方が正しい（写真のどこを見てそう判断したか）
+③判断できないのでN/A推奨
+の形で、上から順に教えてください。`;
+    openChatGPT(chatText);
+  };
+
   const handleChatAppearance = extras => {
     const inputs = extras.filter(x=>!x.presetLabel).map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
     const chatText = `あなたはeBayで${isWatch ? 'カメラ・レンズ・腕時計' : 'カメラ・レンズ'}を日本から海外に販売するセラーのアシスタントです。
@@ -1459,65 +1417,6 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     navigator.clipboard.writeText(html).then(()=>{setCopied(true);setTimeout(()=>setCopied(false),2500);});
   };
 
-  const handlePasteSuggested = e => {
-    const items = e.clipboardData && e.clipboardData.items;
-    if (!items) return;
-    const ALLOWED_TYPES = ['image/jpeg','image/png','image/gif','image/webp'];
-    for (const item of items) {
-      if (item.type && item.type.startsWith('image/')) {
-        const file = item.getAsFile();
-        const reader = new FileReader();
-        reader.onload = ev => {
-          const dataUrl = ev.target.result;
-          const base64 = dataUrl.split(',')[1];
-          const match = dataUrl.match(/^data:([^;]+);base64,/);
-          let mediaType = match ? match[1] : item.type;
-          if (!ALLOWED_TYPES.includes(mediaType)) mediaType = 'image/png';
-          setSuggestedScreenshots(prev => [...prev, {dataUrl, base64, mediaType, id: Date.now()+Math.random()}]);
-        };
-        reader.readAsDataURL(file);
-      }
-    }
-  };
-
-  const removeSuggestedScreenshot = id => {
-    setSuggestedScreenshots(prev => prev.filter(s => s.id !== id));
-  };
-
-  const handleCompareSpecifics = async () => {
-    if (suggestedScreenshots.length===0) { setComparisonError('スクショを貼り付けてください'); return; }
-    setComparisonBusy(true);
-    setComparisonError('');
-    try {
-      const photoUrls = photos.filter(p=>p.cloudinaryUrl).slice(0,3).map(p=>p.cloudinaryUrl);
-      const confirmedInformation = {
-        Brand: brand || '',
-        Model: model || '',
-        'Reference Number': wRefNumber || '',
-        Movement: wMovement || '',
-        Department: wGender || '',
-        ...WATCH_ITEM_SPEC_FIXED_VALUES
-      };
-      const results = await compareItemSpecifics({
-        confirmedInformation,
-        screenshots: suggestedScreenshots.map(s=>({base64:s.base64, mediaType:s.mediaType})),
-        photoUrls
-      });
-      setComparisonResults(results);
-    } catch (e) {
-      setComparisonError(e.message || '比較に失敗しました');
-    } finally {
-      setComparisonBusy(false);
-    }
-  };
-
-  const copyCompareValue = (key, value) => {
-    copyText(value || '').then(() => {
-      setCopiedCompareKey(key);
-      setTimeout(() => setCopiedCompareKey(p => p===key ? '' : p), 2000);
-    });
-  };
-
   const handleFiles = async files => {
     const arr=[];
     for (const f of Array.from(files)) {
@@ -1552,56 +1451,11 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
 
   const hasFinder=HAS_FINDER.has(pType);
   const bOpts=BUNDLE_LIST;
-  const comparisonPanel = isWatch && (
+  const itemSpecificsChatPanel = isWatch && (
     <div className="sec" style={{marginTop:10}}>
-      <div className="sttl">eBay Suggested item specificsと比較</div>
-      <div
-        tabIndex={0}
-        onPaste={handlePasteSuggested}
-        style={{border:'1px dashed var(--bd)',borderRadius:8,padding:12,textAlign:'center',fontSize:12,color:'var(--mut)',cursor:'text',outline:'none'}}
-      >
-        {suggestedScreenshots.length>0 ? `${suggestedScreenshots.length}枚貼り付け済み（続けてCtrl+Vで追加できます）` : 'ここをクリックしてCtrl+Vでスクショを貼り付け（複数枚OK、スクロールしながら数枚に分けてもよい）'}
-      </div>
-      {suggestedScreenshots.length>0 && (
-        <div style={{display:'flex',flexWrap:'wrap',gap:8,marginTop:8}}>
-          {suggestedScreenshots.map(s=>(
-            <div key={s.id} style={{position:'relative'}}>
-              <img src={s.dataUrl} alt="" style={{width:90,height:90,objectFit:'cover',borderRadius:6,border:'1px solid var(--bd)'}} />
-              <button type="button" onClick={()=>removeSuggestedScreenshot(s.id)} style={{position:'absolute',top:-6,right:-6,background:'var(--red)',color:'#fff',border:'none',borderRadius:'50%',width:20,height:20,cursor:'pointer',fontSize:12,lineHeight:'20px',padding:0}}>×</button>
-            </div>
-          ))}
-        </div>
-      )}
-      <button className="btn bsec bfull" onClick={handleCompareSpecifics} disabled={comparisonBusy||suggestedScreenshots.length===0} style={{marginTop:8}}>
-        {comparisonBusy?<><span className="spin"></span> 比較中...</>:'比較する'}
+      <button className="btn bblu bsm" onClick={handleChatItemSpecifics}>
+        ChatGPTで確認
       </button>
-      {comparisonError && <div className="aapp" style={{color:'var(--red)',marginTop:8}}>{comparisonError}</div>}
-      {comparisonResults.length>0 && (
-        <div style={{marginTop:10}}>
-          {comparisonResults.map((r,i)=>(
-            <div key={`${r.item}:${i}`} style={{marginBottom:10,padding:8,border:'1px solid var(--bd)',borderRadius:8}}>
-              <div className="input-label" style={{marginTop:0}}>{r.item}</div>
-              <div style={{fontSize:12,fontWeight:700,color:r.judgment==='corrected'?'var(--acc)':'var(--red)',marginBottom:4}}>
-                {r.judgment==='corrected' ? '正しい値' : 'N/A推奨'}
-              </div>
-              <div style={{fontSize:11,color:'var(--mut)',marginBottom:6}}>{r.reason}</div>
-              {r.judgment==='corrected' && (
-                <div className="spec-input-wrap">
-                <input type="text" value={r.value||''} readOnly />
-                <button
-                  type="button"
-                  className={`spec-copy-btn ${copiedCompareKey===`${r.item}:${i}`?'done':''}`}
-                  onClick={()=>copyCompareValue(`${r.item}:${i}`, r.value)}
-                  title="コピー"
-                >
-                  {copiedCompareKey===`${r.item}:${i}`?'✓':'⧉'}
-                </button>
-              </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
   const titleTools = titleCandidates.length>0 && (
@@ -2015,7 +1869,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
 
           {rtab==='html'&&(
             <div className="html-area">
-              {comparisonPanel}
+              {itemSpecificsChatPanel}
               <div style={{display:'flex',justifyContent:'flex-end',alignItems:'center',gap:8,flexShrink:0,marginTop:12}}>
                 {genBusy&&<span style={{display:'flex',alignItems:'center',gap:5,color:'var(--mut)',fontSize:12}}><span className="spin"></span>AI処理中...</span>}
                 <button className="btn bprim" onClick={handleGenerate} disabled={genBusy}>🤖 HTML生成</button>
