@@ -1737,7 +1737,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
   const totalShipping = costs.reduce((s,m) => s + (+m.storageShipping||0), 0);
   const grandCost = totalCost + totalShipping;
 
-  const autoDdp = form.destination==="us" ? ddpCalc(form.salePrice).toFixed(2) : "0";
+  const autoDdp = form.destination==="us" ? ddpCalc(form.salePrice, leader.originalCategory).toFixed(2) : "0";
   const calcItem = { ...form, cost:grandCost, storageShipping:0, ddpSurcharge:form.destination==="us"?autoDdp:0 };
   const c = calcFull(calcItem);
   const offerCalcItem = { ...calcItem, salePrice: offerPrice };
@@ -1899,16 +1899,16 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
             </div>
             <input style={inpS({ background: form.ebaySynced ? "#f3f4f6" : linkBg, ...(form.ebaySynced ? { color:"#6b7280", borderStyle:"dashed" } : {}) })} type="text" inputMode="decimal" placeholder="0.00" value={form.salePrice??""} readOnly={!!form.ebaySynced} onChange={form.ebaySynced ? undefined : e => {
               const val = e.target.value;
-              setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
+              setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val, leader.originalCategory).toFixed(2) } : {}) }));
             }} />
           </div>
           <div>
             {form.destination === "us"
               ? <>
                   <Field label="落札送料（$）" type="number" value={form.saleShipping} onChange={set("saleShipping")} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
-                  {+form.saleShipping !== ddpCalc(+form.salePrice || 0) && (
+                  {+form.saleShipping !== ddpCalc(+form.salePrice || 0, leader.originalCategory) && (
                     <div style={{ color:"#1d4ed8", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"4px 10px", fontSize:11, fontFamily:"inherit", marginTop:4 }}>
-                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0)} です（現在 ${+form.saleShipping || 0}）
+                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0, leader.originalCategory)} です（現在 ${+form.saleShipping || 0}）
                     </div>
                   )}
                 </>
@@ -1988,7 +1988,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice).toFixed(2), chargeShipping: false }),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice, leader.originalCategory).toFixed(2), chargeShipping: false }),
               }));
             }}>
               <option value="other">その他</option>
