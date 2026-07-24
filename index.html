@@ -69,7 +69,7 @@ const today = () => new Date().toISOString().slice(0, 10);
 const genId = () => Math.random().toString(36).slice(2, 10);
 const nextNo = items => String(Math.max(0, ...items.map(i => parseInt(i.managementNumber) || 0)) + 1).padStart(4, "0");
 const roundUp5 = n => Math.ceil(n / 5) * 5;
-const ddpCalc = (salePrice) => Math.max(20, roundUp5(+salePrice * 0.15));
+const ddpCalc = (salePrice, category) => Math.max(20, roundUp5(+salePrice * (category === "watch" ? 0.10 : 0.15)));
 const resizeImage = (file, maxPx=900) => new Promise(resolve => {
   const reader = new FileReader();
   reader.onload = e => {
@@ -1135,7 +1135,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
                   <div style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color: form.actualDdpFee ? C.muted : C.accent, textDecoration: form.actualDdpFee ? "line-through" : "none", opacity: form.actualDdpFee ? 0.45 : 1 }}>${autoDdp}</div>
                   {form.actualDdpFee && <span style={{ fontSize:11, color:C.green, fontFamily:C.jp, display:"block", marginTop:2 }}>✅ 実費で上書き中</span>}
                 </div>
-                {!form.actualDdpFee && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:2 }}>15% × $5刻み切上 / 最低$20</div>}
+                {!form.actualDdpFee && <div style={{ color:C.muted, fontSize:10, fontFamily:C.jp, marginTop:2 }}>{form.category === "watch" ? "10%" : "15%"} × $5刻み切上 / 最低$20</div>}
               </div>
               <div>
                 <span style={lblS()}>申告方法</span>
