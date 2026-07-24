@@ -882,7 +882,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
   };
 
   const autoDdp = form.destination === "us"
-    ? ddpCalc(form.salePrice).toFixed(2) : "0";
+    ? ddpCalc(form.salePrice, form.category).toFixed(2) : "0";
   const calcItem = { ...form, ddpSurcharge: form.destination==="us" ? autoDdp : 0 };
   const c = calcFull(calcItem);
 
@@ -1019,7 +1019,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
               value={form.salePrice??""}
               onChange={initial.ebaySynced ? undefined : e => {
                 const val = e.target.value;
-                setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val).toFixed(2) } : {}) }));
+                setForm(p => ({ ...p, salePrice: val, ...(p.destination==="us" ? { saleShipping: ddpCalc(val, p.category).toFixed(2) } : {}) }));
               }}
             />
           </div>
@@ -1029,9 +1029,9 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
                   <Field label="落札送料（$）" type="number" value={form.saleShipping}
                     onChange={initial.ebaySynced ? undefined : set("saleShipping")}
                     readOnly={!!initial.ebaySynced} placeholder="DDP上乗せ＄を入力" bg={linkBg} />
-                  {!initial.ebaySynced && +form.saleShipping !== ddpCalc(+form.salePrice || 0) && (
+                  {!initial.ebaySynced && +form.saleShipping !== ddpCalc(+form.salePrice || 0, form.category) && (
                     <div style={{ color:"#1d4ed8", background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:6, padding:"4px 10px", fontSize:11, fontFamily:"inherit", marginTop:4 }}>
-                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0)} です（現在 ${+form.saleShipping || 0}）
+                      ℹ️ DDP計算値は ${ddpCalc(+form.salePrice || 0, form.category)} です（現在 ${+form.saleShipping || 0}）
                     </div>
                   )}
                 </>
@@ -1120,7 +1120,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
               setForm(p => ({
                 ...p,
                 destination: v,
-                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice).toFixed(2), chargeShipping: false }),
+                ...(v !== "us" ? { actualDdpFee: "", ddpConfirmed: false, ddpMethod: "", ddpSurcharge: "", saleShipping: "0", chargeShipping: false } : { saleShipping: ddpCalc(p.salePrice, p.category).toFixed(2), chargeShipping: false }),
               }));
             }}>
               <option value="other">その他</option>
