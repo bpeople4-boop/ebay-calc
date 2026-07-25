@@ -208,9 +208,11 @@ const parseSpecPairs = text => String(text||'')
   .filter(line=>line && line.includes(':'))
   .map(line=>{
     const idx = line.indexOf(':');
+    const flagged = line.startsWith('*');
     return {
       key: line.slice(0,idx).trim().replace(/^[-*・]\s*/,''),
-      value: line.slice(idx+1).trim()
+      value: line.slice(idx+1).trim(),
+      flagged
     };
   })
   .filter(p => p.key && p.value && !/^https?$/i.test(p.key));
@@ -1046,6 +1048,7 @@ function App() {
   const [apiKeyModalOpen,setApiKeyModalOpen]=useState(false);
   const [apiKeyInput,setApiKeyInput]=useState(localStorage.getItem(API_KEY_STORAGE_KEY) || '');
   const [specPasteText,setSpecPasteText]=useState('');
+  const [specChecked,setSpecChecked]=useState({});
   const [specCopied,setSpecCopied]=useState('');
 
   const [photos,setPhotos]=useState([]);
@@ -1093,6 +1096,7 @@ function App() {
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
     wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
+    specPasteText,specChecked,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
@@ -1102,7 +1106,8 @@ function App() {
   };
 
   const applyDraft=draft=>{
-    setSpecPasteText('');
+    setSpecPasteText(draft.specPasteText ?? '');
+    setSpecChecked(draft.specChecked ?? {});
     setSpecCopied('');
     setCategory(draft.category ?? 'camera');
     setPType(draft.pType ?? 'Film Camera');
@@ -1166,6 +1171,7 @@ function App() {
 
   const handleClear=()=>{
     setSpecPasteText('');
+    setSpecChecked({});
     setSpecCopied('');
     setCategory('camera');
     setPType('Film Camera');
@@ -1448,33 +1454,36 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
 確定できない項目は N/A とし、不要な項目は行ごと省略してください。
 コードブロックは複数出さず、必ず1つだけにしてください。
 
+【重要】②または③を付けた項目は、行頭に半角アスタリスク * を付けてください。
+①「そのままでOK」の項目には何も付けないでください。
+
 出力例：
 \`\`\`
 Brand: SEIKO
 Department: Men's
-Type: Wristwatch
+*Band Color: Brown
+*Water Resistance: N/A
 Case Size: 42mm
-Water Resistance: 200m (20 ATM)
 \`\`\`
 
-上記の解説とコードブロックはそのまま出したうえで、出力の最後に必ず以下の形式の「作業リスト」を付けてください。
+さらに出力の最後に、以下の形式の「作業リスト」を付けてください。
 
 ## 作業リスト（全 N 件）
 
 ### 変更する（M 件）
 項目名 → 設定する値
-項目名 → 設定する値
 
 ### 空欄にする（K 件）
-項目名
 項目名
 
 作業リストのルール：
 - ②と③を付けた項目は、1件残らずこのリストに含めること。
 - ①を付けた項目は絶対に含めないこと。
 - 1行1項目。理由や補足は書かない。値だけ書く。
+- 複数の値を持つ項目は、削除ではなく「最終的に残す値をすべて」を → の右に書くこと。
+  例：Bezel Type → Fixed, Smooth（12-Hourを消す、とは書かない）
 - 出力前に、本文中の②の数と「変更する」の行数、③の数と「空欄にする」の行数が一致しているか数え直すこと。一致しない場合は修正してから出力すること。
-- N・M・Kには実際の数値を必ず明記すること。`;
+- N・M・K には実際の数値を必ず明記すること。`;
     openChatGPT(chatText + outputContract);
   };
 
@@ -1553,22 +1562,8 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   const bOpts=BUNDLE_LIST;
   const specPairs=parseSpecPairs(specPasteText);
   const specTsv=specPairs.map(p=>`${p.key}\t${p.value}`).join('\n');
-  const specClaudeInstructions=`eBayの出品画面（Item specifics）をこのタブで開いています。
-以下の項目を上から順に入力してください。
-
-ルール：
-- 既存の値がある項目は上書きする
-- 選択式（ドロップダウン）の項目は、リスト内に完全一致する選択肢があればそれを選ぶ。
-  無い場合のみ自由入力欄に入れる
-- 値が「N/A」の項目は入力せず空欄のままにする
-- リストに無い項目名は無視してよい
-- 入力が終わっても、保存・下書き保存・出品（List it / Save）ボタンは絶対に押さないこと
-- 最後に「入力できた項目」「入力できなかった項目とその理由」を一覧で報告して、
-  私の確認を待つこと
-
-<item_specifics>
-${specPairs.map(p=>`${p.key}: ${p.value}`).join('\n')}
-</item_specifics>`;
+  const flaggedSpecs=specPairs.filter(p=>p.flagged);
+  const checkedFlaggedCount=flaggedSpecs.filter(p=>specChecked[p.key]).length;
   const handleSpecCopy=(kind,text)=>{
     copyText(text).then(()=>{
       setSpecCopied(kind);
@@ -1582,28 +1577,40 @@ ${specPairs.map(p=>`${p.key}: ${p.value}`).join('\n')}
       </button>
       <textarea
         value={specPasteText}
-        onChange={e=>setSpecPasteText(e.target.value)}
+        onChange={e=>{setSpecPasteText(e.target.value);setSpecChecked({});}}
         placeholder="ChatGPTの返答をコードブロックごと貼り付け"
         style={{marginTop:10,minHeight:120,resize:'vertical'}}
       />
       <div className="note" style={{marginTop:6}}>{specPairs.length}項目を認識しました</div>
+      {flaggedSpecs.length>0&&(
+        <div className="note" style={{marginTop:4,color:checkedFlaggedCount===flaggedSpecs.length?'var(--acc)':'var(--danger, #ff6b6b)'}}>
+          {checkedFlaggedCount===flaggedSpecs.length ? '要対応 完了' : `要対応 ${flaggedSpecs.length}件中 ${checkedFlaggedCount}件`}
+        </div>
+      )}
       {specPairs.length>0&&(
         <>
           <div style={{maxHeight:240,overflow:'auto',marginTop:6,border:'1px solid var(--line)',borderRadius:6}}>
-            {specPairs.map((p,i)=>(
-              <div key={`${p.key}-${i}`} style={{display:'grid',gridTemplateColumns:'minmax(100px,1fr) minmax(120px,1.4fr) 32px',gap:6,alignItems:'center',padding:'6px 8px',borderBottom:i<specPairs.length-1?'1px solid var(--line)':'none',fontSize:11}}>
-                <strong style={{wordBreak:'break-word'}}>{p.key}</strong>
-                <span style={{wordBreak:'break-word'}}>{p.value}</span>
+            {specPairs.map((p,i)=>{
+              const checked=!!specChecked[p.key];
+              const itemStyle={
+                wordBreak:'break-word',
+                color:p.flagged&&!checked?'var(--danger, #ff6b6b)':'inherit',
+                textDecoration:checked?'line-through':'none',
+                opacity:checked?0.5:1
+              };
+              return (
+              <div key={`${p.key}-${i}`} style={{display:'grid',gridTemplateColumns:'24px minmax(100px,1fr) minmax(120px,1.4fr) 32px',gap:6,alignItems:'center',padding:'6px 8px',borderBottom:i<specPairs.length-1?'1px solid var(--line)':'none',fontSize:11}}>
+                <input type="checkbox" checked={checked} onChange={()=>setSpecChecked(prev=>({...prev,[p.key]:!prev[p.key]}))} />
+                <strong style={itemStyle}>{p.key}</strong>
+                <span style={itemStyle}>{p.value}</span>
                 <button type="button" className={`spec-copy-btn ${specCopied===`value-${i}`?'done':''}`} onClick={()=>handleSpecCopy(`value-${i}`,p.value)} title="値をコピー">{specCopied===`value-${i}`?'✓':'⧉'}</button>
               </div>
-            ))}
+              );
+            })}
           </div>
           <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
             <button className="btn bblu bsm" onClick={()=>handleSpecCopy('tsv',specTsv)}>
               {specCopied==='tsv'?'✓ コピー済み':'TSVコピー'}
-            </button>
-            <button className="btn bblu bsm" onClick={()=>handleSpecCopy('claude',specClaudeInstructions)}>
-              {specCopied==='claude'?'✓ コピー済み':'Claude in Chrome用コピー'}
             </button>
           </div>
         </>
