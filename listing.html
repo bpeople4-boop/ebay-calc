@@ -1282,7 +1282,7 @@ function App() {
 
   const handleConsultChatGPT=()=>{
     const title=titleCandidates[0] || '';
-    const chatText=`【Sold履歴URL】
+    const cameraText=`【Sold履歴URL】
 ☜ここにURLを貼ってください
 
 【タイトル候補】
@@ -1318,6 +1318,43 @@ ${title}
 - コピペしやすいように、最終タイトルだけをコードブロックで囲む
 - 解説文や補足文はコードブロック内に入れない
 - タイトル候補のスペルミス・誤字（例：ens→EOS、canonn→Canon等）があれば指摘して修正すること`;
+    const watchText=`【Sold履歴URL】
+☜ここにURLを貼ってください
+
+【タイトル候補】
+${title}
+
+【指示】
+あなたはeBayで腕時計を日本から海外に販売するセラーのタイトル最適化アシスタントです。
+
+上記のSold履歴URLを実際に開いて売れたタイトルを分析し、タイトル候補と照合したうえで最適なタイトルを1つ提案してください。
+
+タイトルルール：
+- 最大80文字（半角スペースのみ使用）
+- 大文字ルール：基本的に各単語の先頭は大文字（例：Automatic, Black, Dial）
+- ただしSold履歴の実際のタイトル表記を最優先とする（ブランド・型番・ラインは慣習的な表記に従う）
+- 構造：{先頭修飾語} [{コンディション w/付属品}] {Brand} {Line/SubModel} {RefNumber} {可変枠：サイズ/ダイアル色/防水性能/素材/機能/装飾} {Movement} {Gender} Watch
+- 先頭修飾語（Vintage / Vintage [年号] / Rare / Rare Vintage）は任意で、コンディションの前
+- Movement→Genderの順（例：Quartz Men's Watch）
+- Gender表記はLadiesではなくWomen'sに統一する
+- 「From JAPAN」「JAPAN」は付けない
+- 80文字超えた場合の短縮順：
+  1. Movementを短縮形にする（Quartz→Qz、Automatic→Auto）
+  2. 可変枠を優先度の低いものから削除
+  3. 付属品（w/以降）を削除
+- 絶対に削除しない：先頭修飾語（ある場合）・コンディション・Brand・Model・Movement・Gender・Watch
+- Brand・Model・RefNumberは入力文字列をそのまま使用（補完・変更禁止）
+
+出力形式：
+- 最終タイトル1行のみ
+- 文字数を併記
+- Sold履歴から参考にした特徴2〜3点
+- 候補からの変更点
+- 最終タイトルのみを1行で出力する
+- コピペしやすいように、最終タイトルだけをコードブロックで囲む
+- 解説文や補足文はコードブロック内に入れない
+- タイトル候補のスペルミス・誤字があれば指摘して修正すること`;
+    const chatText=isWatch ? watchText : cameraText;
     window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
   };
 
