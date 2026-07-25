@@ -197,6 +197,23 @@ const WATCH_SLOT_PRESETS = {
   function: ['Chronograph','Day/Date','GMT',"Diver's",'Moon Phase'],
   decoration: ['Diamonds','Stones'],
 };
+const normalizeMm = v => {
+  const t = String(v ?? '').trim();
+  return /^\d+(\.\d+)?$/.test(t) ? `${t}mm` : t;
+};
+const parseSpecPairs = text => String(text||'')
+  .replace(/\u0060{3}/g,'\n')
+  .split(/\r?\n/)
+  .map(line=>line.trim())
+  .filter(line=>line && line.includes(':'))
+  .map(line=>{
+    const idx = line.indexOf(':');
+    return {
+      key: line.slice(0,idx).trim().replace(/^[-*・]\s*/,''),
+      value: line.slice(idx+1).trim()
+    };
+  })
+  .filter(p => p.key && p.value && !/^https?$/i.test(p.key));
 const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','Digital'];
 const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
 const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
@@ -530,8 +547,12 @@ function genWatchHTML(d) {
   const extraLines = extras => extras.filter(x=>x.en.trim()).map(x=>esc(x.en.trim())).join('<br>\n');
   const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice];
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
-  const cm=parseFloat(d.wBeltSizeCm);
-  const beltSize=d.wBeltSizeCm.trim() && Number.isFinite(cm) ? `${esc(d.wBeltSizeCm.trim())} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free';
+  const cmRaw = String(d.wBeltSizeCm ?? '').trim();
+  const cm = parseFloat(cmRaw);
+  const hasCm = cmRaw && Number.isFinite(cm);
+  const beltSize = d.wBeltFree
+    ? (hasCm ? `Free (MAX ${esc(cmRaw)} cm / ${(cm*.3937).toFixed(2)} inch)` : 'Free')
+    : (hasCm ? `${esc(cmRaw)} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free');
   const funcBase=d.wFuncDef ? `The watch has been checked and is working properly.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const functional=[funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
   const bundleLines=[...d.wBundles, ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
@@ -809,7 +830,7 @@ function buildWatchTitleAuto(d) {
     vintage:'Vintage', vintageYear:`Vintage ${d.wModifierYear.trim()}`,
     rare:'Rare', rareVintage:'Rare Vintage', none:''
   }[d.wModifier] || '';
-  const slots = [d.wSlotSize,d.wSlotDial,d.wSlotWater,d.wSlotMaterial,d.wSlotFunction,d.wSlotDecoration].map(x=>(x||'').trim()).filter(Boolean);
+  const slots = [normalizeMm(d.wSlotSize),d.wSlotDial,d.wSlotWater,d.wSlotMaterial,d.wSlotFunction,d.wSlotDecoration].map(x=>(x||'').trim()).filter(Boolean);
   const makeTitle = ({shortMovement=false,slotCount=slots.length,keepAccessories=true}={}) => {
     const condition = keepAccessories && d.wAccessories.length
       ? `${d.cond} w/${d.wAccessories.join(', ')}` : d.cond;
@@ -1005,6 +1026,7 @@ function App() {
   const [wBeltExtras,setWBeltExtras]=useState([]);
   const [wCrystalExtras,setWCrystalExtras]=useState([]);
   const [wBeltSizeCm,setWBeltSizeCm]=useState('');
+  const [wBeltFree,setWBeltFree]=useState(false);
   const [wFuncDef,setWFuncDef]=useState(true);
   const [wFuncExtras,setWFuncExtras]=useState([]);
   const [wBundles,setWBundles]=useState([]);
@@ -1023,6 +1045,8 @@ function App() {
   const [draftList,setDraftList]=useState([]);
   const [apiKeyModalOpen,setApiKeyModalOpen]=useState(false);
   const [apiKeyInput,setApiKeyInput]=useState(localStorage.getItem(API_KEY_STORAGE_KEY) || '');
+  const [specPasteText,setSpecPasteText]=useState('');
+  const [specCopied,setSpecCopied]=useState('');
 
   const [photos,setPhotos]=useState([]);
   const fileRef=useRef();
@@ -1068,7 +1092,7 @@ function App() {
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
-    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,wBundleOther,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
@@ -1078,6 +1102,8 @@ function App() {
   };
 
   const applyDraft=draft=>{
+    setSpecPasteText('');
+    setSpecCopied('');
     setCategory(draft.category ?? 'camera');
     setPType(draft.pType ?? 'Film Camera');
     setCond(draft.cond ?? 'Near MINT');
@@ -1114,7 +1140,7 @@ function App() {
     setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
     setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
     setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
-    setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? '');
+    setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? ''); setWBeltFree(!!draft.wBeltFree);
     setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []); setWBundleOther(draft.wBundleOther ?? '');
     setWFuncExtras(draft.wFuncExtras ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
@@ -1139,6 +1165,8 @@ function App() {
   };
 
   const handleClear=()=>{
+    setSpecPasteText('');
+    setSpecCopied('');
     setCategory('camera');
     setPType('Film Camera');
     setCond('Near MINT');
@@ -1171,7 +1199,7 @@ function App() {
     setWSlotSize(''); setWSlotDial(''); setWSlotWater(''); setWSlotMaterial(''); setWSlotFunction(''); setWSlotDecoration('');
     setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
     setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
-    setWCrystalExtras([]); setWBeltSizeCm(''); setWFuncDef(true); setWBundles([]); setWBundleOther('');
+    setWCrystalExtras([]); setWBeltSizeCm(''); setWBeltFree(false); setWFuncDef(true); setWBundles([]); setWBundleOther('');
     setWFuncExtras([]);
     setPhotos([]);
     setItemSpecifics({});
@@ -1375,7 +1403,23 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
 ②〇〇の方が正しい（写真のどこを見てそう判断したか）
 ③判断できないのでN/A推奨
 の形で、上から順に教えてください。`;
-    openChatGPT(chatText);
+    const outputContract = `
+
+確認コメントの末尾に、必ずコードブロックを1つだけ出力してください。
+コードブロックの中は「項目名: 値」を1行1項目とし、見出し・記号・空行・解説は一切入れないでください。
+項目名はeBayの英語表記（Brand、Case Size、Water Resistanceなど）をそのまま使ってください。
+確定できない項目は N/A とし、不要な項目は行ごと省略してください。
+コードブロックは複数出さず、必ず1つだけにしてください。
+
+出力例：
+\`\`\`
+Brand: SEIKO
+Department: Men's
+Type: Wristwatch
+Case Size: 42mm
+Water Resistance: 200m (20 ATM)
+\`\`\``;
+    openChatGPT(chatText + outputContract);
   };
 
   const handleChatAppearance = extras => {
@@ -1408,7 +1452,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wFuncDef,wFuncExtras,wBundles,wBundleOther})
+        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
         : genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
@@ -1451,11 +1495,63 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
 
   const hasFinder=HAS_FINDER.has(pType);
   const bOpts=BUNDLE_LIST;
+  const specPairs=parseSpecPairs(specPasteText);
+  const specTsv=specPairs.map(p=>`${p.key}\t${p.value}`).join('\n');
+  const specClaudeInstructions=`eBayの出品画面（Item specifics）をこのタブで開いています。
+以下の項目を上から順に入力してください。
+
+ルール：
+- 既存の値がある項目は上書きする
+- 選択式（ドロップダウン）の項目は、リスト内に完全一致する選択肢があればそれを選ぶ。
+  無い場合のみ自由入力欄に入れる
+- 値が「N/A」の項目は入力せず空欄のままにする
+- リストに無い項目名は無視してよい
+- 入力が終わっても、保存・下書き保存・出品（List it / Save）ボタンは絶対に押さないこと
+- 最後に「入力できた項目」「入力できなかった項目とその理由」を一覧で報告して、
+  私の確認を待つこと
+
+<item_specifics>
+${specPairs.map(p=>`${p.key}: ${p.value}`).join('\n')}
+</item_specifics>`;
+  const handleSpecCopy=(kind,text)=>{
+    copyText(text).then(()=>{
+      setSpecCopied(kind);
+      setTimeout(()=>setSpecCopied(''),2000);
+    });
+  };
   const itemSpecificsChatPanel = isWatch && (
     <div className="sec" style={{marginTop:10}}>
       <button className="btn bblu bsm" onClick={handleChatItemSpecifics}>
         ChatGPTで確認
       </button>
+      <textarea
+        value={specPasteText}
+        onChange={e=>setSpecPasteText(e.target.value)}
+        placeholder="ChatGPTの返答をコードブロックごと貼り付け"
+        style={{marginTop:10,minHeight:120,resize:'vertical'}}
+      />
+      <div className="note" style={{marginTop:6}}>{specPairs.length}項目を認識しました</div>
+      {specPairs.length>0&&(
+        <>
+          <div style={{maxHeight:240,overflow:'auto',marginTop:6,border:'1px solid var(--line)',borderRadius:6}}>
+            {specPairs.map((p,i)=>(
+              <div key={`${p.key}-${i}`} style={{display:'grid',gridTemplateColumns:'minmax(100px,1fr) minmax(120px,1.4fr) 32px',gap:6,alignItems:'center',padding:'6px 8px',borderBottom:i<specPairs.length-1?'1px solid var(--line)':'none',fontSize:11}}>
+                <strong style={{wordBreak:'break-word'}}>{p.key}</strong>
+                <span style={{wordBreak:'break-word'}}>{p.value}</span>
+                <button type="button" className={`spec-copy-btn ${specCopied===`value-${i}`?'done':''}`} onClick={()=>handleSpecCopy(`value-${i}`,p.value)} title="値をコピー">{specCopied===`value-${i}`?'✓':'⧉'}</button>
+              </div>
+            ))}
+          </div>
+          <div style={{display:'flex',gap:6,flexWrap:'wrap',marginTop:8}}>
+            <button className="btn bblu bsm" onClick={()=>handleSpecCopy('tsv',specTsv)}>
+              {specCopied==='tsv'?'✓ コピー済み':'TSVコピー'}
+            </button>
+            <button className="btn bblu bsm" onClick={()=>handleSpecCopy('claude',specClaudeInstructions)}>
+              {specCopied==='claude'?'✓ コピー済み':'Claude in Chrome用コピー'}
+            </button>
+          </div>
+        </>
+      )}
     </div>
   );
   const titleTools = titleCandidates.length>0 && (
@@ -1832,7 +1928,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
               <div className="input-label">Brand</div><input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="RADO / SEIKO / Longines ..." />
               <div className="input-label">Line / SubModel</div><input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="DiaStar" />
               <div className="input-label">Reference Number</div><input type="text" value={wRefNumber} onChange={e=>setWRefNumber(e.target.value)} />
-              <div className="input-label">サイズ</div><div className="chklist">{WATCH_SLOT_PRESETS.size.map(x=><div key={x} className={`chkbtn ${wSlotSize===x?'on':''}`} onClick={()=>setWSlotSize(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotSize} onChange={e=>setWSlotSize(e.target.value)} placeholder="28mm" style={{marginTop:4}} />
+              <div className="input-label">サイズ</div><div className="chklist">{WATCH_SLOT_PRESETS.size.map(x=><div key={x} className={`chkbtn ${wSlotSize===x?'on':''}`} onClick={()=>setWSlotSize(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotSize} onChange={e=>setWSlotSize(e.target.value)} onBlur={()=>setWSlotSize(p=>normalizeMm(p))} placeholder="28（mmは省略可）" style={{marginTop:4}} />
               <div className="input-label" style={{marginTop:8}}>ダイアル色</div><div className="chklist">{WATCH_SLOT_PRESETS.dial.map(x=><div key={x} className={`chkbtn ${wSlotDial===x?'on':''}`} onClick={()=>setWSlotDial(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotDial} onChange={e=>setWSlotDial(e.target.value)} placeholder="Gold Dial" style={{marginTop:4}} />
               <div className="input-label" style={{marginTop:8}}>防水性能</div><div className="chklist">{WATCH_SLOT_PRESETS.water.map(x=><div key={x} className={`chkbtn ${wSlotWater===x?'on':''}`} onClick={()=>setWSlotWater(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotWater} onChange={e=>setWSlotWater(e.target.value)} placeholder="100m" style={{marginTop:4}} />
               <div className="input-label" style={{marginTop:8}}>素材</div><div className="chklist">{WATCH_SLOT_PRESETS.material.map(x=><div key={x} className={`chkbtn ${wSlotMaterial===x?'on':''}`} onClick={()=>setWSlotMaterial(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotMaterial} onChange={e=>setWSlotMaterial(e.target.value)} placeholder="Stainless Steel" style={{marginTop:4}} />
@@ -1850,7 +1946,20 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
               <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)} presets={WATCH_CRYSTAL_PRESETS} onAddPreset={p=>addPresetExtra(setWCrystalExtras,p)}/>
               <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)} presets={WATCH_BELT_PRESETS} onAddPreset={p=>addPresetExtra(setWBeltExtras,p)}/>
             </div>
-            <div className="sec"><div className="sttl">Belt Size</div><input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5"/><div className="note">cm単位</div></div>
+            <div className="sec">
+              <div className="sttl">Belt Size</div>
+              <div className="chklist"><div className={`chkbtn ${wBeltFree?'on':''}`} onClick={()=>setWBeltFree(p=>!p)}><span className="dot" />Free</div></div>
+              <input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5" style={{marginTop:4}} />
+              <div className="note">cm単位。未入力＝Free / 数値のみ＝実寸表記 / Free＋数値＝「Free (MAX ○cm / ○inch)」</div>
+              <div className="note" style={{marginTop:4,color:'var(--acc)'}}>
+                出力プレビュー：{(()=>{
+                  const raw=String(wBeltSizeCm ?? '').trim();
+                  const cm=parseFloat(raw);
+                  const has=raw && Number.isFinite(cm);
+                  return wBeltFree ? (has?`Free (MAX ${raw} cm / ${(cm*.3937).toFixed(2)} inch)`:'Free') : (has?`${raw} cm (${(cm*.3937).toFixed(2)} inch)`:'Free');
+                })()}
+              </div>
+            </div>
             <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
             <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div><div className="input-label" style={{marginTop:8}}>その他（カンマ区切りで自由入力）</div><input type="text" value={wBundleOther} onChange={e=>setWBundleOther(e.target.value)} placeholder="Extra Winder, Spare Pin" /></div>
           </>}
