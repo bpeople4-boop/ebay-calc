@@ -357,6 +357,10 @@ const initOp = () => ({
 });
 
 // ── HTML Generation ──
+const lowerUnits = html => String(html || '')
+  .replace(/(\d)\s*(MM|CM|mm|cm)\b/g, (m, num, unit) =>
+    `${num}<span class="wt-unit">${unit.toLowerCase()}</span>`);
+
 function buildOpSection(op, type, showBalsam, extra) {
   const isLens = type==='lens';
   const label = isLens?'Lens':'Finder';
@@ -427,6 +431,7 @@ function genHTML(d) {
 <style>
 .wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
 .wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9;word-break:break-word}
+.wt-unit{text-transform:none}
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
 .wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
@@ -471,7 +476,7 @@ function genHTML(d) {
 </style>
 <div class="wt-main">
 <div class="img-area"><img src="https://hosting.photobucket.com/images/i/kouichi4001/77.jpg" alt="Cover Image"></div>
-<h1>${ttl}</h1>
+<h1>${lowerUnits(ttl)}</h1>
 <div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
 <p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
 <section>
@@ -564,6 +569,7 @@ function genWatchHTML(d) {
 <style>
 .wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
 .wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;text-transform:uppercase;border-bottom:1px solid #D9D9D9;word-break:break-word}
+.wt-unit{text-transform:none}
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
 .wt-crest .line{display:inline-block;width:60px;height:1px;background:#D9D9D9;vertical-align:middle;margin:0 10px}
@@ -620,7 +626,7 @@ function genWatchHTML(d) {
 </style>
 <div class="wt-main">
 <div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1783899018/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8813%E6%97%A5_08_29_46_ta5zyi.png" alt="Curated Timepieces"></div>
-<h1>${esc(d.title||'[CONDITION] Wristwatch')}</h1>
+<h1>${lowerUnits(esc(d.title||'[CONDITION] Wristwatch'))}</h1>
 <div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
 <section>
 <p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
