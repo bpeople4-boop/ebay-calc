@@ -400,10 +400,6 @@ function genHTML(d) {
     "Exc+3": "EXCELLENT+++",
   };
   const htmlCondition = htmlConditionMap[cond] || cond;
-  const serialTxt = hasLensSerial
-    ? `Body:${serialBody||'—'}<br>\n&nbsp; &nbsp; Lens:${serialLens||'—'}`
-    : `Body:${serialBody||'—'}`;
-
   let appH = '';
   if(appChoice==='beautiful') appH = '<span class="wt-emph">Appearance is beautiful.</span>';
   else if(appChoice==='scuffs') appH = 'Tiny scuffs from normal use.';
@@ -451,6 +447,11 @@ function genHTML(d) {
 .wt-main .wt-body{padding:0 30px 18px}
 .wt-main p{word-break:break-word;font-weight:400;margin:0;padding:0 10px 18px;font-size:18px;line-height:1.8;text-align:left;color:#1A1A1A}
 .wt-emph{color:#0A0A0A;font-weight:700}
+.wt-main table{border-collapse:collapse;width:100%!important;font-size:15px;margin-bottom:10px}
+.wt-main table tr{background-color:#F7F7F7;color:#1A1A1A}
+.wt-main table tr:first-of-type{background-color:#0A0A0A;color:#FFFFFF}
+.wt-main table th,.wt-main table td{padding:10px 12px;border:1px solid #E5E5E5;word-break:break-word;font-size:16px;letter-spacing:0.3px}
+.wt-main table th{text-transform:uppercase;font-weight:700;letter-spacing:1px;font-size:14px}
 .wt-main section{padding-bottom:6px}
 .wt-main .img-area{text-align:center}
 .wt-main img{max-width:100%;object-fit:cover}
@@ -475,6 +476,8 @@ function genHTML(d) {
 .wt-sat-stats .wt-sat-stat-item{font-size:13px}
 .wt-sat-label{font-size:14px}
 .wt-sat-stars{font-size:16px}
+.wt-main table{font-size:14px}
+.wt-main table th,.wt-main table td{font-size:13.5px;padding:9px 6px}
 .wt-hdr .wt-hdr-pc{display:none}
 .wt-hdr .wt-hdr-mobile{display:block}
 }
@@ -505,10 +508,7 @@ function genHTML(d) {
 </div>
 </div>
 <div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1785047305/camera_description_pc_kbnlhl.png" alt="Description"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1785047305/camera_description_mobile_bbpxa4.png" alt="Description"></div>
-<h3>Total Condition</h3>
-<div class="wt-body"><p><span class="wt-emph">${htmlCondition}</span></p></div>
-<h3>Serial Number</h3>
-<div class="wt-body"><p>${serialTxt}</p></div>
+<table><tr><th>Total Condition</th><th>Body Serial Number</th><th>Lens Serial Number</th></tr><tr><td class="wt-emph">${htmlCondition}</td><td>${serialBody||'—'}</td><td>${hasLensSerial?(serialLens||'—'):'—'}</td></tr></table>
 </section>
 <section>
 <h3>Appearance</h3>
