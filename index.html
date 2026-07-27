@@ -1442,7 +1442,8 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
   const [cat, setCat]         = useState("camera");
 
   const catS = settings[cat] || settings.camera;
-  const cfg = { exchangeRate: settings.exchangeRate, ebayPct: catS.ebayPct, promoPct: catS.promoPct, shippingJPY: catS.shippingJPY, targetPct: catS.targetPct };
+  const toNum = (v) => { const n = Number(v); return isNaN(n) ? 0 : n; };
+  const cfg = { exchangeRate: toNum(settings.exchangeRate), ebayPct: toNum(catS.ebayPct), promoPct: toNum(catS.promoPct), shippingJPY: toNum(catS.shippingJPY), targetPct: toNum(catS.targetPct) };
 
   const fwd = (mode==="forward" && v) ? quickCalc(+v, cfg) : null;
   const rev = (mode==="reverse" && v) ? (() => {
