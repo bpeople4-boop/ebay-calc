@@ -392,14 +392,14 @@ function buildOpSection(op, type, showBalsam, extra) {
 }
 
 function genHTML(d) {
-  const {title,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
+  const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlConditionMap = {
     "Exc+5": "EXCELLENT+++++",
     "Exc+4": "EXCELLENT++++",
     "Exc+3": "EXCELLENT+++",
   };
-  const htmlCondition = htmlConditionMap[cond] || cond;
+  const htmlCondition = String(condFree || '').trim() || htmlConditionMap[cond] || cond;
   let appH = '';
   if(appChoice==='beautiful') appH = '<span class="wt-emph">Appearance is beautiful.</span>';
   else if(appChoice==='scuffs') appH = 'Tiny scuffs from normal use.';
@@ -992,6 +992,7 @@ function App() {
 
   const [pType,setPType]=useState('Film Camera');
   const [cond,setCond]=useState('Near MINT');
+  const [condFree,setCondFree]=useState('');
   const [serialBody,setSerialBody]=useState('');
   const [serialLens,setSerialLens]=useState('');
   const [hasLensSerial,setHasLensSerial]=useState(false);
@@ -1534,7 +1535,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     try{
       setHtml(isWatch
         ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
-        : genHTML({title:ebayTitle,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
+        : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
 
@@ -1791,6 +1792,11 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
             <div className="cwrap">
               {CONDITIONS.map(c=><div key={c} className={`cbtn ${cond===c?'on':''}`} onClick={()=>setCond(c)}>{c}</div>)}
             </div>
+            {!isWatch&&<>
+              <div className="input-label" style={{marginTop:8}}>自由記入（特殊なときだけ）</div>
+              <input type="text" value={condFree} onChange={e=>setCondFree(e.target.value)} placeholder="Cosmetic Near MINT" />
+              <div className="note">入力すると説明文の Total Condition がこの文字に置き換わります。空欄なら通常どおり。タイトルには影響しません。</div>
+            </>}
           </div>
 
           <div className="sec">
