@@ -1450,11 +1450,18 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
     return { ...quickCalc(minUSD, cfg), minUSD };
   })() : null;
 
+  const normalizeNumInput = (val) => {
+    let cleaned = String(val).replace(/[^0-9.]/g, "");
+    const parts = cleaned.split(".");
+    if (parts.length > 2) cleaned = parts[0] + "." + parts.slice(1).join("");
+    if (cleaned === "" || cleaned.endsWith(".")) return cleaned;
+    return Number(cleaned);
+  };
   const updateCatSetting = (key, val) => {
-    onSettingsChange({ ...settings, [cat]: { ...settings[cat], [key]: +val } });
+    onSettingsChange({ ...settings, [cat]: { ...settings[cat], [key]: normalizeNumInput(val) } });
   };
   const updateRate = (val) => {
-    onSettingsChange({ ...settings, exchangeRate: +val });
+    onSettingsChange({ ...settings, exchangeRate: normalizeNumInput(val) });
   };
 
   return (
