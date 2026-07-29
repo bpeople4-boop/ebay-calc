@@ -169,7 +169,21 @@ const ICON_CASE = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAKAAAADtCAIAAAC
 
 /* ── 保存・読み込み ── */
 function loadLines(){
-  try{ const raw = localStorage.getItem(STORAGE_KEY); return raw ? JSON.parse(raw) : []; }
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return [];
+    const lines = JSON.parse(raw);
+    lines.forEach(line=>{
+      (line.vars||[]).forEach(v=>{
+        (v.photos||[]).forEach(p=>{
+          if(p.cloudinaryUrl && p.url !== p.cloudinaryUrl){
+            p.url = p.cloudinaryUrl;
+          }
+        });
+      });
+    });
+    return lines;
+  }
   catch(e){ return []; }
 }
 function saveLines(lines){
