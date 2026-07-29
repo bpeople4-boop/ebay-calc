@@ -469,7 +469,7 @@ function VarPage({v,onSave,onCancel,onDelete}){
         const pid = uid('p');
         onChange(prev=>({ photos:[...(prev.photos||[]), {id:pid, url:reader.result, cloudinaryUrl:null, uploading:true}] }));
         uploadToCloudinary(reader.result).then(url=>{
-          onChange(prev=>({ photos:(prev.photos||[]).map(p=>p.id===pid?{...p, cloudinaryUrl:url, uploading:false}:p) }));
+          onChange(prev=>({ photos:(prev.photos||[]).map(p=>p.id===pid?{...p, url:url, cloudinaryUrl:url, uploading:false}:p) }));
         }).catch(()=>{
           onChange(prev=>({ photos:(prev.photos||[]).map(p=>p.id===pid?{...p, uploading:false, error:true}:p) }));
         });
