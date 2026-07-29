@@ -144,6 +144,11 @@ textarea{resize:vertical;min-height:52px;line-height:1.7}
 .bkerr{font-size:12px;color:var(--red);margin-top:10px;line-height:1.7}
 .bkconfirm{margin-top:12px;border:1px solid var(--acc);border-radius:9px;background:var(--acc-lo);padding:12px;font-size:12.5px;line-height:1.8}
 .saved{font-size:11px;color:var(--grn);margin-left:auto;flex-shrink:0}
+input::placeholder, textarea::placeholder {
+  font-style: italic;
+  color: #8a8f9e;
+  opacity: 1;
+}
 </style>
 </head>
 <body>
@@ -428,7 +433,7 @@ function LinePage({line,onCommon,onOpen,onAdd,onRename,onDeleteLine}){
       <h3>共通情報</h3>
       {edit
         ? <textarea rows={7} value={line.common} onChange={e=>onCommon(e.target.value)}
-            placeholder="性別・型番の調べ方・必須条件など、このラインに共通することを自由に書く" autoFocus/>
+            placeholder="例：性別・型番の調べ方・必須条件など、このラインに共通することを自由に書く" autoFocus/>
         : (line.common
             ? <div className="ctext">{line.common}</div>
             : <div className="cempty">まだ何も書かれていません。「編集」から追加できます。</div>)}
@@ -536,37 +541,37 @@ function VarPage({v,onSave,onCancel,onDelete}){
 
       <div className="dform">
         <label>呼び名（一覧に表示されます）</label>
-        <input type="text" value={d.label||''} onChange={set('label')} placeholder="金×黒、チェンジベゼル など短く"/>
+        <input type="text" value={d.label||''} onChange={set('label')} placeholder="例：金×黒、チェンジベゼル など短く"/>
 
         <label>ヤフオク検索URL</label>
         <div className="linkrow">
-          <input type="text" value={d.yahoo||''} onChange={set('yahoo')} placeholder="検索結果のURLを貼り付け"/>
+          <input type="text" value={d.yahoo||''} onChange={set('yahoo')} placeholder="例：検索結果のURLを貼り付け"/>
           <a className={'linkbtn'+(d.yahoo?'':' off')} href={d.yahoo||'#'} target="_blank" rel="noreferrer">開く</a>
         </div>
 
         <label>eBay検索URL</label>
         <div className="linkrow">
-          <input type="text" value={d.ebay||''} onChange={set('ebay')} placeholder="Sold絞り込み後のURLを貼り付け"/>
+          <input type="text" value={d.ebay||''} onChange={set('ebay')} placeholder="例：Sold絞り込み後のURLを貼り付け"/>
           <a className={'linkbtn'+(d.ebay?'':' off')} href={d.ebay||'#'} target="_blank" rel="noreferrer">開く</a>
         </div>
 
         <label><img className="fieldicon" src={ICON_CASE} alt="" />ケース（素材・形状・仕上げ）</label>
-        <input type="text" value={d.caseNote||''} onChange={set('caseNote')} placeholder="ゴールドメッキ、丸型"/>
+        <input type="text" value={d.caseNote||''} onChange={set('caseNote')} placeholder="例：ゴールドメッキ、丸型"/>
 
         <label><img className="fieldicon" src={ICON_DIAL} alt="" />ダイアル</label>
-        <input type="text" value={d.dial||''} onChange={set('dial')} placeholder="ブラック"/>
+        <input type="text" value={d.dial||''} onChange={set('dial')} placeholder="例：ブラック"/>
 
         <label><img className="fieldicon" src={ICON_BELT} alt="" />ベルト</label>
-        <input type="text" value={d.belt||''} onChange={set('belt')} placeholder="純正ブレス（社外品NG）"/>
+        <input type="text" value={d.belt||''} onChange={set('belt')} placeholder="例：純正ブレス（社外品NG）"/>
 
         <label><img className="fieldicon" src={ICON_BEZEL} alt="" />ベゼル</label>
-        <input type="text" value={d.bezel||''} onChange={set('bezel')} placeholder="交換式（12色）"/>
+        <input type="text" value={d.bezel||''} onChange={set('bezel')} placeholder="例：交換式（12色）"/>
 
         <label>価格メモ（自由記述）</label>
-        <input type="text" value={d.priceMemo||''} onChange={set('priceMemo')} placeholder="相場 ¥48,000 / 箱付きなら+1万"/>
+        <input type="text" value={d.priceMemo||''} onChange={set('priceMemo')} placeholder="例：相場 ¥48,000 / 箱付きなら+1万"/>
 
         <label>備考</label>
-        <textarea rows={4} value={d.notes||''} onChange={set('notes')} placeholder="チェンジベゼルなので単色での仕入れは絶対しない、など"/>
+        <textarea rows={4} value={d.notes||''} onChange={set('notes')} placeholder="例：チェンジベゼルなので単色での仕入れは絶対しない、など"/>
 
         <div className={'ngcheck'+(d.ng?' on':'')} onClick={()=>onChange({ng:!d.ng})}>
           <input type="checkbox" checked={!!d.ng} readOnly/>似てるけど買わない（NG例）
