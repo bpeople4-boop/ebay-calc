@@ -130,6 +130,15 @@
     .frow{display:flex;gap:5px;margin-bottom:8px}
     .fopt{padding:5px 11px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--bg);user-select:none}
     .fopt.on{border-color:var(--acc);background:var(--acc-lo);color:var(--acc);font-weight:600}
+    .fcol{display:flex;flex-direction:column;gap:6px;margin-bottom:6px}
+    .wsub{border:1px solid var(--bdr);border-left:3px solid var(--acc);border-radius:8px;background:var(--bg);padding:11px 12px;margin-bottom:10px}
+    .wsub-ttl{font-size:11px;font-weight:700;color:var(--acc);letter-spacing:.06em;margin-bottom:8px}
+    .wsub-off{font-size:10.5px;color:var(--mut);margin-bottom:8px}
+    .fopt2{padding:7px 11px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;transition:all .12s;background:var(--surf);user-select:none;line-height:1.5}
+    .fopt2.on{border-color:var(--acc);background:var(--acc-lo)}
+    .fopt2 .en{display:block;font-size:12px;color:var(--mut)}
+    .fopt2.on .en{color:var(--acc);font-weight:600}
+    .fopt2 .jp{display:block;font-size:10.5px;color:var(--mut);margin-top:2px}
     .chklist{display:flex;flex-wrap:wrap;gap:5px}
     .chkbtn{padding:4px 10px;border:1px solid var(--bdr);border-radius:5px;cursor:pointer;font-size:12px;color:var(--mut);transition:all .12s;background:var(--bg);user-select:none;display:flex;align-items:center;gap:5px}
     .chkbtn:hover{border-color:var(--blu)}
@@ -247,6 +256,16 @@ const WATCH_ITEM_SPEC_ORDER = [
 'Unit Quantity','Unit Type',
 ].map(watchSpecEntry);
 
+const WATCH_CASE_OPTS = [
+  {val:'beautiful', en:'Pristine condition with barely any signs of use.', jp:'使用感がほとんどない極上　← Top MINT・MINT'},
+  {val:'scuffs', en:'Beautiful condition with minor scratches from normal use.', jp:'通常使用の小傷はあるが美品　← Near MINT'},
+  {val:'signs', en:'Some light scuffs are visible upon close inspection.', jp:'近くで見ると軽い擦れあり　← Exc+5以下'},
+];
+const WATCH_BELT_OPTS = [
+  {val:'beautiful', en:'Pristine condition with barely any signs of use.', jp:'使用感がほとんどない極上　← Top MINT・MINT'},
+  {val:'scuffs', en:'Beautiful condition with minimal signs of wear.', jp:'使用感がごくわずかな美品　← Near MINT'},
+  {val:'signs', en:'Shows slight signs of wear due to normal use.', jp:'通常使用による軽い使用感あり　← Exc+5以下'},
+];
 const WATCH_CASE_PRESETS = [
   {label:'夜光欠損', jp:'夜光塗料の一部が欠けています。', en:'Some of the luminous material is missing.'},
   {label:'夜光コーティング剥離', jp:'夜光コーティングの一部が剥がれています。', en:'Some of the luminous coating has peeled off.'},
@@ -254,7 +273,7 @@ const WATCH_CASE_PRESETS = [
 ];
 const WATCH_CRYSTAL_PRESETS = [
   {label:'風防内側汚れ', jp:'風防の内側に汚れがあります。', en:'The inside of the windshield is dirty.'},
-  {label:'位置指定の傷', jp:'全体的にクリアですが、表面に軽い傷があります。{POS}時位置にごく僅かな傷がありますが目立ちません。', en:"Clear overall with minor surface scratches. There is a very slight scratch at the {POS} o'clock position, but it is not noticeable.", needsPosition:true},
+  {label:'位置指定の傷', jp:'{POS}時位置にごく僅かな傷がありますが目立ちません。', en:"There is a very slight scratch at the {POS} o'clock position, but it is not noticeable.", needsPosition:true},
 ];
 const WATCH_BELT_PRESETS = [
   {label:'ベルト交換推奨', jp:'ベルトはお好みのものへの交換をおすすめします。', en:'We recommend replacing the strap with one of your choice.'},
