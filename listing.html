@@ -1129,7 +1129,7 @@ function App() {
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
-    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wCrystalOn,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
     specPasteText,specChecked,
   });
 
@@ -1179,7 +1179,7 @@ function App() {
     setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
     setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
     setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
-    setWCrystalExtras(draft.wCrystalExtras ?? []); setWBeltSizeCm(draft.wBeltSizeCm ?? ''); setWBeltFree(!!draft.wBeltFree);
+    setWCrystalExtras(draft.wCrystalExtras ?? []); setWCrystalOn(draft.wCrystalOn ?? true); setWBeltSizeCm(draft.wBeltSizeCm ?? ''); setWBeltFree(!!draft.wBeltFree);
     setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []); setWBundleOther(draft.wBundleOther ?? '');
     setWFuncExtras(draft.wFuncExtras ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
