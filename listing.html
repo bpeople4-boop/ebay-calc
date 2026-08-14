@@ -1060,6 +1060,7 @@ function App() {
   const [wBeltChoice,setWBeltChoice]=useState('scuffs');
   const [wBeltExtras,setWBeltExtras]=useState([]);
   const [wCrystalExtras,setWCrystalExtras]=useState([]);
+  const [wCrystalOn,setWCrystalOn]=useState(true);
   const [wBeltSizeCm,setWBeltSizeCm]=useState('');
   const [wBeltFree,setWBeltFree]=useState(false);
   const [wFuncDef,setWFuncDef]=useState(true);
@@ -1554,7 +1555,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
+        ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
         : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
     }finally{setGenBusy(false);}
   };
