@@ -577,8 +577,9 @@ async function uploadToCloudinary(base64) {
 function genWatchHTML(d) {
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const extraLines = extras => extras.filter(x=>x.en.trim()).map(x=>esc(x.en.trim())).join('<br>\n');
-  const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice];
-  const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice];
+  const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice] || '';
+  const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice] || '';
+  const crystalText = d.wCrystalOn===false ? '' : 'Crystal is clear and beautiful.';
   const cmRaw = String(d.wBeltSizeCm ?? '').trim();
   const cm = parseFloat(cmRaw);
   const hasCm = cmRaw && Number.isFinite(cm);
@@ -679,9 +680,9 @@ function genWatchHTML(d) {
 <div class="wt-body">
 <table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
 <h3>Appearance</h3>
-<p>[Case]<br>${caseText}${extraLines(d.wCaseExtras)?'<br>'+extraLines(d.wCaseExtras):''}</p>
-<p>[Crystal]<br>Crystal is clear and beautiful.${extraLines(d.wCrystalExtras)?'<br>'+extraLines(d.wCrystalExtras):''}</p>
-<p>[Belt]<br>${beltText}${extraLines(d.wBeltExtras)?'<br>'+extraLines(d.wBeltExtras):''}<br>Please check the photos carefully for details.</p>
+<p>[Case]<br>${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
+<p>[Crystal]<br>${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
+<p>[Belt]<br>${[beltText, extraLines(d.wBeltExtras), 'Please check the photos carefully for details.'].filter(Boolean).join('<br>')}</p>
 <h3>Belt Size</h3>
 <p>${beltSize}</p>
 <h3>Functional</h3>
