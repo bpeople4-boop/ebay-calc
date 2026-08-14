@@ -2048,9 +2048,24 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
               <div className="input-label">確定タイトル入力欄</div><div className="final-title-box"><div className="spec-input-wrap" style={{flex:1,minWidth:0}}><input type="text" value={finalTitleInput} onChange={e=>{setFinalTitleInput(e.target.value);setFinalTitleConfirmed(false);}} style={{borderColor:'var(--acc)'}}/><button type="button" className={`spec-copy-btn ${finalTitleCopied?'done':''}`} onClick={handleCopyFinalTitle}>{finalTitleCopied?'✓':'⧉'}</button></div><button className="btn bprim bsm" onClick={handleConfirmTitle}>確定</button></div>
             </div>
             <div className="sec"><div className="sttl">Appearance</div>
-              <div className="input-label">Case</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wCaseChoice===x?'on':''}`} onClick={()=>setWCaseChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)} presets={WATCH_CASE_PRESETS} onAddPreset={p=>addPresetExtra(setWCaseExtras,p)}/>
-              <div className="input-label">Crystal</div><ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)} presets={WATCH_CRYSTAL_PRESETS} onAddPreset={p=>addPresetExtra(setWCrystalExtras,p)}/>
-              <div className="input-label">Belt</div><div className="frow">{['beautiful','scuffs','signs'].map(x=><div key={x} className={`fopt ${wBeltChoice===x?'on':''}`} onClick={()=>setWBeltChoice(x)}>{x}</div>)}</div><ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)} presets={WATCH_BELT_PRESETS} onAddPreset={p=>addPresetExtra(setWBeltExtras,p)}/>
+              <div className="wsub">
+                <div className="wsub-ttl">Case</div>
+                <div className="fcol">{WATCH_CASE_OPTS.map(o=><div key={o.val} className={`fopt2 ${wCaseChoice===o.val?'on':''}`} onClick={()=>setWCaseChoice(wCaseChoice===o.val?'':o.val)}><span className="en">{o.en}</span><span className="jp">{o.jp}</span></div>)}</div>
+                {!wCaseChoice && <div className="wsub-off">基本文なし（追加文のみ出力されます）</div>}
+                <ExtraEditor extras={wCaseExtras} onAdd={()=>addExtra(setWCaseExtras)} onUpdate={(id,f,v)=>updateExtra(setWCaseExtras,id,f,v)} onRemove={id=>removeExtra(setWCaseExtras,id)} onChat={()=>handleChatAppearance(wCaseExtras)} presets={WATCH_CASE_PRESETS} onAddPreset={p=>addPresetExtra(setWCaseExtras,p)}/>
+              </div>
+              <div className="wsub">
+                <div className="wsub-ttl">Crystal</div>
+                <div className="fcol"><div className={`fopt2 ${wCrystalOn?'on':''}`} onClick={()=>setWCrystalOn(!wCrystalOn)}><span className="en">Crystal is clear and beautiful.</span><span className="jp">風防はクリアで綺麗</span></div></div>
+                {!wCrystalOn && <div className="wsub-off">基本文なし（追加文のみ出力されます）</div>}
+                <ExtraEditor extras={wCrystalExtras} onAdd={()=>addExtra(setWCrystalExtras)} onUpdate={(id,f,v)=>updateExtra(setWCrystalExtras,id,f,v)} onRemove={id=>removeExtra(setWCrystalExtras,id)} onChat={()=>handleChatAppearance(wCrystalExtras)} presets={WATCH_CRYSTAL_PRESETS} onAddPreset={p=>addPresetExtra(setWCrystalExtras,p)}/>
+              </div>
+              <div className="wsub">
+                <div className="wsub-ttl">Belt</div>
+                <div className="fcol">{WATCH_BELT_OPTS.map(o=><div key={o.val} className={`fopt2 ${wBeltChoice===o.val?'on':''}`} onClick={()=>setWBeltChoice(wBeltChoice===o.val?'':o.val)}><span className="en">{o.en}</span><span className="jp">{o.jp}</span></div>)}</div>
+                {!wBeltChoice && <div className="wsub-off">基本文なし（追加文のみ出力されます）</div>}
+                <ExtraEditor extras={wBeltExtras} onAdd={()=>addExtra(setWBeltExtras)} onUpdate={(id,f,v)=>updateExtra(setWBeltExtras,id,f,v)} onRemove={id=>removeExtra(setWBeltExtras,id)} onChat={()=>handleChatAppearance(wBeltExtras)} presets={WATCH_BELT_PRESETS} onAddPreset={p=>addPresetExtra(setWBeltExtras,p)}/>
+              </div>
             </div>
             <div className="sec">
               <div className="sttl">Belt Size</div>
