@@ -682,7 +682,8 @@ function genWatchHTML(d) {
 <h3>Appearance</h3>
 <p>[Case]<br>${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
 <p>[Crystal]<br>${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
-<p>[Belt]<br>${[beltText, extraLines(d.wBeltExtras), 'Please check the photos carefully for details.'].filter(Boolean).join('<br>')}</p>
+<p>[Belt]<br>${[beltText, extraLines(d.wBeltExtras)].filter(Boolean).join('<br>')}</p>
+<p>Please check the photos carefully for details.</p>
 <h3>Belt Size</h3>
 <p>${beltSize}</p>
 <h3>Functional</h3>
