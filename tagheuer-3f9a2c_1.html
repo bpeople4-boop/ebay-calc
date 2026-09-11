@@ -1,0 +1,443 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<title>タグホイヤー型番判定表</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@500;700;900&family=Noto+Sans+JP:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --ground:#eef0f2;
+  --surface:#ffffff;
+  --surface-2:#f6f7f9;
+  --line:#d4d9de;
+  --line-soft:#e5e9ed;
+  --ink:#15202b;
+  --ink-2:#44525f;
+  --muted:#7b8894;
+  --accent:#14557f;
+  --accent-soft:#e3edf4;
+  --ok:#1c6b4d;
+  --ok-bg:#e0efe7;
+  --tri:#8d6108;
+  --tri-bg:#f6ecd6;
+  --bad:#9e3427;
+  --bad-bg:#f6e2de;
+  --none:#8c97a2;
+  --none-bg:#eaedf0;
+  --shadow:0 1px 2px rgba(21,32,43,.06), 0 8px 24px -16px rgba(21,32,43,.35);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --ground:#12171c;
+    --surface:#1a2128;
+    --surface-2:#202930;
+    --line:#2f3a44;
+    --line-soft:#28323a;
+    --ink:#e7ecf1;
+    --ink-2:#aebbc6;
+    --muted:#8493a0;
+    --accent:#63b3dd;
+    --accent-soft:#1c2e3a;
+    --ok:#63c79b;
+    --ok-bg:#17352a;
+    --tri:#d9ad52;
+    --tri-bg:#372c15;
+    --bad:#e08174;
+    --bad-bg:#3a211d;
+    --none:#7c8894;
+    --none-bg:#232b32;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --ground:#12171c;
+  --surface:#1a2128;
+  --surface-2:#202930;
+  --line:#2f3a44;
+  --line-soft:#28323a;
+  --ink:#e7ecf1;
+  --ink-2:#aebbc6;
+  --muted:#8493a0;
+  --accent:#63b3dd;
+  --accent-soft:#1c2e3a;
+  --ok:#63c79b;
+  --ok-bg:#17352a;
+  --tri:#d9ad52;
+  --tri-bg:#372c15;
+  --bad:#e08174;
+  --bad-bg:#3a211d;
+  --none:#7c8894;
+  --none-bg:#232b32;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -16px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0;
+  background:var(--ground);
+  color:var(--ink);
+  font-family:"Noto Sans JP",system-ui,-apple-system,"Hiragino Kaku Gothic ProN",sans-serif;
+  font-size:15px;
+  line-height:1.7;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1020px;margin:0 auto;padding-inline:20px;padding-block:0 64px}
+.mono{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace;font-variant-numeric:tabular-nums}
+
+/* ---------- masthead ---------- */
+.masthead{padding-block:40px 26px;border-bottom:2px solid var(--ink)}
+.eyebrow{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.18em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 10px
+}
+h1{
+  font-family:"Zen Kaku Gothic New",sans-serif;font-weight:900;
+  font-size:clamp(28px,5.2vw,40px);line-height:1.2;margin:0;letter-spacing:.01em;
+  text-wrap:balance;
+}
+.lede{margin:12px 0 0;max-width:60ch;color:var(--ink-2);font-size:14.5px}
+
+/* ---------- decoder ---------- */
+.decoder{
+  margin-top:26px;background:var(--surface);border:1px solid var(--line);
+  border-radius:3px;padding:18px 18px 14px;box-shadow:var(--shadow);
+}
+.decoder h2{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--muted);margin:0 0 14px;font-weight:500
+}
+.digits{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-start}
+.digit{flex:1 1 86px;min-width:0;text-align:center;display:flex;flex-direction:column}
+.digit .box{
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:clamp(20px,4.6vw,28px);
+  border:1px solid var(--line);border-bottom:3px solid var(--accent);
+  background:var(--surface-2);border-radius:2px;padding:6px 2px;color:var(--ink)
+}
+.digit.pfx .box{border-bottom-color:var(--ink);letter-spacing:.04em}
+.digit .cap{font-size:11px;line-height:1.45;color:var(--ink-2);margin-top:7px;display:block}
+.digit .cap b{display:block;font-weight:700;color:var(--ink);font-size:11.5px}
+
+/* ---------- verdict key ---------- */
+.keyrow{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;padding-top:14px;border-top:1px solid var(--line-soft)}
+.keyitem{display:flex;align-items:center;gap:7px;font-size:12.5px;color:var(--ink-2)}
+
+.badge{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:22px;padding:0 6px;border-radius:2px;
+  font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:13px;line-height:1;
+}
+.g-ok{background:var(--ok-bg);color:var(--ok)}
+.g-tri{background:var(--tri-bg);color:var(--tri)}
+.g-bad{background:var(--bad-bg);color:var(--bad)}
+.g-none{background:var(--none-bg);color:var(--none)}
+
+/* ---------- tally ---------- */
+.tally{display:flex;flex-wrap:wrap;gap:0;margin-top:22px;border:1px solid var(--line);border-radius:3px;overflow:hidden;background:var(--surface)}
+.tally div{flex:1 1 25%;min-width:100px;padding:12px 14px;border-right:1px solid var(--line-soft)}
+.tally div:last-child{border-right:0}
+.tally .n{font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;line-height:1.1;display:block}
+.tally .l{font-size:11.5px;color:var(--muted);letter-spacing:.02em}
+
+/* ---------- controls ---------- */
+.controls{position:sticky;top:0;z-index:20;background:var(--ground);padding-block:14px 12px;margin-top:28px;border-bottom:1px solid var(--line)}
+.searchbox{position:relative;display:flex;align-items:center}
+.searchbox input{
+  width:100%;font-family:"IBM Plex Mono",monospace;font-size:17px;font-weight:500;
+  letter-spacing:.08em;text-transform:uppercase;
+  padding:12px 44px 12px 14px;border:1px solid var(--line);border-radius:3px;
+  background:var(--surface);color:var(--ink);
+}
+.searchbox input::placeholder{letter-spacing:.04em;text-transform:none;color:var(--muted);font-weight:400}
+.searchbox input:focus{outline:2px solid var(--accent);outline-offset:1px;border-color:var(--accent)}
+.clearbtn{
+  position:absolute;right:8px;border:0;background:transparent;color:var(--muted);
+  font-size:18px;cursor:pointer;padding:4px 8px;line-height:1;border-radius:2px
+}
+.clearbtn:focus-visible{outline:2px solid var(--accent)}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;align-items:center}
+.chiplabel{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);font-family:"IBM Plex Mono",monospace;margin-right:2px}
+.chip{
+  font:inherit;font-size:12.5px;padding:4px 11px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--line);background:var(--surface);color:var(--ink-2);
+}
+.chip[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--ground)}
+.chip:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.sep{width:1px;height:18px;background:var(--line);margin:0 4px}
+
+/* ---------- verdict card ---------- */
+.verdict{
+  margin-top:20px;border:1px solid var(--line);border-left:4px solid var(--accent);
+  border-radius:3px;background:var(--surface);padding:18px;box-shadow:var(--shadow);
+  display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap
+}
+.verdict.ok{border-left-color:var(--ok)}
+.verdict.tri{border-left-color:var(--tri)}
+.verdict.bad{border-left-color:var(--bad)}
+.verdict.none{border-left-color:var(--none)}
+.verdict .vmodel{font-family:"IBM Plex Mono",monospace;font-size:26px;font-weight:600;letter-spacing:.06em;line-height:1.2}
+.verdict .vspec{font-size:13px;color:var(--ink-2);margin-top:6px}
+.verdict .vright{margin-left:auto;text-align:right}
+.verdict .vgrade{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:15px}
+
+/* ---------- results ---------- */
+.series{margin-top:38px}
+.series-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;border-bottom:1px solid var(--ink);padding-bottom:8px}
+.series-head .code{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:22px;letter-spacing:.06em}
+.series-head .name{font-family:"Zen Kaku Gothic New",sans-serif;font-weight:700;font-size:16px}
+.series-head .cnt{margin-left:auto;font-size:12px;color:var(--muted);font-family:"IBM Plex Mono",monospace}
+
+.group{margin-top:18px}
+.group-head{
+  font-size:12px;color:var(--ink-2);letter-spacing:.02em;
+  display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px
+}
+.group-head .tag{
+  font-family:"IBM Plex Mono",monospace;font-size:11px;background:var(--surface-2);
+  border:1px solid var(--line-soft);border-radius:2px;padding:1px 7px;color:var(--ink-2)
+}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:6px}
+.item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;
+  border:1px solid var(--line-soft);border-radius:2px;background:var(--surface);
+}
+.item.is-none{background:transparent;border-style:dashed;opacity:.62}
+.item .sw{width:16px;height:16px;border-radius:50%;flex:0 0 auto;border:1px solid rgba(120,132,144,.5)}
+.item .txt{min-width:0;flex:1}
+.item .m{font-family:"IBM Plex Mono",monospace;font-weight:500;font-size:13.5px;letter-spacing:.03em;display:block;line-height:1.35}
+.item .c{font-size:11px;color:var(--muted);display:block;line-height:1.35;overflow-wrap:anywhere}
+.item .badge{flex:0 0 auto}
+
+.empty{padding:40px 0;color:var(--muted);text-align:center}
+
+/* ---------- notes ---------- */
+.notes{margin-top:46px;border-top:1px solid var(--line);padding-top:20px}
+.notes h3{font-family:"Zen Kaku Gothic New",sans-serif;font-size:14px;margin:0 0 10px;font-weight:700}
+.notes ul{margin:0;padding-left:1.2em;color:var(--ink-2);font-size:13px}
+.notes li{margin-bottom:6px}
+.notes li::marker{color:var(--muted)}
+
+@media (max-width:520px){
+  .tally div{flex:1 1 50%}
+  .digit{flex:1 1 60px}
+  .verdict .vright{margin-left:0;text-align:left;width:100%}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+
+<div class="wrap">
+  <header class="masthead">
+    <p class="eyebrow">TAG Heuer / 型番リファレンス</p>
+    <h1>タグホイヤー型番判定表</h1>
+    <p class="lede">原本で<b>黄色く塗られていた型番が「買い」</b>。それ以外は、実在していても見送りです。型番の4桁は「クォーツの種類・ケースサイズ・ベルトの種類・ダイアルの色」。5シリーズ403通りのうち、買いは72件です。型番を入力すると判定がすぐ出ます。</p>
+
+    <section class="decoder">
+      <h2>型番の読み方</h2>
+      <div class="digits">
+        <div class="digit pfx"><div class="box">WK</div><span class="cap"><b>シリーズ</b>WK/WE/WA/WG/CG</span></div>
+        <div class="digit"><div class="box">1</div><span class="cap"><b>1桁目</b>クォーツの種類</span></div>
+        <div class="digit"><div class="box">1</div><span class="cap"><b>2桁目</b>ケースのサイズ</span></div>
+        <div class="digit"><div class="box">1</div><span class="cap"><b>3桁目</b>ベルトの種類</span></div>
+        <div class="digit"><div class="box">0</div><span class="cap"><b>4桁目</b>ダイアルの色</span></div>
+      </div>
+      <div class="keyrow">
+        <span class="keyitem"><span class="badge g-ok">◎</span>黄色マーク＝買い</span>
+        <span class="keyitem"><span class="badge g-tri">△</span>実在するが黄色なし＝見送り</span>
+        <span class="keyitem"><span class="badge g-bad">×</span>NG</span>
+        <span class="keyitem"><span class="badge g-none">無</span>この型番は存在しない</span>
+      </div>
+    </section>
+
+    <div class="tally" id="tally"></div>
+  </header>
+
+  <div class="controls">
+    <div class="searchbox">
+      <input id="q" type="search" autocomplete="off" spellcheck="false" placeholder="型番で検索（例：WK1110 / WG14 / CG）">
+      <button class="clearbtn" id="clear" type="button" aria-label="検索をクリア">×</button>
+    </div>
+    <div class="chips" id="seriesChips"><span class="chiplabel">シリーズ</span></div>
+    <div class="chips" id="gradeChips"><span class="chiplabel">判定</span></div>
+  </div>
+
+  <div id="verdict"></div>
+  <div id="results"></div>
+
+  <section class="notes">
+    <h3>読むときの注意</h3>
+    <ul>
+      <li>原本で黄色く塗られていたセルは73個。うち72個は判定欄が空欄で、これを「買い（◎）」としています。△25件・無印299件には黄色が一切ついていません。</li>
+      <li><b>WK1114（赤ダイアル）だけが例外</b>です。黄色く塗ったあとで「×」が書き足されたものと判断し、見送り扱いにしています。</li>
+      <li>ケースサイズ・ベルトの呼び名（ボーイズ／男性／女性／レディース、シルバー／コンビ／ゴールド）は、WG・WA・CGの表にだけ書かれていたものです。WK・WEは数字のみのため、名前を補わず数字で表示しています。</li>
+      <li>WK2110〜WK2115 は「×」ですが、原本にダイアル色の記載がありません。</li>
+      <li>WAフォーミュラーの色は「ダイアル・針 × ベゼル」の2色表記です。丸い色玉は左半分がダイアル、右半分がベゼルを表しています。</li>
+      <li>「クォーツの種類」の1と2が具体的に何を指すかは、原本に説明がありません。</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+const DATA = {"rows":[["WK1110","WK","1","1","1","0","黒","◎"],["WK1111","WK","1","1","1","1","白","◎"],["WK1112","WK","1","1","1","2","白","◎"],["WK1113","WK","1","1","1","3","青","◎"],["WK1114","WK","1","1","1","4","赤","×"],["WK1115","WK","1","1","1","5","黒","◎"],["WK1116","WK","1","1","1","6","白","◎"],["WK1120","WK","1","1","2","0","銀","◎"],["WK1121","WK","1","1","2","1","金","◎"],["WK1122","WK","1","1","2","2","","無"],["WK1123","WK","1","1","2","3","","無"],["WK1124","WK","1","1","2","4","","無"],["WK1125","WK","1","1","2","5","","無"],["WK1126","WK","1","1","2","6","","無"],["WK1210","WK","1","2","1","0","黒","◎"],["WK1211","WK","1","2","1","1","白","◎"],["WK1212","WK","1","2","1","2","白","◎"],["WK1213","WK","1","2","1","3","青","△"],["WK1214","WK","1","2","1","4","","無"],["WK1215","WK","1","2","1","5","","無"],["WK1216","WK","1","2","1","6","","無"],["WK1220","WK","1","2","2","0","","無"],["WK1221","WK","1","2","2","1","金","◎"],["WK1222","WK","1","2","2","2","","無"],["WK1223","WK","1","2","2","3","","無"],["WK1224","WK","1","2","2","4","","無"],["WK1225","WK","1","2","2","5","","無"],["WK1226","WK","1","2","2","6","","無"],["WK1310","WK","1","3","1","0","黒","◎"],["WK1311","WK","1","3","1","1","白","◎"],["WK1312","WK","1","3","1","2","白","◎"],["WK1313","WK","1","3","1","3","","無"],["WK1314","WK","1","3","1","4","","無"],["WK1315","WK","1","3","1","5","","無"],["WK1316","WK","1","3","1","6","","無"],["WK1320","WK","1","3","2","0","白","◎"],["WK1321","WK","1","3","2","1","金","◎"],["WK1322","WK","1","3","2","2","","無"],["WK1323","WK","1","3","2","3","","無"],["WK1324","WK","1","3","2","4","","無"],["WK1325","WK","1","3","2","5","","無"],["WK1326","WK","1","3","2","6","","無"],["WK2110","WK","2","1","1","0","","×"],["WK2111","WK","2","1","1","1","","×"],["WK2112","WK","2","1","1","2","","×"],["WK2113","WK","2","1","1","3","","×"],["WK2114","WK","2","1","1","4","","×"],["WK2115","WK","2","1","1","5","","×"],["WK2116","WK","2","1","1","6","白","◎"],["WK2117","WK","2","1","1","7","青","◎"],["WK2118","WK","2","1","1","8","黒","◎"],["WK2120","WK","2","1","2","0","","無"],["WK2121","WK","2","1","2","1","銀","◎"],["WK2122","WK","2","1","2","2","","無"],["WK2123","WK","2","1","2","3","","無"],["WK2124","WK","2","1","2","4","","無"],["WK2125","WK","2","1","2","5","","無"],["WK2126","WK","2","1","2","6","","無"],["WK2210","WK","2","2","1","0","","無"],["WK2211","WK","2","2","1","1","","無"],["WK2212","WK","2","2","1","2","","無"],["WK2213","WK","2","2","1","3","","無"],["WK2214","WK","2","2","1","4","","無"],["WK2215","WK","2","2","1","5","","無"],["WK2216","WK","2","2","1","6","","無"],["WK2220","WK","2","2","2","0","","無"],["WK2221","WK","2","2","2","1","","無"],["WK2222","WK","2","2","2","2","","無"],["WK2223","WK","2","2","2","3","","無"],["WK2224","WK","2","2","2","4","","無"],["WK2225","WK","2","2","2","5","","無"],["WK2226","WK","2","2","2","6","","無"],["WK2310","WK","2","3","1","0","","無"],["WK2311","WK","2","3","1","1","","無"],["WK2312","WK","2","3","1","2","","無"],["WK2313","WK","2","3","1","3","","無"],["WK2314","WK","2","3","1","4","","無"],["WK2315","WK","2","3","1","5","","無"],["WK2316","WK","2","3","1","6","","無"],["WK2320","WK","2","3","2","0","","無"],["WK2321","WK","2","3","2","1","","無"],["WK2322","WK","2","3","2","2","","無"],["WK2323","WK","2","3","2","3","","無"],["WK2324","WK","2","3","2","4","","無"],["WK2325","WK","2","3","2","5","","無"],["WK2326","WK","2","3","2","6","","無"],["WE1110","WE","1","1","1","0","黒","◎"],["WE1111","WE","1","1","1","1","白","◎"],["WE1112","WE","1","1","1","2","白","◎"],["WE1113","WE","1","1","1","3","","無"],["WE1114","WE","1","1","1","4","","無"],["WE1115","WE","1","1","1","5","","無"],["WE1116","WE","1","1","1","6","","無"],["WE1120","WE","1","1","2","0","金","△"],["WE1121","WE","1","1","2","1","金","△"],["WE1122","WE","1","1","2","2","白","◎"],["WE1123","WE","1","1","2","3","","無"],["WE1124","WE","1","1","2","4","","無"],["WE1125","WE","1","1","2","5","","無"],["WE1126","WE","1","1","2","6","","無"],["WE1210","WE","1","2","1","0","黒","◎"],["WE1211","WE","1","2","1","1","白","◎"],["WE1212","WE","1","2","1","2","白","△"],["WE1213","WE","1","2","1","3","","無"],["WE1214","WE","1","2","1","4","","無"],["WE1215","WE","1","2","1","5","","無"],["WE1216","WE","1","2","1","6","","無"],["WE1220","WE","1","2","2","0","金","△"],["WE1221","WE","1","2","2","1","金","△"],["WE1222","WE","1","2","2","2","","無"],["WE1223","WE","1","2","2","3","","無"],["WE1224","WE","1","2","2","4","","無"],["WE1225","WE","1","2","2","5","","無"],["WE1226","WE","1","2","2","6","","無"],["WE1310","WE","1","3","1","0","","無"],["WE1311","WE","1","3","1","1","","無"],["WE1312","WE","1","3","1","2","","無"],["WE1313","WE","1","3","1","3","","無"],["WE1314","WE","1","3","1","4","","無"],["WE1315","WE","1","3","1","5","","無"],["WE1316","WE","1","3","1","6","","無"],["WE1320","WE","1","3","2","0","","無"],["WE1321","WE","1","3","2","1","","無"],["WE1322","WE","1","3","2","2","","無"],["WE1323","WE","1","3","2","3","","無"],["WE1324","WE","1","3","2","4","","無"],["WE1325","WE","1","3","2","5","","無"],["WE1326","WE","1","3","2","6","","無"],["WE2110","WE","2","1","1","0","","無"],["WE2111","WE","2","1","1","1","","無"],["WE2112","WE","2","1","1","2","","無"],["WE2113","WE","2","1","1","3","","無"],["WE2114","WE","2","1","1","4","","無"],["WE2115","WE","2","1","1","5","","無"],["WE2116","WE","2","1","1","6","","無"],["WE2120","WE","2","1","2","0","","無"],["WE2121","WE","2","1","2","1","","無"],["WE2122","WE","2","1","2","2","","無"],["WE2123","WE","2","1","2","3","","無"],["WE2124","WE","2","1","2","4","","無"],["WE2125","WE","2","1","2","5","","無"],["WE2126","WE","2","1","2","6","","無"],["WE2210","WE","2","2","1","0","","無"],["WE2211","WE","2","2","1","1","","無"],["WE2212","WE","2","2","1","2","","無"],["WE2213","WE","2","2","1","3","","無"],["WE2214","WE","2","2","1","4","","無"],["WE2215","WE","2","2","1","5","","無"],["WE2216","WE","2","2","1","6","","無"],["WE2220","WE","2","2","2","0","","無"],["WE2221","WE","2","2","2","1","","無"],["WE2222","WE","2","2","2","2","","無"],["WE2223","WE","2","2","2","3","","無"],["WE2224","WE","2","2","2","4","","無"],["WE2225","WE","2","2","2","5","","無"],["WE2226","WE","2","2","2","6","","無"],["WE2310","WE","2","3","1","0","","無"],["WE2311","WE","2","3","1","1","","無"],["WE2312","WE","2","3","1","2","","無"],["WE2313","WE","2","3","1","3","","無"],["WE2314","WE","2","3","1","4","","無"],["WE2315","WE","2","3","1","5","","無"],["WE2316","WE","2","3","1","6","","無"],["WE2320","WE","2","3","2","0","","無"],["WE2321","WE","2","3","2","1","","無"],["WE2322","WE","2","3","2","2","","無"],["WE2323","WE","2","3","2","3","","無"],["WE2324","WE","2","3","2","4","","無"],["WE2325","WE","2","3","2","5","","無"],["WE2326","WE","2","3","2","6","","無"],["WA1210","WA","1","2","1","0","青×青","◎"],["WA1211","WA","1","2","1","1","黄×黒","◎"],["WA1212","WA","1","2","1","2","黄×緑","◎"],["WA1213","WA","1","2","1","3","銀×橙","◎"],["WA1214","WA","1","2","1","4","(黒赤)×黒","◎"],["WA1215","WA","1","2","1","5","(黒緑)×黒","◎"],["WA1216","WA","1","2","1","6","(黒黄)×黒","◎"],["WA1217","WA","1","2","1","7","(黒桃)×黒","◎"],["WA1218","WA","1","2","1","8","白×黒","◎"],["WA1219","WA","1","2","1","9","白×青","◎"],["WA1220","WA","1","2","2","0","","無"],["WA1221","WA","1","2","2","1","","無"],["WA1222","WA","1","2","2","2","","無"],["WA1223","WA","1","2","2","3","","無"],["WA1224","WA","1","2","2","4","","無"],["WA1225","WA","1","2","2","5","","無"],["WA1226","WA","1","2","2","6","","無"],["WA1410","WA","1","4","1","0","青×青","◎"],["WA1411","WA","1","4","1","1","黄×黒","◎"],["WA1412","WA","1","4","1","2","黄×緑","◎"],["WA1413","WA","1","4","1","3","銀×橙","◎"],["WA1414","WA","1","4","1","4","(黒赤)×黒","◎"],["WA1415","WA","1","4","1","5","","無"],["WA1416","WA","1","4","1","6","(黒黄)×黒","◎"],["WA1417","WA","1","4","1","7","(黒桃)×黒","◎"],["WA1418","WA","1","4","1","8","白×黒","◎"],["WA1419","WA","1","4","1","9","白×青","◎"],["WA1420","WA","1","4","2","0","","無"],["WA1421","WA","1","4","2","1","","無"],["WA1422","WA","1","4","2","2","","無"],["WA1423","WA","1","4","2","3","","無"],["WA1424","WA","1","4","2","4","","無"],["WA1425","WA","1","4","2","5","","無"],["WA1426","WA","1","4","2","6","","無"],["WG1110","WG","1","1","1","0","白","△"],["WG1111","WG","1","1","1","1","","無"],["WG1112","WG","1","1","1","2","白","◎"],["WG1113","WG","1","1","1","3","黒","◎"],["WG1114","WG","1","1","1","4","","無"],["WG1115","WG","1","1","1","5","","無"],["WG1116","WG","1","1","1","6","白","△"],["WG1117","WG","1","1","1","7","青","△"],["WG1118","WG","1","1","1","8","黒","◎"],["WG1120","WG","1","1","2","0","","無"],["WG1121","WG","1","1","2","1","","無"],["WG1122","WG","1","1","2","2","","無"],["WG1123","WG","1","1","2","3","","無"],["WG1124","WG","1","1","2","4","","無"],["WG1125","WG","1","1","2","5","","無"],["WG1126","WG","1","1","2","6","金","◎"],["WG1210","WG","1","2","1","0","","無"],["WG1211","WG","1","2","1","1","","無"],["WG1212","WG","1","2","1","2","白","◎"],["WG1213","WG","1","2","1","3","黒","◎"],["WG1214","WG","1","2","1","4","","無"],["WG1215","WG","1","2","1","5","","無"],["WG1216","WG","1","2","1","6","","無"],["WG1217","WG","1","2","1","7","","無"],["WG1218","WG","1","2","1","8","","無"],["WG1220","WG","1","2","2","0","黒","◎"],["WG1221","WG","1","2","2","1","白","△"],["WG1222","WG","1","2","2","2","白","△"],["WG1223","WG","1","2","2","3","","無"],["WG1224","WG","1","2","2","4","","無"],["WG1225","WG","1","2","2","5","","無"],["WG1226","WG","1","2","2","6","","無"],["WG1310","WG","1","3","1","0","白","△"],["WG1311","WG","1","3","1","1","","無"],["WG1312","WG","1","3","1","2","白","◎"],["WG1313","WG","1","3","1","3","黒","△"],["WG1314","WG","1","3","1","4","","無"],["WG1315","WG","1","3","1","5","","無"],["WG1316","WG","1","3","1","6","","無"],["WG1317","WG","1","3","1","7","","無"],["WG1318","WG","1","3","1","8","","無"],["WG1319","WG","1","3","1","9","深緑","△"],["WG1320","WG","1","3","2","0","黒","◎"],["WG1321","WG","1","3","2","1","白","◎"],["WG1322","WG","1","3","2","2","白","◎"],["WG1323","WG","1","3","2","3","","無"],["WG1324","WG","1","3","2","4","","無"],["WG1325","WG","1","3","2","5","黒","△"],["WG1326","WG","1","3","2","6","黒","△"],["WG1330","WG","1","3","3","0","白","◎"],["WG1410","WG","1","4","1","0","","無"],["WG1411","WG","1","4","1","1","","無"],["WG1412","WG","1","4","1","2","","無"],["WG1413","WG","1","4","1","3","白","◎"],["WG1420","WG","1","4","2","0","黒","◎"],["WG1421","WG","1","4","2","1","白","△"],["WG1422","WG","1","4","2","2","白","◎"],["WG1423","WG","1","4","2","3","","無"],["WG1430","WG","1","4","3","0","ベージュ","◎"],["WG1431","WG","1","4","3","1","","無"],["WG1432","WG","1","4","3","2","","無"],["WG1433","WG","1","4","3","3","金","◎"],["WG2110","WG","2","1","1","0","","無"],["WG2111","WG","2","1","1","1","","無"],["WG2112","WG","2","1","1","2","","無"],["WG2113","WG","2","1","1","3","","無"],["WG2114","WG","2","1","1","4","","無"],["WG2115","WG","2","1","1","5","","無"],["WG2116","WG","2","1","1","6","","無"],["WG2117","WG","2","1","1","7","","無"],["WG2118","WG","2","1","1","8","","無"],["WG2120","WG","2","1","2","0","","無"],["WG2121","WG","2","1","2","1","","無"],["WG2122","WG","2","1","2","2","","無"],["WG2123","WG","2","1","2","3","","無"],["WG2124","WG","2","1","2","4","","無"],["WG2125","WG","2","1","2","5","","無"],["WG2126","WG","2","1","2","6","","無"],["WG2210","WG","2","2","1","0","","無"],["WG2211","WG","2","2","1","1","","無"],["WG2212","WG","2","2","1","2","","無"],["WG2213","WG","2","2","1","3","","無"],["WG2214","WG","2","2","1","4","","無"],["WG2215","WG","2","2","1","5","","無"],["WG2216","WG","2","2","1","6","","無"],["WG2217","WG","2","2","1","7","","無"],["WG2218","WG","2","2","1","8","","無"],["WG2220","WG","2","2","2","0","","無"],["WG2221","WG","2","2","2","1","","無"],["WG2222","WG","2","2","2","2","","無"],["WG2223","WG","2","2","2","3","","無"],["WG2224","WG","2","2","2","4","","無"],["WG2225","WG","2","2","2","5","","無"],["WG2226","WG","2","2","2","6","","無"],["WG2310","WG","2","3","1","0","","無"],["WG2311","WG","2","3","1","1","","無"],["WG2312","WG","2","3","1","2","","無"],["WG2313","WG","2","3","1","3","","無"],["WG2314","WG","2","3","1","4","","無"],["WG2315","WG","2","3","1","5","","無"],["WG2316","WG","2","3","1","6","","無"],["WG2317","WG","2","3","1","7","","無"],["WG2318","WG","2","3","1","8","","無"],["WG2319","WG","2","3","1","9","","無"],["WG2320","WG","2","3","2","0","","無"],["WG2321","WG","2","3","2","1","","無"],["WG2322","WG","2","3","2","2","","無"],["WG2323","WG","2","3","2","3","","無"],["WG2324","WG","2","3","2","4","","無"],["WG2325","WG","2","3","2","5","","無"],["WG2326","WG","2","3","2","6","","無"],["WG2330","WG","2","3","3","0","","無"],["WG2310","WG","2","3","1","0","","無"],["WG2311","WG","2","3","1","1","","無"],["WG2312","WG","2","3","1","2","","無"],["WG2313","WG","2","3","1","3","","無"],["WG2320","WG","2","3","2","0","","無"],["WG2321","WG","2","3","2","1","","無"],["WG2322","WG","2","3","2","2","","無"],["WG2323","WG","2","3","2","3","","無"],["WG2330","WG","2","3","3","0","","無"],["WG2331","WG","2","3","3","1","","無"],["WG2332","WG","2","3","3","2","","無"],["WG2333","WG","2","3","3","3","","無"],["CG1110","CG","1","1","1","0","黒","◎"],["CG1111","CG","1","1","1","1","白","◎"],["CG1112","CG","1","1","1","2","白","△"],["CG1113","CG","1","1","1","3","青","◎"],["CG1114","CG","1","1","1","4","青","△"],["CG1115","CG","1","1","1","5","","無"],["CG1116","CG","1","1","1","6","銀","◎"],["CG1117","CG","1","1","1","7","模様","△"],["CG1118","CG","1","1","1","8","黒","△"],["CG1120","CG","1","1","2","0","白","◎"],["CG1121","CG","1","1","2","1","金","△"],["CG1122","CG","1","1","2","2","黒","◎"],["CG1123","CG","1","1","2","3","クリーム","◎"],["CG1124","CG","1","1","2","4","緑","◎"],["CG1210","CG","1","2","1","0","","無"],["CG1211","CG","1","2","1","1","","無"],["CG1212","CG","1","2","1","2","","無"],["CG1213","CG","1","2","1","3","","無"],["CG1214","CG","1","2","1","4","","無"],["CG1215","CG","1","2","1","5","","無"],["CG1216","CG","1","2","1","6","","無"],["CG1220","CG","1","2","2","0","","無"],["CG1221","CG","1","2","2","1","","無"],["CG1222","CG","1","2","2","2","","無"],["CG1223","CG","1","2","2","3","","無"],["CG1224","CG","1","2","2","4","","無"],["CG1225","CG","1","2","2","5","","無"],["CG1226","CG","1","2","2","6","","無"],["CG1310","CG","1","3","1","0","","無"],["CG1311","CG","1","3","1","1","","無"],["CG1312","CG","1","3","1","2","","無"],["CG1313","CG","1","3","1","3","","無"],["CG1314","CG","1","3","1","4","","無"],["CG1315","CG","1","3","1","5","","無"],["CG1316","CG","1","3","1","6","","無"],["CG1320","CG","1","3","2","0","","無"],["CG1321","CG","1","3","2","1","","無"],["CG1322","CG","1","3","2","2","","無"],["CG1323","CG","1","3","2","3","","無"],["CG1324","CG","1","3","2","4","","無"],["CG1325","CG","1","3","2","5","","無"],["CG1326","CG","1","3","2","6","","無"],["CG2110","CG","2","1","1","0","白","△"],["CG2111","CG","2","1","1","1","青","△"],["CG2112","CG","2","1","1","2","白","△"],["CG2113","CG","2","1","1","3","","無"],["CG2114","CG","2","1","1","4","","無"],["CG2115","CG","2","1","1","5","","無"],["CG2116","CG","2","1","1","6","","無"],["CG2117","CG","2","1","1","7","","無"],["CG2118","CG","2","1","1","8","","無"],["CG2120","CG","2","1","2","0","白","◎"],["CG2121","CG","2","1","2","1","","無"],["CG2122","CG","2","1","2","2","","無"],["CG2123","CG","2","1","2","3","","無"],["CG2124","CG","2","1","2","4","","無"],["CG2210","CG","2","2","1","0","","無"],["CG2211","CG","2","2","1","1","","無"],["CG2212","CG","2","2","1","2","","無"],["CG2213","CG","2","2","1","3","","無"],["CG2214","CG","2","2","1","4","","無"],["CG2215","CG","2","2","1","5","","無"],["CG2216","CG","2","2","1","6","","無"],["CG2220","CG","2","2","2","0","","無"],["CG2221","CG","2","2","2","1","","無"],["CG2222","CG","2","2","2","2","","無"],["CG2223","CG","2","2","2","3","","無"],["CG2224","CG","2","2","2","4","","無"],["CG2225","CG","2","2","2","5","","無"],["CG2226","CG","2","2","2","6","","無"],["CG2310","CG","2","3","1","0","","無"],["CG2311","CG","2","3","1","1","","無"],["CG2312","CG","2","3","1","2","","無"],["CG2313","CG","2","3","1","3","","無"],["CG2314","CG","2","3","1","4","","無"],["CG2315","CG","2","3","1","5","","無"],["CG2316","CG","2","3","1","6","","無"],["CG2320","CG","2","3","2","0","","無"],["CG2321","CG","2","3","2","1","","無"],["CG2322","CG","2","3","2","2","","無"],["CG2323","CG","2","3","2","3","","無"],["CG2324","CG","2","3","2","4","","無"],["CG2325","CG","2","3","2","5","","無"],["CG2326","CG","2","3","2","6","","無"]],"series":[{"name":"WK2000シリーズ","prefix":"WK"},{"name":"WE2000シリーズ","prefix":"WE"},{"name":"WAフォーミュラー","prefix":"WA"},{"name":"WGノーマルセルシリーズ","prefix":"WG"},{"name":"CGクロノグラフセルシリーズ","prefix":"CG"}],"sizeLab":{"WGノーマルセルシリーズ":{"1":"ボーイズ","2":"男性","3":"女性","4":"レディース"},"WAフォーミュラー":{"2":"メンズ","4":"レディース"}},"beltLab":{"WGノーマルセルシリーズ":{"1":"シルバー","2":"コンビ","3":"ゴールド"},"CGクロノグラフセルシリーズ":{"1":"シルバー","2":"コンビ"}}};
+
+{ const seen = new Set();
+  DATA.rows = DATA.rows.filter(r => seen.has(r[0]) ? false : (seen.add(r[0]), true)); }
+
+const SERIES_NAME = {};
+DATA.series.forEach(s => SERIES_NAME[s.prefix] = s.name);
+
+const COLOR = {
+  '黒':'#1c1c1e','白':'#f4f4f2','青':'#2b4f8e','赤':'#a93226','銀':'#c2c7cc','金':'#c9a227',
+  '緑':'#2f6b45','深緑':'#1d4633','橙':'#d2691e','黄':'#e0b515','桃':'#e06a8a',
+  'クリーム':'#efe3c8','ベージュ':'#e0cdb0','模様':'#9aa3ab'
+};
+function hexes(s){
+  s = s.replace(/[()]/g,'');
+  if(COLOR[s]) return [COLOR[s]];
+  const out = [...s].map(ch => COLOR[ch]).filter(Boolean);
+  return out.length ? out : ['#9aa3ab'];
+}
+function swatchStyle(c){
+  if(!c) return 'background:transparent;border-style:dashed';
+  const flat = c.split('×').flatMap(hexes);
+  if(flat.length === 1) return 'background:'+flat[0];
+  const n = flat.length;
+  const stops = flat.map((h,i) => `${h} ${(i/n*100).toFixed(1)}% ${((i+1)/n*100).toFixed(1)}%`).join(', ');
+  return `background:linear-gradient(115deg, ${stops})`;
+}
+
+const GRADE_CLASS = {'◎':'g-ok','△':'g-tri','×':'g-bad','無':'g-none'};
+const GRADE_WORD  = {'◎':'買い','△':'見送り','×':'NG','無':'型番なし'};
+const VERDICT_CLASS = {'◎':'ok','△':'tri','×':'bad','無':'none'};
+
+const state = {
+  q:'',
+  series:new Set(DATA.series.map(s=>s.prefix)),
+  grades:new Set(['◎'])
+};
+
+/* ---- tally ---- */
+(function(){
+  const counts = {'◎':0,'△':0,'×':0,'無':0};
+  DATA.rows.forEach(r => counts[r[7]]++);
+  document.getElementById('tally').innerHTML = ['◎','△','×','無'].map(g =>
+    `<div><span class="n" style="color:var(--${g==='◎'?'ok':g==='△'?'tri':g==='×'?'bad':'none'})">${counts[g]}</span>
+     <span class="l">${g}　${GRADE_WORD[g]}</span></div>`).join('');
+})();
+
+/* ---- chips ---- */
+const seriesChips = document.getElementById('seriesChips');
+DATA.series.forEach(s => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.id = 'chip-s-'+s.prefix;
+  b.textContent = s.prefix + '　' + s.name.replace(s.prefix,'').replace('シリーズ','');
+  b.setAttribute('aria-pressed','true');
+  b.onclick = () => {
+    if(state.series.has(s.prefix) && state.series.size === DATA.series.length){
+      state.series = new Set([s.prefix]);
+    } else if(state.series.has(s.prefix)){
+      state.series.delete(s.prefix);
+      if(!state.series.size) state.series = new Set(DATA.series.map(x=>x.prefix));
+    } else state.series.add(s.prefix);
+    sync(); render();
+  };
+  seriesChips.appendChild(b);
+});
+const gradeChips = document.getElementById('gradeChips');
+['◎','△','×','無'].forEach(g => {
+  const b = document.createElement('button');
+  b.className = 'chip'; b.type = 'button'; b.id = 'chip-g-'+GRADE_CLASS[g];
+  b.textContent = g + '　' + GRADE_WORD[g];
+  b.setAttribute('aria-pressed', state.grades.has(g) ? 'true':'false');
+  b.onclick = () => { state.grades.has(g) ? state.grades.delete(g) : state.grades.add(g); sync(); render(); };
+  gradeChips.appendChild(b);
+});
+function sync(){
+  DATA.series.forEach(s => document.getElementById('chip-s-'+s.prefix)
+    .setAttribute('aria-pressed', state.series.has(s.prefix) ? 'true':'false'));
+  ['◎','△','×','無'].forEach(g => document.getElementById('chip-g-'+GRADE_CLASS[g])
+    .setAttribute('aria-pressed', state.grades.has(g) ? 'true':'false'));
+}
+
+const input = document.getElementById('q');
+input.addEventListener('input', () => { state.q = input.value.trim().toUpperCase(); render(); });
+document.getElementById('clear').onclick = () => { input.value=''; state.q=''; input.focus(); render(); };
+
+function label(prefix, kind, digit){
+  const map = kind === 'size' ? DATA.sizeLab[SERIES_NAME[prefix]] : DATA.beltLab[SERIES_NAME[prefix]];
+  const l = map && map[digit];
+  return l ? digit + '（' + l + '）' : digit;
+}
+
+function render(){
+  const res = document.getElementById('results');
+  const vd  = document.getElementById('verdict');
+  const q = state.q;
+
+  /* exact-match verdict */
+  const exact = q.length >= 6 ? DATA.rows.find(r => r[0] === q) : null;
+  if(q.length >= 6 && !exact){
+    vd.innerHTML = `<div class="verdict none"><div><div class="vmodel">${esc(q)}</div>
+      <div class="vspec">この表には載っていない型番です。桁数や英字を確認してください。</div></div></div>`;
+  } else if(exact){
+    const [m,p,qq,sz,bl,dl,col,g] = exact;
+    vd.innerHTML = `<div class="verdict ${VERDICT_CLASS[g]}">
+      <div>
+        <div class="vmodel">${m}</div>
+        <div class="vspec">${SERIES_NAME[p]}　/　クォーツ ${qq}　・　ケース ${label(p,'size',sz)}　・　ベルト ${label(p,'belt',bl)}　・　ダイアル ${dl}${col?'（'+col+'）':''}</div>
+      </div>
+      <div class="vright">
+        <span class="badge ${GRADE_CLASS[g]}" style="font-size:18px;min-width:34px;height:34px">${g}</span>
+        <div class="vgrade" style="color:var(--${g==='◎'?'ok':g==='△'?'tri':g==='×'?'bad':'none'})">${GRADE_WORD[g]}</div>
+      </div>
+    </div>`;
+  } else vd.innerHTML = '';
+
+  const rows = DATA.rows.filter(r =>
+    state.series.has(r[1]) && state.grades.has(r[7]) && (!q || r[0].includes(q)));
+
+  if(!rows.length){ res.innerHTML = '<p class="empty">条件に合う型番はありません。</p>'; return; }
+
+  let html = '';
+  DATA.series.forEach(s => {
+    const mine = rows.filter(r => r[1] === s.prefix);
+    if(!mine.length) return;
+    html += `<section class="series"><div class="series-head">
+      <span class="code">${s.prefix}</span><span class="name">${s.name.replace(s.prefix,'')}</span>
+      <span class="cnt">${mine.length} 件</span></div>`;
+    const groups = new Map();
+    mine.forEach(r => {
+      const k = r[2]+'|'+r[3]+'|'+r[4];
+      if(!groups.has(k)) groups.set(k, []);
+      groups.get(k).push(r);
+    });
+    groups.forEach((items,k) => {
+      const [qq,sz,bl] = k.split('|');
+      html += `<div class="group"><div class="group-head">
+        <span class="tag">クォーツ ${qq}</span>
+        <span class="tag">ケース ${label(s.prefix,'size',sz)}</span>
+        <span class="tag">ベルト ${label(s.prefix,'belt',bl)}</span></div><div class="grid">`;
+      items.forEach(r => {
+        const g = r[7];
+        html += `<div class="item${g==='無'?' is-none':''}">
+          <span class="sw" style="${swatchStyle(r[6])}"></span>
+          <span class="txt"><span class="m">${r[0]}</span><span class="c">${r[6] || '色の記載なし'}</span></span>
+          <span class="badge ${GRADE_CLASS[g]}">${g}</span></div>`;
+      });
+      html += '</div></div>';
+    });
+    html += '</section>';
+  });
+  res.innerHTML = html;
+}
+function esc(s){ return s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+render();
+</script>
+
+</body>
+</html>
