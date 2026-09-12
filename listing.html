@@ -1035,6 +1035,9 @@ function App() {
   const [noCharger,setNoCharger]=useState(false);
   const [ebayTitle,setEbayTitle]=useState('');
   const [titleCandidates,setTitleCandidates]=useState([]);
+  const [soldText,setSoldText]=useState('');
+  const [soldErr,setSoldErr]=useState(false);
+  const [promptCopied,setPromptCopied]=useState(false);
   const [finalTitleInput,setFinalTitleInput]=useState('');
   const [specials,setSpecials]=useState([]);
   const [withItems,setWithItems]=useState([]);
@@ -1322,23 +1325,24 @@ function App() {
   };
 
   const handleConsultChatGPT=()=>{
+    const sold=soldText.trim();
+    if(!sold){ setSoldErr(true); return; }
+    setSoldErr(false);
     const title=titleCandidates[0] || '';
-    const cameraText=`【Sold履歴URL】
-☜ここにURLを貼ってください
-
-【タイトル候補】
-${title}
-
-【指示】
+    const cameraText=`【指示】
 あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのタイトル最適化アシスタントです。
 
-上記のSold履歴URLを実際に開いて売れたタイトルを分析し、タイトル候補と照合したうえで最適なタイトルを1つ提案してください。
+末尾の【Sold検索結果】は、eBayのSold検索結果ページをそのままコピーしたテキストです。
+ナビゲーション・フィルター・価格・送料・Watchers数などのノイズが大量に混ざっているので、
+実際に売れた商品タイトルの行だけを拾って分析し、下記のタイトル候補と照合したうえで
+最適なタイトルを1つ提案してください。
+スポンサー表示・広告・「関連する検索」など、対象商品と無関係な行は無視してください。
 
 タイトルルール：
 - 最大80文字（半角スペースのみ使用）
 - 大文字ルール：基本的に各単語の先頭は大文字（例：Canon, Black, From, Body）
-- ただしSold履歴の実際のタイトル表記を最優先とする（型番・モデル名は慣習的な表記に従う）
-- 例：EOS 1N HS, RB67, f/3.5 などはSold履歴の表記に合わせる
+- ただしSold検索結果に実際に出ている売れたタイトルの表記を最優先とする（型番・モデル名は慣習的な表記に従う）
+- 例：EOS 1N HS, RB67, f/3.5 などはSold検索結果の表記に合わせる
 - 構造：{Special} [{Condition}{w/ 付属品}] {Brand} {Model} {Color} {スペック} {S/N or S/C} From JAPAN
 - Specialキーワード（READ / Rare / Meter Works / All Works）はConditionの前
 - 80文字超えた場合の短縮順：
@@ -1353,27 +1357,31 @@ ${title}
 出力形式：
 - 最終タイトル1行のみ
 - 文字数を併記
-- Sold履歴から参考にした特徴2〜3点
+- Sold検索結果から参考にした特徴2〜3点
 - 候補からの変更点
 - 最終タイトルのみを1行で出力する
 - コピペしやすいように、最終タイトルだけをコードブロックで囲む
 - 解説文や補足文はコードブロック内に入れない
-- タイトル候補のスペルミス・誤字（例：ens→EOS、canonn→Canon等）があれば指摘して修正すること`;
-    const watchText=`【Sold履歴URL】
-☜ここにURLを貼ってください
+- タイトル候補のスペルミス・誤字（例：ens→EOS、canonn→Canon等）があれば指摘して修正すること
 
 【タイトル候補】
 ${title}
 
-【指示】
+【Sold検索結果】
+${sold}`;
+    const watchText=`【指示】
 あなたはeBayで腕時計を日本から海外に販売するセラーのタイトル最適化アシスタントです。
 
-上記のSold履歴URLを実際に開いて売れたタイトルを分析し、タイトル候補と照合したうえで最適なタイトルを1つ提案してください。
+末尾の【Sold検索結果】は、eBayのSold検索結果ページをそのままコピーしたテキストです。
+ナビゲーション・フィルター・価格・送料・Watchers数などのノイズが大量に混ざっているので、
+実際に売れた商品タイトルの行だけを拾って分析し、下記のタイトル候補と照合したうえで
+最適なタイトルを1つ提案してください。
+スポンサー表示・広告・「関連する検索」など、対象商品と無関係な行は無視してください。
 
 タイトルルール：
 - 最大80文字（半角スペースのみ使用）
 - 大文字ルール：基本的に各単語の先頭は大文字（例：Automatic, Black, Dial）
-- ただしSold履歴の実際のタイトル表記を最優先とする（ブランド・型番・ラインは慣習的な表記に従う）
+- ただしSold検索結果に実際に出ている売れたタイトルの表記を最優先とする（ブランド・型番・ラインは慣習的な表記に従う）
 - 構造：{先頭修飾語} [{コンディション w/付属品}] {Brand} {Line/SubModel} {RefNumber} {可変枠：サイズ/ダイアル色/防水性能/素材/機能/装飾} {Movement} {Gender} Watch
 - 先頭修飾語（Vintage / Vintage [年号] / Rare / Rare Vintage）は任意で、コンディションの前
 - Movement→Genderの順（例：Quartz Men's Watch）
@@ -1389,14 +1397,26 @@ ${title}
 出力形式：
 - 最終タイトル1行のみ
 - 文字数を併記
-- Sold履歴から参考にした特徴2〜3点
+- Sold検索結果から参考にした特徴2〜3点
 - 候補からの変更点
 - 最終タイトルのみを1行で出力する
 - コピペしやすいように、最終タイトルだけをコードブロックで囲む
 - 解説文や補足文はコードブロック内に入れない
-- タイトル候補のスペルミス・誤字があれば指摘して修正すること`;
+- タイトル候補のスペルミス・誤字があれば指摘して修正すること
+
+【タイトル候補】
+${title}
+
+【Sold検索結果】
+${sold}`;
     const chatText=isWatch ? watchText : cameraText;
-    window.open(`https://chatgpt.com/?q=${encodeURIComponent(chatText)}`,'_blank','noopener');
+    // 重要：コピーとタブオープンは必ず同じクリックハンドラ内で同期的に呼ぶこと。
+    // copyText(...).then(()=>window.open(...)) と書くとポップアップブロッカーに弾かれるか、
+    // ChatGPTタブにフォーカスが移って navigator.clipboard.writeText が失敗する。
+    copyText(chatText);
+    window.open('https://chatgpt.com/','_blank','noopener');
+    setPromptCopied(true);
+    setTimeout(()=>setPromptCopied(false),2500);
   };
 
   const addExtra = setter => setter(p => p.length >= 5 ? p : [...p, { id: extraIdRef.current++, jp:'', en:'' }]);
@@ -1676,9 +1696,25 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
         );
       })}
       {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
-        <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
-          ChatGPTで相談
-        </button>
+        <>
+          <label className="input-label" htmlFor="sold-text" style={{display:'block'}}>Sold検索結果を貼り付け（eBayのSold画面でCtrl+A → Ctrl+C）</label>
+          <textarea
+            id="sold-text"
+            rows={6}
+            value={soldText}
+            onChange={e=>{setSoldText(e.target.value);setSoldErr(false);}}
+            placeholder="eBayのSold検索結果ページを全選択してコピーし、ここに貼り付けてください"
+          />
+          <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginTop:4}}>
+            <span style={{fontSize:11,color:'var(--mut)'}}>{soldText.length}文字</span>
+            <button className="btn bsec bsm" onClick={()=>{setSoldText('');setSoldErr(false);}}>クリア</button>
+          </div>
+          {soldErr&&<div style={{fontSize:11,color:'var(--red)',marginTop:4}}>⚠ Sold検索結果を貼り付けてください</div>}
+          {soldText.length>30000&&<div style={{fontSize:11,color:'var(--acc)',marginTop:4}}>文字数が多いためChatGPT側で切られる可能性があります</div>}
+          <button className="btn bblu bfull" onClick={handleConsultChatGPT} style={{marginTop:8}}>
+            {promptCopied?'コピーしました！ChatGPTでCtrl+V':'プロンプトをコピーしてChatGPTを開く'}
+          </button>
+        </>
       )}
     </div>
   );
