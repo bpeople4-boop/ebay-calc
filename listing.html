@@ -192,6 +192,11 @@ const {useState,useEffect,useRef} = React;
 
 const TYPES = ['Film Camera','Digital Camera','Movie Camera','Camcorder','Lens','Binoculars'];
 const CONDITIONS = ['Top MINT','MINT','Near MINT','Exc+5','Exc+4','Exc+3','AS-IS','For parts or repair'];
+const HTML_CONDITION_MAP = {
+  'Exc+5': 'EXCELLENT+++++',
+  'Exc+4': 'EXCELLENT++++',
+  'Exc+3': 'EXCELLENT+++',
+};
 const SPECIALS = ['READ','All Works','Meter Works','Rare'];
 const WITH_ITEMS = ['Hood','Case','Box','Strap'];
 const WATCH_MODIFIERS = [
@@ -413,12 +418,7 @@ function buildOpSection(op, type, showBalsam, extra) {
 function genHTML(d) {
   const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
-  const htmlConditionMap = {
-    "Exc+5": "EXCELLENT+++++",
-    "Exc+4": "EXCELLENT++++",
-    "Exc+3": "EXCELLENT+++",
-  };
-  const htmlCondition = String(condFree || '').trim() || htmlConditionMap[cond] || cond;
+  const htmlCondition = String(condFree || '').trim() || HTML_CONDITION_MAP[cond] || cond;
   let appH = '';
   if(appChoice==='beautiful') appH = '<span class="wt-emph">Appearance is beautiful.</span>';
   else if(appChoice==='scuffs') appH = 'Tiny scuffs from normal use.';
@@ -678,7 +678,7 @@ function genWatchHTML(d) {
 </div>
 <div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784906670/Ah5_description_pc_z39sdb.png" alt="Description"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/description_1_r4h4lu.png" alt="Description"></div>
 <div class="wt-body">
-<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
+<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(HTML_CONDITION_MAP[d.cond] || d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
 <h3>Appearance</h3>
 <p>[Case]<br>${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
 <p>[Crystal]<br>${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
