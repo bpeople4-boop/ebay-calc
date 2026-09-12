@@ -1437,6 +1437,7 @@ function SplitModal({ item, onConfirm, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onClearSoldListingLinks, showToast }) {
   const [mode, setMode]       = useState("forward");
+  const [curr, setCurr]       = useState("jpy");
   const [v, setV]             = useState("");
   const [showCfg, setShowCfg] = useState(false);
   const [cat, setCat]         = useState("camera");
@@ -1445,7 +1446,7 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
   const toNum = (v) => { const n = Number(v); return isNaN(n) ? 0 : n; };
   const cfg = { exchangeRate: toNum(settings.exchangeRate), ebayPct: toNum(catS.ebayPct), promoPct: toNum(catS.promoPct), shippingJPY: toNum(catS.shippingJPY), targetPct: toNum(catS.targetPct) };
 
-  const fwd = (mode==="forward" && v) ? quickCalc(+v, cfg) : null;
+  const fwd = (mode==="forward" && v && (curr==="usd" || cfg.exchangeRate)) ? quickCalc(curr==="jpy" ? +v / cfg.exchangeRate : +v, cfg) : null;
   const rev = (mode==="reverse" && v) ? (() => {
     const minUSD = (+v + cfg.shippingJPY) / (cfg.exchangeRate * (1 - (cfg.ebayPct+cfg.promoPct)/100 - cfg.targetPct/100));
     return { ...quickCalc(minUSD, cfg), minUSD };
@@ -1480,6 +1481,13 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
         ))}
       </div>
 
+      {/* 通貨切替 */}
+      <div style={{ display:"flex", gap:6, marginBottom:10 }}>
+        {[["jpy","¥ 円で計算"],["usd","$ ドルで計算"]].map(([k,l])=>(
+          <button key={k} style={pillS(curr===k,{fontSize:10,padding:"4px 10px"})} onClick={()=>{setCurr(k);if(mode==="forward")setV("");}}>{l}</button>
+        ))}
+      </div>
+
       {/* モード切替 */}
       <div style={{ display:"flex", gap:6, marginBottom:10 }}>
         <button style={pillS(mode==="forward",{fontSize:10,padding:"4px 10px"})} onClick={()=>{setMode("forward");setV("");}}>出品価格→仕入上限</button>
@@ -1487,7 +1495,7 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
       </div>
 
       <div style={{ position:"relative" }}>
-        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted, fontFamily:C.num, pointerEvents:"none" }}>{mode==="forward"?"$":"¥"}</span>
+        <span style={{ position:"absolute", left:12, top:"50%", transform:"translateY(-50%)", color:C.muted, fontFamily:C.num, pointerEvents:"none" }}>{mode==="forward" && curr==="usd"?"$":"¥"}</span>
         <input style={inpS({ paddingLeft:28, fontSize:18, fontWeight:700, height:42, background:"#fff" })}
           type="text" inputMode="decimal" placeholder={mode==="forward"?"出品価格":"仕入れ価格"} value={v} onChange={e=>setV(e.target.value)} />
       </div>
@@ -1500,7 +1508,7 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
       {rev && (
         <div style={{ marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:"#fff", borderRadius:8 }}>
           <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>最低出品価格</span>
-          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:C.accent }}>{usd(rev.minUSD)}</span>
+          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:C.accent }}>{curr==="jpy" ? yen(rev.minUSD * cfg.exchangeRate) : usd(rev.minUSD)}</span>
         </div>
       )}
 
