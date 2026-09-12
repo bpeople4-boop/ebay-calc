@@ -3914,6 +3914,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
 
   const handleSaveAndReset = (form) => {
     onSave(form);
+    setSyncedItem(prev => (prev && form.id && prev.id === form.id) ? { ...prev, ...form } : prev);
     if (!form.id) { setSelectedId(null); setSelectedBundleGroupId(null); setFormKey(k => k + 1); setSaved(true); setUpdated(false); }
     else { setUpdated(true); setSaved(false); }
   };
@@ -3960,6 +3961,9 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       promotionRate: adRateMap.itemMap?.[String(listing.itemId)] != null ? +adRateMap.itemMap[String(listing.itemId)] : 0,
       ebayImageUrl: listing.galleryUrl || appItem.ebayImageUrl || "",
       ebayListingLinked: true,
+      ddpSurcharge: appItem.destination === "us"
+        ? ddpCalc(listing.salePrice || appItem.salePrice, appItem.category === "bundle" ? appItem.originalCategory : appItem.category).toFixed(2)
+        : (appItem.ddpSurcharge || "0"),
     };
     onSave(patch);
     setSyncedItem(patch);
