@@ -1446,11 +1446,16 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
   const toNum = (v) => { const n = Number(v); return isNaN(n) ? 0 : n; };
   const cfg = { exchangeRate: toNum(settings.exchangeRate), ebayPct: toNum(catS.ebayPct), promoPct: toNum(catS.promoPct), shippingJPY: toNum(catS.shippingJPY), targetPct: toNum(catS.targetPct) };
 
-  const fwd = (mode==="forward" && v && (curr==="usd" || cfg.exchangeRate)) ? quickCalc(curr==="jpy" ? +v / cfg.exchangeRate : +v, cfg) : null;
+  const usdValue = curr==="jpy" ? (cfg.exchangeRate ? +v / cfg.exchangeRate : null) : +v;
+  const fwd = (mode==="forward" && v && (curr==="usd" || cfg.exchangeRate)) ? quickCalc(usdValue, cfg) : null;
   const rev = (mode==="reverse" && v) ? (() => {
     const minUSD = (+v + cfg.shippingJPY) / (cfg.exchangeRate * (1 - (cfg.ebayPct+cfg.promoPct)/100 - cfg.targetPct/100));
     return { ...quickCalc(minUSD, cfg), minUSD };
   })() : null;
+
+  const showBreakEven = cfg.targetPct !== 0 && !!cfg.exchangeRate && (1 - (cfg.ebayPct+cfg.promoPct)/100) > 0;
+  const breakEvenJPY = (fwd && showBreakEven) ? quickCalc(usdValue, { ...cfg, targetPct: 0 }).maxBuyJPY : null;
+  const breakEvenUSD = (rev && showBreakEven) ? (+v + cfg.shippingJPY) / (cfg.exchangeRate * (1 - (cfg.ebayPct+cfg.promoPct)/100)) : null;
 
   const normalizeNumInput = (val) => {
     let cleaned = String(val).replace(/[^0-9.]/g, "");
@@ -1500,15 +1505,31 @@ function MiniCalc({ settings, onSettingsChange, ebayAuth, onEbayAuthChange, onCl
           type="text" inputMode="decimal" placeholder={mode==="forward"?"出品価格":"仕入れ価格"} value={v} onChange={e=>setV(e.target.value)} />
       </div>
       {fwd && (
-        <div style={{ marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:"#fff", borderRadius:8 }}>
-          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>仕入れ上限</span>
-          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:fwd.maxBuyJPY>0?C.green:C.red }}>{yen(fwd.maxBuyJPY)}</span>
+        <div style={{ marginTop:8, padding:"7px 12px", background:"#fff", borderRadius:8 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>仕入れ上限</span>
+            <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:fwd.maxBuyJPY>0?C.green:C.red }}>{yen(fwd.maxBuyJPY)}</span>
+          </div>
+          {breakEvenJPY !== null && (
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:6, paddingTop:6, borderTop:`1px solid ${C.border}` }}>
+              <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted }}>赤字ライン</span>
+              <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:C.red }}>{yen(breakEvenJPY)}</span>
+            </div>
+          )}
         </div>
       )}
       {rev && (
-        <div style={{ marginTop:8, display:"flex", justifyContent:"space-between", alignItems:"center", padding:"7px 12px", background:"#fff", borderRadius:8 }}>
-          <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>最低出品価格</span>
-          <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:C.accent }}>{curr==="jpy" ? yen(rev.minUSD * cfg.exchangeRate) : usd(rev.minUSD)}</span>
+        <div style={{ marginTop:8, padding:"7px 12px", background:"#fff", borderRadius:8 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+            <span style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>最低出品価格</span>
+            <span style={{ fontFamily:C.num, fontSize:20, fontWeight:700, color:C.accent }}>{curr==="jpy" ? yen(rev.minUSD * cfg.exchangeRate) : usd(rev.minUSD)}</span>
+          </div>
+          {breakEvenUSD !== null && (
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginTop:6, paddingTop:6, borderTop:`1px solid ${C.border}` }}>
+              <span style={{ fontFamily:C.jp, fontSize:11, color:C.muted }}>赤字ライン</span>
+              <span style={{ fontFamily:C.num, fontSize:13, fontWeight:700, color:C.red }}>{curr==="jpy" ? yen(breakEvenUSD * cfg.exchangeRate) : usd(breakEvenUSD)}</span>
+            </div>
+          )}
         </div>
       )}
 
