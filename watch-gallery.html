@@ -201,6 +201,21 @@ const uid = p => p + Date.now().toString(36) + Math.random().toString(36).slice(
 const yen = n => n ? '¥' + Number(n).toLocaleString('ja-JP') : '';
 const digitsOnly = s => (s||'').replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0)).replace(/[^0-9]/g,'');
 
+/* eBay検索URLを「今すぐ落札」に切り替える */
+function binUrl(u){
+  if(!u) return '#';
+  try{
+    const url = new URL(u);
+    url.searchParams.delete('LH_Auction');
+    url.searchParams.delete('LH_All');
+    url.searchParams.set('LH_BIN','1');
+    return url.toString();
+  }catch(e){
+    if(/[?&]LH_BIN=1(&|$)/.test(u)) return u;
+    return u + (u.includes('?') ? '&' : '?') + 'LH_BIN=1';
+  }
+}
+
 function exportBackup(lines){
   const stamp = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const blob = new Blob([JSON.stringify({app:'watch-gallery', version:2, exportedAt:new Date().toISOString(), lines}, null, 2)],
@@ -555,7 +570,8 @@ function VarPage({v,onSave,onCancel,onDelete}){
         <label>eBay検索URL</label>
         <div className="linkrow">
           <input type="text" value={d.ebay||''} onChange={set('ebay')} placeholder="例：Sold絞り込み後のURLを貼り付け"/>
-          <a className={'linkbtn'+(d.ebay?'':' off')} href={d.ebay||'#'} target="_blank" rel="noreferrer">開く</a>
+          <a className={'linkbtn'+(d.ebay?'':' off')} href={d.ebay||'#'} target="_blank" rel="noreferrer" title="すべての出品">All</a>
+          <a className={'linkbtn'+(d.ebay?'':' off')} href={binUrl(d.ebay)} target="_blank" rel="noreferrer" title="今すぐ落札のみ">BIN</a>
         </div>
 
         <label><img className="fieldicon" src={ICON_CASE} alt="" />ケース（素材・形状・仕上げ）</label>
