@@ -614,7 +614,7 @@ function VarPage({v,onSave,onCancel,onDelete}){
         <input type="text" value={d.bezel||''} onChange={set('bezel')} placeholder="例：交換式（12色）"/>
 
         <label>価格メモ（自由記述）</label>
-        <input type="text" value={d.priceMemo||''} onChange={set('priceMemo')} placeholder="例：相場 ¥48,000 / 箱付きなら+1万"/>
+        <textarea rows={4} value={d.priceMemo||''} onChange={set('priceMemo')} placeholder="例：相場 ¥48,000 / 箱付きなら+1万"/>
 
         <label>備考</label>
         <textarea rows={4} value={d.notes||''} onChange={set('notes')} placeholder="例：チェンジベゼルなので単色での仕入れは絶対しない、など"/>
