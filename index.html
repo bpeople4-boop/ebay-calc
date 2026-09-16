@@ -484,9 +484,10 @@ function calcStockAt(items, baseDate) {
     if (ss === "out") return;
     const group = i.isBundleLeader ? [i, ...membersOf(i)] : [i];
     let value = 0, inCount = 0, unknown = ss === "unknown";
-    group.forEach(m => { const os = ownState(m); if (os === "unknown") unknown = true; if (os !== "in") return; inCount++; value += (m === i && i.relistFromId) ? relistValue(i) : costOf(m); });
+    const parts = [];
+    group.forEach(m => { const os = ownState(m); if (os === "unknown") unknown = true; if (os !== "in") return; inCount++; const v = (m === i && i.relistFromId) ? relistValue(i) : costOf(m); value += v; parts.push({ item: m, value: v }); });
     if (unknown) rows.push({ item: i, value: 0, unknown: true });
-    else if (inCount > 0) rows.push({ item: i, value, unknown: false });
+    else if (inCount > 0) rows.push({ item: i, value, unknown: false, parts });
   });
   const stockRows = rows.filter(r => !r.unknown);
   return { rows, total: stockRows.reduce((s, r) => s + r.value, 0), count: stockRows.length, unknownCount: rows.length - stockRows.length };
