@@ -3109,7 +3109,7 @@ function SearchModal({ items, onClose }) {
   const totalCost = filtered.filter(i => i.status !== "purchaseReturned").flatMap(withMembers).reduce((s,i)=>s+(+i.cost||0)+(+i.storageShipping||0),0);
   const totalRevenue= soldCalcs.reduce((s,c)=>s+c.totalJPY,0);
   const totalProfit = soldCalcs.reduce((s,c)=>s+c.profitJPY,0) - junkLoss;
-  const dateHeader = dateType === "purchase" ? "仕入れ日" : dateType === "sale" ? "落札日" : dateType === "junk" ? "損切り確定日" : "日付";
+  const dateHeader = (dateType === "purchase" || dateType === "stock") ? "仕入れ日" : dateType === "sale" ? "落札日" : dateType === "junk" ? "損切り確定日" : "日付";
 
   const toggleStatus = (v) => setSelStatus(prev => {
     if (v === "all") return prev.size === allStatuses.size ? new Set() : new Set(allStatuses);
@@ -3265,20 +3265,20 @@ function SearchModal({ items, onClose }) {
       {/* 結果 */}
       <div style={{ borderTop:`2px solid ${C.border}`, paddingTop:14 }}>
         <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:12 }}>
-          <span style={{ fontFamily:C.jp, fontSize:13, color:C.muted }}>{filtered.length} 件ヒット</span>
+          <span style={{ fontFamily:C.jp, fontSize:13, color:C.muted }}>{dateType === "stock" ? (dateMonth ? "在庫 " + (filtered.length - stockUnknownCount) + " 件" + (stockUnknownCount ? "（日付不明 " + stockUnknownCount + " 件）" : "") : "年月を選ぶと、その月末時点の在庫を表示します（ステータスの選択は無視されます）") : filtered.length + " 件ヒット"}</span>
           <div style={{ display:"flex", gap:20 }}>
             <div style={{ textAlign:"right" }}>
-              <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>仕入れ合計（転送込）</div>
-              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(totalCost)}</div>
+              <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>{dateType === "stock" ? "在庫金額（転送込）" : "仕入れ合計（転送込）"}</div>
+              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(dateType === "stock" ? Math.round(stockTotal) : totalCost)}</div>
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>売上合計</div>
-              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{yen(totalRevenue)}</div>
+              <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:C.text }}>{dateType === "stock" ? "—" : yen(totalRevenue)}</div>
             </div>
             <div style={{ textAlign:"right" }}>
               <div style={{ fontSize:10, color:C.muted, fontFamily:C.jp }}>利益合計</div>
               <div style={{ fontSize:15, fontWeight:700, fontFamily:C.num, color:totalProfit>=0?C.green:C.red }}>
-                {(totalProfit>=0?"+":"")+yen(totalProfit)}
+                {dateType === "stock" ? "—" : (totalProfit>=0?"+":"")+yen(totalProfit)}
               </div>
             </div>
           </div>
@@ -3288,7 +3288,7 @@ function SearchModal({ items, onClose }) {
             <table style={{ width:"100%", borderCollapse:"collapse", fontFamily:C.num, fontSize:12 }}>
               <thead>
                 <tr style={{ background:C.bg }}>
-                  {["#","商品名","ステータス","仕入れ先",dateHeader,"仕入れ","利益"].map((h,i) => (
+                  {["#","商品名","ステータス","仕入れ先",dateHeader,(dateType === "stock" ? "在庫計上額" : "仕入れ"),"利益"].map((h,i) => (
                     <th key={h} style={{ padding:"6px 8px", textAlign:i>=5?"right":"left", color:C.muted, borderBottom:`1px solid ${C.border}`, fontFamily:C.jp, fontSize:11, fontWeight:700, whiteSpace:"nowrap" }}>{h}</th>
                   ))}
                 </tr>
@@ -3297,11 +3297,11 @@ function SearchModal({ items, onClose }) {
                 {calcs.map(({ item, calc }) => {
                   const st = getItemStatus(item);
                   const { label, style } = statusBadgeStyle(st);
-                  const dateVal = dateType === "purchase" ? item.purchaseDate
+                  const dateVal = (dateType === "purchase" || dateType === "stock") ? item.purchaseDate
                     : dateType === "sale" ? item.saleDate
                     : dateType === "junk" ? item.junkDate
                     : isSold(item) ? item.saleDate : (item.isJunk ? item.junkDate : item.purchaseDate);
-                  const profitVal = calc ? calc.profitJPY : null;
+                  const profitVal = (calc && dateType !== "stock") ? calc.profitJPY : null;
                   return (
                     <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
                       <td style={{ padding:"7px 8px", color:C.muted, fontSize:11 }}>{item.managementNumber||"—"}</td>
@@ -3309,7 +3309,7 @@ function SearchModal({ items, onClose }) {
                       <td style={{ padding:"7px 8px" }}><span style={style}>{label}</span></td>
                       <td style={{ padding:"7px 8px", color:C.textSub, fontFamily:C.jp, fontSize:12 }}>{item.source||"—"}</td>
                       <td style={{ padding:"7px 8px", color:C.muted, fontSize:11, whiteSpace:"nowrap" }}>{dt(dateVal)}</td>
-                      <td style={{ padding:"7px 8px", textAlign:"right", color:C.muted, whiteSpace:"nowrap" }}>{+item.cost ? yen(item.cost) : "—"}</td>
+                      <td style={{ padding:"7px 8px", textAlign:"right", color:C.muted, whiteSpace:"nowrap" }}>{dateType === "stock" ? (stockValueById.get(item.id)?.unknown ? "日付不明" : yen(Math.round(stockValueById.get(item.id)?.value || 0))) : (+item.cost ? yen(item.cost) : "—")}</td>
                       <td style={{ padding:"7px 8px", textAlign:"right", fontWeight:700, color:profitVal==null?C.muted:profitVal>=0?C.green:C.red, whiteSpace:"nowrap" }}>
                         {profitVal!=null ? (profitVal>=0?"+":"")+yen(profitVal) : "—"}
                       </td>
