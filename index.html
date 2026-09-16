@@ -451,6 +451,47 @@ function calcBundle(leader, members) {
   return calcFull(leader, totalCost);
 }
 
+/* 基準日（YYYY-MM-DD）時点の在庫を計算する（絞り込み検索の基準日在庫モード用） */
+function calcStockAt(items, baseDate) {
+  const okDate = d => !!d && !String(d).startsWith("1900");
+  const byId = new Map(items.map(i => [i.id, i]));
+  const relistedIds = new Set(items.filter(i => i.relistFromId).map(i => i.relistFromId));
+  const membersOf = l => items.filter(m => m.bundleGroupId === l.bundleGroupId && !m.isBundleLeader);
+  const costOf = i => (+i.cost||0) + (+i.storageShipping||0);
+  /* 再出品をさかのぼって元の商品を返す */
+  const rootOf = i => { let cur = i; const seen = new Set(); while (cur.relistFromId && byId.has(cur.relistFromId) && !seen.has(cur.id)) { seen.add(cur.id); cur = byId.get(cur.relistFromId); } return cur; };
+  /* 個々の商品の仕入れ・損切り条件（in / out / unknown） */
+  const ownState = i => {
+    if (i.status === "purchaseReturned") return "out";
+    if (!okDate(i.purchaseDate)) return "unknown";
+    if (i.purchaseDate > baseDate) return "out";
+    if (i.isJunk) { if (!okDate(i.junkDate)) return "unknown"; if (i.junkDate <= baseDate) return "out"; }
+    return "in";
+  };
+  /* 売却・返品・再出品の条件（in / out / unknown） */
+  const saleState = i => {
+    if (i.relistFromId && byId.has(i.relistFromId)) { const parent = byId.get(i.relistFromId); if (!okDate(parent.returnDate)) return "unknown"; if (baseDate < parent.returnDate) return "out"; }
+    if (i.status === "returned") { if (!okDate(i.saleDate) || !okDate(i.returnDate)) return "unknown"; if (baseDate < i.saleDate) return "in"; if (baseDate < i.returnDate) return "out"; return relistedIds.has(i.id) ? "out" : "in"; }
+    if (okDate(i.saleDate)) return i.saleDate <= baseDate ? "out" : "in";
+    if (i.status === "sold") return "unknown";
+    return "in";
+  };
+  /* 再出品された商品は元の商品の仕入れ値で数える（元がまとめ売りならメンバー込み） */
+  const relistValue = i => { const r = rootOf(i); return r.isBundleLeader ? [r, ...membersOf(r)].reduce((s, m) => s + costOf(m), 0) : costOf(r); };
+  const rows = [];
+  items.filter(i => !i.bundleGroupId || i.isBundleLeader).forEach(i => {
+    const ss = saleState(i);
+    if (ss === "out") return;
+    const group = i.isBundleLeader ? [i, ...membersOf(i)] : [i];
+    let value = 0, inCount = 0, unknown = ss === "unknown";
+    group.forEach(m => { const os = ownState(m); if (os === "unknown") unknown = true; if (os !== "in") return; inCount++; value += (m === i && i.relistFromId) ? relistValue(i) : costOf(m); });
+    if (unknown) rows.push({ item: i, value: 0, unknown: true });
+    else if (inCount > 0) rows.push({ item: i, value, unknown: false });
+  });
+  const stockRows = rows.filter(r => !r.unknown);
+  return { rows, total: stockRows.reduce((s, r) => s + r.value, 0), count: stockRows.length, unknownCount: rows.length - stockRows.length };
+}
+
 // ── Design tokens ─────────────────────────────────────────────
 const C = {
   bg:"#e8eaf3", surface:"#ffffff", card:"#ffffff",
