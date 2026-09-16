@@ -3298,7 +3298,7 @@ function SearchModal({ items, onClose }) {
                 {calcs.map(({ item, calc }) => {
                   const st = getItemStatus(item);
                   const { label, style } = statusBadgeStyle(st);
-                  const dateVal = (dateType === "purchase" || dateType === "stock") ? item.purchaseDate
+                  const dateVal = dateType === "stock" ? ((stockValueById.get(item.id)?.parts || []).map(p => p.item.purchaseDate).sort()[0] || item.purchaseDate) : dateType === "purchase" ? item.purchaseDate
                     : dateType === "sale" ? item.saleDate
                     : dateType === "junk" ? item.junkDate
                     : isSold(item) ? item.saleDate : (item.isJunk ? item.junkDate : item.purchaseDate);
@@ -3306,7 +3306,7 @@ function SearchModal({ items, onClose }) {
                   return (
                     <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
                       <td style={{ padding:"7px 8px", color:C.muted, fontSize:11 }}>{item.managementNumber||"—"}</td>
-                      <td style={{ padding:"7px 8px", color:C.text, fontFamily:C.jp, fontSize:12, maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||"—"}</td>
+                      <td style={{ padding:"7px 8px", color:C.text, fontFamily:C.jp, fontSize:12, maxWidth:200, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.productName||"—"}{dateType === "stock" && item.isBundleLeader && (stockValueById.get(item.id)?.parts || []).map(p => <div key={p.item.id} style={{ fontSize:10, color:C.muted }}>└ {p.item.managementNumber} {p.item.productName}（{dt(p.item.purchaseDate)}仕入）</div>)}</td>
                       <td style={{ padding:"7px 8px" }}><span style={style}>{label}</span></td>
                       <td style={{ padding:"7px 8px", color:C.textSub, fontFamily:C.jp, fontSize:12 }}>{item.source||"—"}</td>
                       <td style={{ padding:"7px 8px", color:C.muted, fontSize:11, whiteSpace:"nowrap" }}>{dt(dateVal)}</td>
