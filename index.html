@@ -3250,7 +3250,7 @@ function SearchModal({ items, onClose }) {
                   const dateVal = dateType === "purchase" ? item.purchaseDate
                     : dateType === "sale" ? item.saleDate
                     : dateType === "junk" ? item.junkDate
-                    : isSold(item) ? item.saleDate : (item.junkDate || item.purchaseDate);
+                    : isSold(item) ? item.saleDate : (item.isJunk ? item.junkDate : item.purchaseDate);
                   const profitVal = calc ? calc.profitJPY : null;
                   return (
                     <tr key={item.id} style={{ borderBottom:`1px solid ${C.border}` }}>
