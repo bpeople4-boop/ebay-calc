@@ -3167,8 +3167,8 @@ function SearchModal({ items, onClose }) {
     <Modal title="🔍 絞り込み検索" onClose={onClose} width={760}>
       {/* ステータス */}
       <div style={{ ...panelS, marginBottom:10 }}>
-        <div style={secLbl}>ステータス</div>
-        <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+        <div style={secLbl}>ステータス{dateType === "stock" && "（基準日在庫では使用しません）"}</div>
+        <div style={{ display:"flex", flexWrap:"wrap", gap:6, ...(dateType === "stock" ? { opacity:0.4, pointerEvents:"none" } : {}) }}>
           <button style={sS(selStatus.size===allStatuses.size)} onClick={()=>toggleStatus("all")}>すべて</button>
           {STATUS_OPTS.map(o => (
             <button key={o.v} style={sS(selStatus.has(o.v))} onClick={()=>toggleStatus(o.v)}>{o.label}</button>
