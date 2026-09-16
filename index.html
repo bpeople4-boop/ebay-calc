@@ -3599,7 +3599,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
   const avgRate      = validRateCalcs.length ? validRateCalcs.reduce((s,c)=>s+c.profitRate,0)/validRateCalcs.length : 0;
   const unsoldCount  = filtered.filter(i=>!isSold(i)&&!i.isJunk&&i.status!=="purchaseReturned").length;
   // 総原価：バンドルはリーダー＋メンバー合算、単品はそのまま（重複カウント防止）
-  const totalCostAll = filtered.filter(i => !i.bundleGroupId || i.isBundleLeader).reduce((s, i) => {
+  const totalCostAll = filtered.filter(i => (!i.bundleGroupId || i.isBundleLeader) && i.status !== "purchaseReturned").reduce((s, i) => {
     if (i.isBundleLeader) {
       const mems = items.filter(m => m.bundleGroupId === i.bundleGroupId && !m.isBundleLeader);
       return s + (+i.cost||0) + (+i.storageShipping||0) + mems.reduce((ms,m)=>ms+(+m.cost||0)+(+m.storageShipping||0),0);
