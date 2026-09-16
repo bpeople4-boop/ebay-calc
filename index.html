@@ -3054,13 +3054,13 @@ function SearchModal({ items, onClose }) {
     return null;
   };
 
-  const filtered = items.filter(item => {
+  const filteredBase = items.filter(item => {
     if (item.bundleGroupId && !item.isBundleLeader) return false;
     const st = getItemStatus(item);
-    if (!selStatus.has(st)) return false;
+    if (dateType !== "stock" && !selStatus.has(st)) return false;
     if (selSources !== null && !selSources.has(item.source || "")) return false;
     if (selCats !== null && item.category !== "bundle" && !selCats.has(item.category || "")) return false;
-    if (dateType !== "none") {
+    if (dateType !== "none" && dateType !== "stock") {
       if (dateType === "junk" && !item.isJunk) return false;
       const dv = getDateVal(item);
       if (!dv || dv.startsWith("1900") || dv === "") return false;
@@ -3080,6 +3080,15 @@ function SearchModal({ items, onClose }) {
     return true;
   });
 
+  /* 基準日在庫モード：選んだ年月の月末時点の在庫。仕入れ先・カテゴリ・フリーワードの絞り込みは有効、ステータスと日付の絞り込みは無視 */
+  const stockBaseDate = (dateType === "stock" && dateMonth) ? dateMonth + "-" + String(new Date(+dateMonth.slice(0,4), +dateMonth.slice(5,7), 0).getDate()).padStart(2,"0") : "";
+  const stockResult = stockBaseDate ? calcStockAt(items, stockBaseDate) : null;
+  const baseIds = new Set(filteredBase.map(i => i.id));
+  const stockRows = stockResult ? stockResult.rows.filter(r => baseIds.has(r.item.id)) : [];
+  const stockValueById = new Map(stockRows.map(r => [r.item.id, r]));
+  const stockTotal = stockRows.filter(r => !r.unknown).reduce((s, r) => s + r.value, 0);
+  const stockUnknownCount = stockRows.filter(r => r.unknown).length;
+  const filtered = dateType === "stock" ? stockRows.map(r => r.item) : filteredBase;
   const calcItem = (item) => {
     if (item.isBundleLeader) {
       const members = items.filter(m => m.bundleGroupId === item.bundleGroupId && !m.isBundleLeader);
