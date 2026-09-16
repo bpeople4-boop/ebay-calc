@@ -3227,18 +3227,18 @@ function SearchModal({ items, onClose }) {
         <div style={secLbl}>日付</div>
         <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
           <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
-            {[["none","指定なし"],["purchase","仕入れ日"],["sale","落札日"],["junk","損切り確定日"]].map(([v,l]) => (
+            {[["none","指定なし"],["purchase","仕入れ日"],["sale","落札日"],["junk","損切り確定日"],["stock","基準日在庫（月末）"]].map(([v,l]) => (
               <button key={v} style={sS(dateType===v,{padding:"4px 12px"})} onClick={()=>setDateType(v)}>{l}</button>
             ))}
           </div>
           {dateType !== "none" && (
             <div style={{ display:"flex", gap:8, alignItems:"center", flexWrap:"wrap", marginLeft:4 }}>
               <div style={{ display:"flex", gap:3 }}>
-                {[["month","月で絞る"],["range","範囲"]].map(([v,l]) => (
+                {(dateType === "stock" ? [] : [["month","月で絞る"],["range","範囲"]]).map(([v,l]) => (
                   <button key={v} style={{ ...sS(dateMode===v,{padding:"4px 11px",fontSize:11}), borderRadius:8 }} onClick={()=>setDateMode(v)}>{l}</button>
                 ))}
               </div>
-              {dateMode === "month" ? (
+              {(dateMode === "month" || dateType === "stock") ? (
                 <input type="month" value={dateMonth} onChange={e=>setDateMonth(e.target.value)}
                   style={{ ...inpS({ width:150, padding:"5px 10px", fontSize:13 }) }} />
               ) : (
