@@ -163,6 +163,15 @@ input::placeholder, textarea::placeholder {
   color: #8a8f9e;
   opacity: 1;
 }
+
+.research-box{margin-top:16px;padding:14px;border:1px solid var(--bdr);border-radius:9px;font-size:12px;line-height:1.8}
+.research-grade{padding:9px 0;border-bottom:1px solid var(--bdr)}
+.research-badge{display:inline-block;font-size:10px;padding:2px 6px;border-radius:5px;margin-left:5px;white-space:normal}
+.label-確定{background:#183e28;color:#86efac}.label-暫定{background:#493815;color:#fde68a}.label-参考{background:#183455;color:#93c5fd}.label-なし{background:#5a2020;color:#fecaca;font-weight:700}
+.research-table{overflow:auto;margin:10px 0 16px}.research-table table{border-collapse:collapse;width:100%;font-size:12px}.research-table th,.research-table td{padding:6px;border:1px solid var(--bdr);text-align:left;white-space:pre-wrap;min-width:95px;overflow-wrap:anywhere}
+.research-same{color:#8390a8}.research-changed{background:#173249;color:#e4e8f4}.research-large{background:#543416;color:#ffda85;font-weight:700}
+.research-target{display:block;margin:10px 0}.research-target select{display:block;width:100%;background:var(--surf2);color:var(--txt);padding:10px;border:1px solid var(--bdr)}
+.research-blocked{border-color:var(--red)}.backupbar textarea{width:100%;margin:10px 0}.bkconfirm h4{margin-top:18px}
 </style>
 </head>
 <body>
@@ -223,6 +232,117 @@ const yen = n => n ? '¥' + Number(n).toLocaleString('ja-JP') : '';
 const digitsOnly = s => (s||'').replace(/[０-９]/g, ch => String.fromCharCode(ch.charCodeAt(0)-0xFEE0)).replace(/[^0-9]/g,'');
 
 /* eBay検索URLを「今すぐ落札」に切り替える */
+const GRADES = [['exc5','EXC+5','ceilingExc'],['nm','Near MINT','ceilingNM']];
+const RESEARCH_NUMBERS = ['上限','a件数','a中央値','b件数','b中央値','最小','最大'];
+const OTHER_COUNTS = ['mint','exc4','excellentpp','無表記'];
+const RESEARCH_KEYS = ['exc5','nm','その他件数','調査日','備考'];
+const blank = x => x === '' || x === null || x === undefined;
+const ceiling = (v,g,k) => v[g] && Object.prototype.hasOwnProperty.call(v[g],'上限') ? v[g]['上限'] : v[k];
+const showValue = x => blank(x) ? '—' : String(x);
+function researchSnapshot(v){
+  return Object.fromEntries([...GRADES.map(([g,,k])=>[g,{...(v[g]||{}),上限:blank(ceiling(v,g,k))?null:Number(ceiling(v,g,k))}]),
+    ['その他件数',v['その他件数']||{}],['調査日',v['調査日']||''],['備考',v['備考']||'']]);
+}
+function researchDiff(before,after){
+  const a=researchSnapshot(before), b=researchSnapshot(after), rows=[];
+  const add=(name,x,y,isCeiling=false)=>{
+    const changed=showValue(x)!==showValue(y);
+    const large=changed && isCeiling && !blank(x) && !blank(y) && (Number(x)===0 ? Number(y)!==0 : Math.abs(Number(y)-Number(x))/Math.abs(Number(x))>=0.1-1e-10);
+    rows.push({name,before:showValue(x),after:showValue(y),changed,large});
+  };
+  GRADES.forEach(([g,label])=>[...RESEARCH_NUMBERS,'採用元','ラベル'].forEach(k=>add(label+' / '+k,a[g][k],b[g][k],k==='上限')));
+  OTHER_COUNTS.forEach(k=>add('その他件数 / '+k,a['その他件数'][k],b['その他件数'][k]));
+  ['調査日','備考'].forEach(k=>add(k,a[k],b[k]));
+  return rows;
+}
+function withResearchHistory(before,after,source){
+  const next={...after};
+  GRADES.forEach(([g,,k])=>{if(next[g]) next[k]=blank(ceiling(next,g,k))?'':String(ceiling(next,g,k));});
+  if(researchDiff(before,next).some(r=>r.changed)) next.researchHistory=[...(before.researchHistory||[]),{日時:new Date().toISOString(),操作:source,変更前:researchSnapshot(before),変更後:researchSnapshot(next)}];
+  return next;
+}
+function parseResearch(text){
+  const data=JSON.parse(text), object=x=>x && typeof x==='object' && !Array.isArray(x);
+  if(!object(data) || !Array.isArray(data['結果']) || !data['結果'].length) throw Error('結果には1件以上の配列が必要です。');
+  const date=x=>{if(typeof x!=='string' || !/^\d{4}-\d{2}-\d{2}$/.test(x) || !Number.isFinite(Date.parse(x)) || new Date(x).toISOString().slice(0,10)!==x) throw Error('調査日は実在する日付（YYYY-MM-DD）で指定してください。');};
+  if(data['調査日']!==undefined) date(data['調査日']);
+  const seen=new Set();
+  return data['結果'].map((r,i)=>{
+    if(!object(r) || typeof r['型番']!=='string' || !r['型番'].trim()) throw Error(`${i+1}件目：型番が必要です。`);
+    const model=r['型番'].trim().normalize('NFKC').toUpperCase();
+    if(seen.has(model)) throw Error(`${model}：型番が重複しています。`);
+    seen.add(model);
+    Object.keys(r).forEach(k=>{if(!['型番',...RESEARCH_KEYS].includes(k)) throw Error(`${model}：不明な項目「${k}」です。`);});
+    const patch={};
+    const number=(x,k)=>{if(!blank(x) && (typeof x!=='number' || !Number.isFinite(x) || x<0 || ((k.includes('件数') || k==='上限') && !Number.isSafeInteger(x)))) throw Error(`${model}：${k}は0以上の数値${k.includes('件数')||k==='上限'?'（整数）':''}で指定してください。`);};
+    GRADES.forEach(([g])=>{
+      if(r[g]===undefined) return;
+      if(!object(r[g])) throw Error(`${model}：${g}の形式が違います。`);
+      Object.keys(r[g]).forEach(k=>{if(![...RESEARCH_NUMBERS,'採用元','ラベル'].includes(k)) throw Error(`${model}：${g}の不明な項目「${k}」です。`);});
+      patch[g]={...r[g]};
+      RESEARCH_NUMBERS.forEach(k=>number(r[g][k],k));
+      [['採用元',['UK90日','US1年','換算']],['ラベル',['確定','暫定','参考','なし']]].forEach(([k,values])=>{if(!blank(r[g][k]) && !values.includes(r[g][k])) throw Error(`${model}：${k}が不正です。`);});
+    });
+    if(r['その他件数']!==undefined){
+      if(!object(r['その他件数'])) throw Error(`${model}：その他件数の形式が違います。`);
+      patch['その他件数']={...r['その他件数']};
+      Object.entries(patch['その他件数']).forEach(([k,x])=>{if(!OTHER_COUNTS.includes(k)) throw Error(`${model}：不明なその他件数「${k}」です。`);number(x,k+'件数');});
+    }
+    const d=r['調査日']===undefined?data['調査日']:r['調査日'];
+    if(d!==undefined){date(d);patch['調査日']=d;}
+    if(r['備考']!==undefined){if(typeof r['備考']!=='string') throw Error(`${model}：備考は文字列で指定してください。`);patch['備考']=r['備考'];}
+    if(!Object.keys(patch).length) throw Error(`${model}：調査項目がありません。`);
+    return {model,patch};
+  });
+}
+function mergeResearch(v,patch){
+  const next={...v,...patch};
+  GRADES.forEach(([g,,k])=>{if(patch[g]) next[g]={...(v[g]||{}),上限:blank(ceiling(v,g,k))?null:Number(ceiling(v,g,k)),...patch[g]};});
+  if(patch['その他件数']) next['その他件数']={...(v['その他件数']||{}),...patch['その他件数']};
+  GRADES.forEach(([g])=>{const r=next[g]||{};if(!blank(r['最小']) && !blank(r['最大']) && r['最小']>r['最大']) throw Error('最小は最大以下にしてください。');});
+  return next;
+}
+function ResearchBadge({value}){
+  if(!value) return null;
+  return <span className={'research-badge label-'+value}>{value}{value==='なし'?'・仕入れ非推奨':''}</span>;
+}
+function ResearchDiff({before,after}){
+  return <div className="research-table"><table><thead><tr><th>項目</th><th>変更前</th><th>変更後</th></tr></thead><tbody>{researchDiff(before,after).map(r=><tr key={r.name} className={r.large?'research-large':r.changed?'research-changed':'research-same'}><th>{r.name}{r.large?'（10%以上変更）':''}</th><td>{r.before}</td><td>→ {r.after}</td></tr>)}</tbody></table></div>;
+}
+function ResearchDetails({v}){
+  const data=researchSnapshot(v);
+  return <section className="research-box"><h3>調査根拠</h3>{GRADES.map(([g,label])=><div key={g} className="research-grade"><b>{label}</b> <ResearchBadge value={data[g]['ラベル']}/><p>A：UK 90日 {showValue(data[g]['a件数'])}件 / 中央値 {showValue(data[g]['a中央値'])}</p><p>B：US 1年 {showValue(data[g]['b件数'])}件 / 中央値 {showValue(data[g]['b中央値'])}</p><p>レンジ：{showValue(data[g]['最小'])} 〜 {showValue(data[g]['最大'])} / 採用元：{showValue(data[g]['採用元'])}</p></div>)}<p>調査日：{showValue(data['調査日'])}</p><p>その他件数：{OTHER_COUNTS.map(k=>`${k} ${showValue(data['その他件数'][k])}`).join(' / ')}</p><p style={{whiteSpace:'pre-wrap'}}>備考：{showValue(data['備考'])}</p><p className="bkmeta">調査データの追加・更新はブランド一覧の「調査JSON一括取り込み」から行えます。</p>{(v.researchHistory||[]).length>0 && <details><summary>変更履歴（{v.researchHistory.length}件）</summary>{[...v.researchHistory].reverse().map((h,i)=><details key={i}><summary>{h['日時']} / {h['操作']}</summary><ResearchDiff before={h['変更前']} after={h['変更後']}/></details>)}</details>}</section>;
+}
+function ResearchImport({lines,onApply}){
+  const [text,setText]=useState(''), [entries,setEntries]=useState(null), [targets,setTargets]=useState({}), [preview,setPreview]=useState(null), [message,setMessage]=useState('');
+  const options=lines.flatMap((l,li)=>(l.vars||[]).map((v,vi)=>({key:`${li}:${vi}`,l,v,title:`${l.brand} / ${l.name} / ${v.label||'（呼び名なし）'} [${vi+1}]`})));
+  const normalize=x=>String(x||'').trim().normalize('NFKC').toUpperCase();
+  const parse=()=>{try{
+    const parsed=parseResearch(text), selected={};
+    parsed.forEach((r,i)=>{const matches=options.filter(o=>[o.v['型番'],o.v.label,o.l.name].some(x=>normalize(x)===r.model));selected[i]=matches.length===1?matches[0].key:'';});
+    setEntries(parsed);setTargets(selected);setPreview(null);setMessage('');
+  }catch(e){setMessage(e.message);setEntries(null);setPreview(null);}};
+  const review=()=>{try{
+    if(localStorage.getItem(STORAGE_KEY)!==JSON.stringify(lines)) throw Error('保存データが別の画面で変わりました。再読み込みしてから確認してください。');
+    const used=new Set(), updates=entries.map((r,i)=>{
+      const target=options.find(o=>o.key===targets[i]);
+      if(!target) throw Error(`${r.model}：反映先を選んでください。`);
+      if(used.has(target.key)) throw Error('同じバリエーションを複数の型番の反映先にはできません。');
+      used.add(target.key);
+      return {...target,model:r.model,after:mergeResearch(target.v,r.patch)};
+    });
+    setPreview({updates,base:lines,stored:localStorage.getItem(STORAGE_KEY)});setMessage('');
+  }catch(e){setPreview(null);setMessage(e.message);}};
+  const confirm=()=>{try{
+    if(lines!==preview.base || localStorage.getItem(STORAGE_KEY)!==preview.stored) throw Error('確認後に保存データが変わりました。再読み込みして差分を確認してください。');
+    const next=lines.map((l,li)=>({...l,vars:l.vars.map((v,vi)=>{const u=preview.updates.find(x=>x.key===`${li}:${vi}`);return u?withResearchHistory(v,u.after,'調査JSON取り込み'):v;})}));
+    // Persist before updating the UI, so storage failures never look successful.
+    localStorage.setItem(STORAGE_KEY,JSON.stringify(next));
+    onApply(next);setPreview(null);setEntries(null);setText('');setMessage('調査データと変更履歴を保存しました。');
+  }catch(e){setMessage('保存できませんでした：'+e.message);}};
+  return <section className="backupbar"><h3>調査JSON一括取り込み</h3><p className="bkmeta">型番はバリエーションの型番・呼び名、またはライン名と完全一致で照合します。未一致・複数候補は反映先を選択してください。省略項目は現在値を維持します。上限は円、中央値・レンジは調査元の数値です。</p><textarea aria-label="調査結果JSON" rows={7} value={text} placeholder={'{"調査日":"2026-09-20","結果":[{"型番":"WK1312","exc5":{"上限":29500,"ラベル":"確定"}}]}'} onChange={e=>{setText(e.target.value);setEntries(null);setPreview(null);setMessage('');}}/><button className="btn bsec" disabled={!text.trim()} onClick={parse}>JSONを確認</button>{message && <p role="status">{message}</p>}{entries && <div>{entries.map((r,i)=><label className="research-target" key={i}>{r.model}<select aria-label={r.model+'の反映先'} value={targets[i]||''} onChange={e=>{setTargets({...targets,[i]:e.target.value});setPreview(null);}}><option value="">反映先を選択（自動確定できません）</option>{options.map(o=><option key={o.key} value={o.key}>{o.title}</option>)}</select></label>)}<button className="btn bsec" onClick={review}>変更前 → 変更後を確認</button></div>}{preview && <div className="bkconfirm"><h3>反映前の確認</h3><p>確定するまで保存されません。薄い行は変更なし、強調行は上限が10%以上変わります。</p>{preview.updates.map(u=><section key={u.key}><h4>{u.model} — {u.title}</h4><ResearchDiff before={u.v} after={u.after}/></section>)}<div className="bkbtns"><button className="btn bsec" onClick={()=>setPreview(null)}>キャンセル</button><button className="btn bprim" disabled={!preview.updates.some(u=>researchDiff(u.v,u.after).some(r=>r.changed))} onClick={confirm}>確定して反映</button></div></div>}</section>;
+}
+
 function binUrl(u){
   if(!u) return '#';
   try{
@@ -394,6 +514,7 @@ function App(){
               </div>
             ))}
           </div>
+          <ResearchImport lines={lines} onApply={setLines}/>
           <BackupBar lines={lines} brandNotes={brandNotes}
             onReplace={(newLines,newBrandNotes,hasBrandNotes)=>{
               setLines(newLines);
@@ -524,7 +645,7 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
       {line.vars.map(v=>{
         const cov = coverOf(v);
         return (
-          <div key={v.id} className={'vcard'+(v.ng?' isng':'')} onClick={()=>onOpen(v)}>
+          <div key={v.id} className={'vcard'+(v.ng?' isng':'')+(GRADES.some(([g])=>v[g]?.['ラベル']==='なし')?' research-blocked':'')} onClick={()=>onOpen(v)}>
             <div className="vimg">{cov ? <img src={srcOf(cov)} alt="" /> : '写真なし'}
               {v.noSales && <div className="vnosales">実績ゼロ</div>}
             </div>
@@ -532,10 +653,7 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
             <div className="vfoot">
               <div className="vlabel">{v.label||''}</div>
               <div className="vprices">
-                {(v.ceilingExc || v.ceilingNM) ? <>
-                  <div className="prow"><span className="pcond">Exc+5</span><span className="pval">{v.ceilingExc?yen(v.ceilingExc):'—'}</span></div>
-                  <div className="prow"><span className="pcond">NearMINT</span><span className="pval">{v.ceilingNM?yen(v.ceilingNM):'—'}</span></div>
-                </> : <div className="pnone">上限未入力</div>}
+                {GRADES.map(([g,label,k])=><div className="prow" key={g}><span className="pcond">{label}</span><span className="pval">{blank(ceiling(v,g,k))?'—':'¥'+Number(ceiling(v,g,k)).toLocaleString('ja-JP')}<ResearchBadge value={v[g]?.['ラベル']}/></span></div>)}
               </div>
             </div>
           </div>
@@ -554,11 +672,14 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
 /* ══════════ バリエーション詳細 ══════════ */
 function VarPage({v,onSave,onCancel,onDelete}){
   const [d,setD] = useState(v);
+  const [review,setReview] = useState(false);
   const [sel,setSel] = useState(0);
   const [drag,setDrag] = useState(false);
   const fileRef = useRef(null);
   const onChange = patch => setD(prev=>({...prev, ...(typeof patch==='function'?patch(prev):patch)}));
   const set = k => e => onChange({[k]:e.target.value});
+  const setCeiling=(g,k,value)=>onChange(prev=>({[k]:value,...(prev[g]?{[g]:{...prev[g],上限:value===''?null:Number(value),ラベル:prev[g]['ラベル']==='なし'?'なし':'暫定'},備考:(prev['備考']||'').includes('上限を手動変更（根拠の再確認が必要）')?prev['備考']:(prev['備考']?prev['備考']+'\n':'')+'上限を手動変更（根拠の再確認が必要）'}:{})}));
+  const saveDraft=()=>onSave(withResearchHistory(v,d,'詳細画面で登録'));
   const photos = d.photos || [];
   const dirty = JSON.stringify(d) !== JSON.stringify(v);
   const uploading = photos.some(p=>p.uploading);
@@ -610,19 +731,20 @@ function VarPage({v,onSave,onCancel,onDelete}){
           <div className="ceilingrow">
             <span className="ccond">Exc+5</span>
             <span className="yen">¥</span>
-            <input inputMode="numeric" value={d.ceilingExc||''} placeholder="0"
-              onChange={e=>onChange({ceilingExc:digitsOnly(e.target.value)})}/>
+            <input inputMode="numeric" value={ceiling(d,'exc5','ceilingExc')??''} placeholder="0"
+              onChange={e=>setCeiling('exc5','ceilingExc',digitsOnly(e.target.value))}/>
           </div>
           <div className="ceilingrow">
             <span className="ccond">Near MINT</span>
             <span className="yen">¥</span>
-            <input inputMode="numeric" value={d.ceilingNM||''} placeholder="0"
-              onChange={e=>onChange({ceilingNM:digitsOnly(e.target.value)})}/>
+            <input inputMode="numeric" value={ceiling(d,'nm','ceilingNM')??''} placeholder="0"
+              onChange={e=>setCeiling('nm','ceilingNM',digitsOnly(e.target.value))}/>
           </div>
         </div>
       </div>
 
       <div className="dform">
+        <ResearchDetails v={d}/>
         <label>呼び名（一覧に表示されます）</label>
         <input type="text" value={d.label||''} onChange={set('label')} placeholder="例：金×黒、チェンジベゼル など短く"/>
 
@@ -671,9 +793,10 @@ function VarPage({v,onSave,onCancel,onDelete}){
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
             {uploading && <span className="upnote">写真アップロード中…</span>}
             <button className="btn bsec" onClick={onCancel}>キャンセル</button>
-            <button className="btn bprim" onClick={()=>onSave(d)} disabled={uploading}>登録</button>
+            <button className="btn bprim" onClick={()=>{if(researchDiff(v,d).some(r=>r.changed)) setReview(true); else saveDraft();}} disabled={uploading}>登録</button>
           </div>
         </div>
+        {review && <div className="bkconfirm" role="dialog" aria-label="仕入上限の変更確認"><h3>仕入上限の変更確認</h3><p>調査済みの上限を手動変更した場合、ラベルを暫定に変更します（「なし」は維持）。変更履歴も保存します。</p><ResearchDiff before={v} after={d}/><div className="bkbtns"><button className="btn bsec" onClick={()=>setReview(false)}>戻る</button><button className="btn bprim" disabled={uploading} onClick={saveDraft}>確定して登録</button></div></div>}
         {dirty && !uploading && <div className="dirtynote">未登録の変更があります。「登録」を押すと保存されます。</div>}
       </div>
     </div>
