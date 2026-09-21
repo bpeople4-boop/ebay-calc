@@ -86,6 +86,7 @@ body{color:var(--txt);font-family:var(--ui);font-size:14px;-webkit-text-size-adj
 .vnosales{position:absolute;left:0;right:0;top:50%;transform:translateY(-50%);background:var(--blue-band);color:#fff;text-align:center;font-size:14px;font-weight:700;padding:7px 0;z-index:2;pointer-events:none}
 .vcard .vfoot{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.88) 35%);padding:26px 9px 8px}
 .vcard .vlabel{font-size:12.5px;font-weight:600;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-shadow:0 1px 3px rgba(0,0,0,.9);margin-bottom:3px}
+.vcard .vsold{font-size:10.5px;color:rgba(255,255,255,.75);margin-bottom:3px;text-shadow:0 1px 3px rgba(0,0,0,.9)}
 .vcard .vprices{display:flex;flex-direction:column;gap:1px}
 .vcard .prow{display:flex;align-items:baseline;justify-content:space-between;gap:6px}
 .vcard .pcond{font-size:9.5px;font-weight:600;color:rgba(255,255,255,.6);letter-spacing:.02em;flex-shrink:0}
@@ -238,6 +239,12 @@ const OTHER_COUNTS = ['mint','exc4','excellentpp','無表記'];
 const RESEARCH_KEYS = ['exc5','nm','その他件数','調査日','備考'];
 const blank = x => x === '' || x === null || x === undefined;
 const ceiling = (v,g,k) => v[g] && Object.prototype.hasOwnProperty.call(v[g],'上限') ? v[g]['上限'] : v[k];
+function soldCount(v){
+  const numeric = x => (typeof x === 'number' || typeof x === 'string') && String(x).trim() !== '' && Number.isFinite(Number(x));
+  if(numeric(v['売れた件数'])) return Number(v['売れた件数']);
+  const counts = [v.exc5?.['a件数'],v.exc5?.['b件数'],v.nm?.['a件数'],v.nm?.['b件数']].filter(numeric);
+  return counts.length ? counts.reduce((sum,x)=>sum+Number(x),0) : null;
+}
 const showValue = x => blank(x) ? '—' : String(x);
 function researchSnapshot(v){
   return Object.fromEntries([...GRADES.map(([g,,k])=>[g,{...(v[g]||{}),上限:blank(ceiling(v,g,k))?null:Number(ceiling(v,g,k))}]),
@@ -644,6 +651,7 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
     <div className="vgrid">
       {line.vars.map(v=>{
         const cov = coverOf(v);
+        const sold = soldCount(v);
         return (
           <div key={v.id} className={'vcard'+(v.ng?' isng':'')+(GRADES.some(([g])=>v[g]?.['ラベル']==='なし')?' research-blocked':'')} onClick={()=>onOpen(v)}>
             <div className="vimg">{cov ? <img src={srcOf(cov)} alt="" /> : '写真なし'}
@@ -652,6 +660,7 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
             {v.ng && <div className="vng">買わない</div>}
             <div className="vfoot">
               <div className="vlabel">{v.label||''}</div>
+              <div className="vsold">売れた件数 {sold === null ? '—' : `${sold}件`}</div>
               <div className="vprices">
                 {GRADES.map(([g,label,k])=><div className="prow" key={g}><span className="pcond">{label}</span><span className="pval">{blank(ceiling(v,g,k))?'—':'¥'+Number(ceiling(v,g,k)).toLocaleString('ja-JP')}<ResearchBadge value={v[g]?.['ラベル']}/></span></div>)}
               </div>
