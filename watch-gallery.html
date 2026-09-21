@@ -617,6 +617,23 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
   const [edit,setEdit] = useState(false);
   const [ren,setRen] = useState(false);
   const [name,setName] = useState(line.name);
+  const [order,setOrder] = useState(()=>{
+    try { return localStorage.getItem('watch_gallery_var_order_v1') === 'sold' ? 'sold' : 'reg'; }
+    catch { return 'reg'; }
+  });
+  const changeOrder = next => {
+    try {
+      localStorage.setItem('watch_gallery_var_order_v1',next);
+      setOrder(next);
+    } catch { setOrder('reg'); }
+  };
+  const displayVars = order === 'sold'
+    ? line.vars.map((v,index)=>({v,index,count:soldCount(v)})).sort((a,b)=>{
+        if(a.count === null) return b.count === null ? a.index-b.index : 1;
+        if(b.count === null) return -1;
+        return b.count-a.count || a.index-b.index;
+      }).map(({v})=>v)
+    : line.vars;
   return (<>
     {ren
       ? <div className="inlineform" style={{marginBottom:14}}>
@@ -648,8 +665,13 @@ function LinePage({line,onCommon,onKind,onOpen,onAdd,onRename,onDeleteLine}){
       </label>)}
     </div>
 
+    <div className="kindrow" role="radiogroup" aria-label="表示順">
+      <label><input type="radio" name="var-order" checked={order==='reg'} onChange={()=>changeOrder('reg')} />登録順</label>
+      <label><input type="radio" name="var-order" checked={order==='sold'} onChange={()=>changeOrder('sold')} />売れている順</label>
+    </div>
+
     <div className="vgrid">
-      {line.vars.map(v=>{
+      {displayVars.map(v=>{
         const cov = coverOf(v);
         const sold = soldCount(v);
         return (
