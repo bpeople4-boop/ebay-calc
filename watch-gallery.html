@@ -780,7 +780,7 @@ function VarPage({v,onSave,onCancel,onDelete}){
         <textarea rows={4} value={d.notes||''} onChange={set('notes')} placeholder="例：チェンジベゼルなので単色での仕入れは絶対しない、など"/>
 
         <div className={'ngcheck'+(d.ng?' on':'')} onClick={()=>onChange(prev=>({ng:!prev.ng,...(!prev.ng?{noSales:false}:{})}))}>
-          <input type="checkbox" checked={!!d.ng} readOnly/>似てるけど買わない（NG例）
+          <input type="checkbox" checked={!!d.ng} readOnly/>買わない（NG）
         </div>
 
         <label className={'ngcheck nosales'+(d.noSales?' on':'')}>
