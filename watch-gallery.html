@@ -29,14 +29,19 @@ body{color:var(--txt);font-family:var(--ui);font-size:14px;-webkit-text-size-adj
 ::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 
 .app{display:flex;flex-direction:column;min-height:100vh;background:var(--bg)}
-.legend{display:none}
+.legendbtn{margin-left:auto;flex-shrink:0;padding:6px 12px;border:1px solid var(--bdr);border-radius:999px;background:var(--surf2);color:var(--txt);font-size:12px;cursor:pointer}
+.legendbtn:hover{border-color:var(--acc);color:var(--acc)}
+.legend{display:none;border:1px solid var(--bdr);border-radius:10px;background:var(--surf);padding:12px;font-size:11.5px;line-height:1.7}
+.legend h4{font-size:12px;color:var(--acc);margin-bottom:8px}
+.legend p{margin-bottom:6px}
+.legend .research-badge{margin-left:0;margin-right:4px}
+.legend-note{color:var(--mut);font-size:10.5px}
+.legend.open{display:block;position:fixed;right:16px;top:60px;width:min(300px,calc(100vw - 32px));max-height:calc(100vh - 80px);overflow:auto;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.45)}
+.legend-backdrop{position:fixed;inset:0;z-index:35;background:transparent}
 @media(min-width:1560px){
-  .legend{display:block;position:fixed;left:16px;top:84px;width:170px;z-index:20;
-    border:1px solid var(--bdr);border-radius:10px;background:var(--surf);padding:12px;font-size:11.5px;line-height:1.7}
-  .legend h4{font-size:12px;color:var(--acc);margin-bottom:8px}
-  .legend p{margin-bottom:6px}
-  .legend .research-badge{margin-left:0;margin-right:4px}
-  .legend-note{color:var(--mut);font-size:10.5px}
+  .legendbtn{display:none}
+  .legend-backdrop{display:none}
+  .legend,.legend.open{display:block;position:fixed;left:16px;right:auto;top:84px;width:170px;max-height:none;box-shadow:none;z-index:20}
 }
 .topbar{display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid var(--bdr);background:var(--surf);position:sticky;top:0;z-index:30}
 .topbar h1{font-size:14px;font-weight:700;color:var(--acc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -472,6 +477,7 @@ function App(){
   const [lines, setLines] = useState(loadLines);
   const [brandNotes, setBrandNotes] = useState(loadBrandNotes);
   const [view, setView] = useState({page:'brands'});
+  const [legendOpen,setLegendOpen] = useState(false);
   useEffect(()=>{ saveLines(lines); }, [lines]);
   useEffect(()=>{ saveBrandNotes(brandNotes); }, [brandNotes]);
 
@@ -523,13 +529,14 @@ function App(){
 
   return (
     <div className="app">
-      <aside className="legend">
+      {legendOpen && <div className="legend-backdrop" onClick={()=>setLegendOpen(false)}></div>}
+      <aside className={'legend'+(legendOpen?' open':'')}>
         <h4>ラベルの意味</h4>
-        <p><span className="research-badge label-確定">確定</span> 5件以上</p>
-        <p><span className="research-badge label-暫定">暫定</span> 3〜4件。※換算で出した上限と、グッチの上限は、件数が多くても暫定までにしている</p>
-        <p><span className="research-badge label-参考">参考</span> 1〜2件</p>
-        <p><span className="research-badge label-なし">なし</span> 0件。仕入れない</p>
-        <p className="legend-note">件数は、上限の計算に使った側（UK90日。3件未満ならUS1年）の落札数。外れ値は除く。「写真確認」の札のラインは、棚卸しで写真を見て数え直す。</p>
+        <p><span className="research-badge label-確定">確定</span> 実績が5件以上。入札ありなら上乗せが付く</p>
+        <p><span className="research-badge label-暫定">暫定</span> 実績が3〜4件。換算で出した上限と、グッチは実績が多くても暫定まで。上乗せなし</p>
+        <p><span className="research-badge label-参考">参考</span> 実績が1〜2件。入札額は出ない（自分で決める）</p>
+        <p><span className="research-badge label-なし">なし</span> 実績0件。仕入れない</p>
+        <p className="legend-note">実績は、上限の計算に使った側（UK90日。3件未満ならUS1年）の落札数。外れ値は除く。「写真確認」の札のラインは、棚卸しで写真を見て数え直す。</p>
         <p className="legend-note">販売ドル＝その上限で仕入れたとき、目標の利益が出る売値（送料込み・DDP別）。</p>
       </aside>
       <div className="topbar">
@@ -538,6 +545,7 @@ function App(){
           <h1>{title}</h1>
           {crumb && <div className="crumb">{crumb}</div>}
         </div>
+        <button className="legendbtn" aria-expanded={legendOpen} onClick={()=>setLegendOpen(o=>!o)}>ラベルの意味</button>
       </div>
       <div className="main">
         {view.page==='brands' && <>
