@@ -260,7 +260,7 @@ const saleUsd = yenValue => {
 };
 const RESEARCH_NUMBERS = ['上限','a件数','a中央値','b件数','b中央値','最小','最大'];
 const OTHER_COUNTS = ['mint','exc4','excellentpp','無表記'];
-const RESEARCH_KEYS = ['exc5','nm','その他件数','調査日','備考'];
+const RESEARCH_KEYS = ['exc5','nm','その他件数','調査日','備考','調べた範囲'];
 const blank = x => x === '' || x === null || x === undefined;
 const ceiling = (v,g,k) => v[g] && Object.prototype.hasOwnProperty.call(v[g],'上限') ? v[g]['上限'] : v[k];
 function soldCount(v){
@@ -272,7 +272,7 @@ function soldCount(v){
 const showValue = x => blank(x) ? '—' : String(x);
 function researchSnapshot(v){
   return Object.fromEntries([...GRADES.map(([g,,k])=>[g,{...(v[g]||{}),上限:blank(ceiling(v,g,k))?null:Number(ceiling(v,g,k))}]),
-    ['その他件数',v['その他件数']||{}],['調査日',v['調査日']||''],['備考',v['備考']||'']]);
+    ['その他件数',v['その他件数']||{}],['調査日',v['調査日']||''],['備考',v['備考']||''],...(v['調べた範囲']===undefined?[]:[['調べた範囲',{...v['調べた範囲']}]])]);
 }
 function researchDiff(before,after){
   const a=researchSnapshot(before), b=researchSnapshot(after), rows=[];
@@ -284,6 +284,10 @@ function researchDiff(before,after){
   GRADES.forEach(([g,label])=>[...RESEARCH_NUMBERS,'採用元','ラベル'].forEach(k=>add(label+' / '+k,a[g][k],b[g][k],k==='上限')));
   OTHER_COUNTS.forEach(k=>add('その他件数 / '+k,a['その他件数'][k],b['その他件数'][k]));
   ['調査日','備考'].forEach(k=>add(k,a[k],b[k]));
+  if(a['調べた範囲']!==undefined || b['調べた範囲']!==undefined){
+    const scopeText=x=>x===undefined?'従来データ（範囲情報なし）':JSON.stringify(Object.fromEntries(Object.entries(x).sort(([a],[b])=>a.localeCompare(b))));
+    add('調べた範囲',scopeText(a['調べた範囲']),scopeText(b['調べた範囲']));
+  }
   return rows;
 }
 function withResearchHistory(before,after,source){
@@ -322,6 +326,10 @@ function parseResearch(text){
     const d=r['調査日']===undefined?data['調査日']:r['調査日'];
     if(d!==undefined){date(d);patch['調査日']=d;}
     if(r['備考']!==undefined){if(typeof r['備考']!=='string') throw Error(`${model}：備考は文字列で指定してください。`);patch['備考']=r['備考'];}
+    if(r['調べた範囲']!==undefined){
+      if(!object(r['調べた範囲'])) throw Error(`${model}：調べた範囲の形式が違います。`);
+      patch['調べた範囲']={...r['調べた範囲']};
+    }
     if(!Object.keys(patch).length) throw Error(`${model}：調査項目がありません。`);
     return {model,patch};
   });
@@ -330,6 +338,15 @@ function mergeResearch(v,patch){
   const next={...v,...patch};
   GRADES.forEach(([g,,k])=>{if(patch[g]) next[g]={...(v[g]||{}),上限:blank(ceiling(v,g,k))?null:Number(ceiling(v,g,k)),...patch[g]};});
   if(patch['その他件数']) next['その他件数']={...(v['その他件数']||{}),...patch['その他件数']};
+  const grades=GRADES.map(([g])=>patch[g]).filter(Boolean);
+  if(patch['調べた範囲']!==undefined){
+    next['調べた範囲']={...(v['調べた範囲']||{}),...patch['調べた範囲']};
+  }else if(grades.length && !blank(patch['調査日'])){
+    const scope={...(v['調べた範囲']||{})};
+    if(grades.some(r=>!blank(r['a件数']))) scope['UK90日']=patch['調査日'];
+    if(grades.some(r=>!blank(r['b件数'])) && !(patch['備考']||'').includes('B読めず')) scope['US1年']=patch['調査日'];
+    next['調べた範囲']=scope;
+  }
   GRADES.forEach(([g])=>{const r=next[g]||{};if(!blank(r['最小']) && !blank(r['最大']) && r['最小']>r['最大']) throw Error('最小は最大以下にしてください。');});
   return next;
 }
@@ -342,7 +359,8 @@ function ResearchDiff({before,after}){
 }
 function ResearchDetails({v}){
   const data=researchSnapshot(v);
-  return <section className="research-box"><h3>調査根拠</h3>{GRADES.map(([g,label])=><div key={g} className="research-grade"><b>{label}</b> <ResearchBadge value={data[g]['ラベル']}/><p>A：UK 90日 {showValue(data[g]['a件数'])}件 / 中央値 {showValue(data[g]['a中央値'])}</p><p>B：US 1年 {showValue(data[g]['b件数'])}件 / 中央値 {showValue(data[g]['b中央値'])}</p><p>レンジ：{showValue(data[g]['最小'])} 〜 {showValue(data[g]['最大'])} / 採用元：{showValue(data[g]['採用元'])}</p></div>)}<p>調査日：{showValue(data['調査日'])}</p><p>その他件数：{OTHER_COUNTS.map(k=>`${k} ${showValue(data['その他件数'][k])}`).join(' / ')}</p><p style={{whiteSpace:'pre-wrap'}}>備考：{showValue(data['備考'])}</p><p className="bkmeta">調査データの追加・更新はブランド一覧の「調査JSON一括取り込み」から行えます。</p>{(v.researchHistory||[]).length>0 && <details><summary>変更履歴（{v.researchHistory.length}件）</summary>{[...v.researchHistory].reverse().map((h,i)=><details key={i}><summary>{h['日時']} / {h['操作']}</summary><ResearchDiff before={h['変更前']} after={h['変更後']}/></details>)}</details>}</section>;
+  const unresearched=key=>v['調べた範囲']!=null && blank(v['調べた範囲'][key]);
+  return <section className="research-box"><h3>調査根拠</h3>{GRADES.map(([g,label])=><div key={g} className="research-grade"><b>{label}</b> <ResearchBadge value={data[g]['ラベル']}/><p>A：UK 90日 {unresearched('UK90日')?'未調査':<>{showValue(data[g]['a件数'])}件 / 中央値 {showValue(data[g]['a中央値'])}</>}</p><p>B：US 1年 {unresearched('US1年')?'未調査':<>{showValue(data[g]['b件数'])}件 / 中央値 {showValue(data[g]['b中央値'])}</>}</p><p>レンジ：{showValue(data[g]['最小'])} 〜 {showValue(data[g]['最大'])} / 採用元：{showValue(data[g]['採用元'])}</p></div>)}<p>調査日：{showValue(data['調査日'])}</p><p>その他件数：{OTHER_COUNTS.map(k=>`${k} ${showValue(data['その他件数'][k])}`).join(' / ')}</p><p style={{whiteSpace:'pre-wrap'}}>備考：{showValue(data['備考'])}</p><p className="bkmeta">調査データの追加・更新はブランド一覧の「調査JSON一括取り込み」から行えます。</p>{(v.researchHistory||[]).length>0 && <details><summary>変更履歴（{v.researchHistory.length}件）</summary>{[...v.researchHistory].reverse().map((h,i)=><details key={i}><summary>{h['日時']} / {h['操作']}</summary><ResearchDiff before={h['変更前']} after={h['変更後']}/></details>)}</details>}</section>;
 }
 function ResearchImport({lines,onApply}){
   const [text,setText]=useState(''), [entries,setEntries]=useState(null), [targets,setTargets]=useState({}), [preview,setPreview]=useState(null), [message,setMessage]=useState('');
