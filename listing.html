@@ -415,6 +415,14 @@ function buildOpSection(op, type, showBalsam, extra) {
   return h;
 }
 
+// 実績の数字（Seller Hubで確認して更新する）最終更新：2026-10-06
+const SELLER_STATS = [
+  '420+ Items Sold',
+  '$80,900+ in Sales',
+  '0.00% Defect Rate',
+  '100% On-Time Tracking',
+];
+
 function genHTML(d) {
   const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
@@ -515,10 +523,7 @@ function genHTML(d) {
 <div class="wt-sat-box">
 <div class="wt-sat-title"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784454853/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8819%E6%97%A5_18_35_03_ggyqif.png" alt="Trusted" class="wt-sat-icon">Trusted by Hundreds of Buyers</div>
 <div class="wt-sat-stats">
-<span class="wt-sat-stat-item">202 Transactions</span>
-<span class="wt-sat-stat-item">$54,800+ in Sales</span>
-<span class="wt-sat-stat-item">0.00% Defect Rate</span>
-<span class="wt-sat-stat-item">100% On-Time Tracking</span>
+${SELLER_STATS.map(stat => `<span class="wt-sat-stat-item">${stat}</span>`).join('\n')}
 </div>
 <div class="wt-sat-row"><span class="wt-sat-label">Accurate Description</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
 <div class="wt-sat-row"><span class="wt-sat-label">Reasonable Shipping Cost</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
@@ -665,10 +670,7 @@ function genWatchHTML(d) {
 <div class="wt-sat-box">
 <div class="wt-sat-title"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784454853/ChatGPT_Image_2026%E5%B9%B47%E6%9C%8819%E6%97%A5_18_35_03_ggyqif.png" alt="Trusted" class="wt-sat-icon">Trusted by Hundreds of Buyers</div>
 <div class="wt-sat-stats">
-<span class="wt-sat-stat-item">202 Transactions</span>
-<span class="wt-sat-stat-item">$54,800+ in Sales</span>
-<span class="wt-sat-stat-item">0.00% Defect Rate</span>
-<span class="wt-sat-stat-item">100% On-Time Tracking</span>
+${SELLER_STATS.map(stat => `<span class="wt-sat-stat-item">${stat}</span>`).join('\n')}
 </div>
 <div class="wt-sat-row"><span class="wt-sat-label">Accurate Description</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
 <div class="wt-sat-row"><span class="wt-sat-label">Reasonable Shipping Cost</span><span class="wt-sat-stars">&#9733;&#9733;&#9733;&#9733;&#9733;</span></div>
