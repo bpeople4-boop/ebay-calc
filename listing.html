@@ -425,6 +425,9 @@ const SELLER_STATS = [
 
 function genHTML(d) {
   const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true,readOn=false,readExtras=[]} = d;
+  const escRead = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const readLines = readOn ? readExtras.filter(x=>x.en.trim()) : [];
+  const readInline = ref => readLines.filter(x=>x.ref===ref).map(x=>`<span class="wt-read-inline">${escRead(x.en.trim())}</span><br>`).join('\n');
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlCondition = String(condFree || '').trim() || HTML_CONDITION_MAP[cond] || cond;
   let appH = '';
@@ -434,25 +437,24 @@ function genHTML(d) {
   const appExtra = extrasHtml(appExtras);
   if(appExtra) appH += '<br>\n' + appExtra;
   appH += '<br>\n* Please check photos.';
+  appH = readInline('Appearance') + appH;
 
   const opSections = [];
   if(lensOpen) opSections.push(buildOpSection(lensOp,'lens',true,extrasHtml(lensExtras)));
   if(finderOpen && HAS_FINDER.has(pType)) opSections.push(buildOpSection(finOp,'finder',false,extrasHtml(finExtras)));
-  const opH = opSections.join('<br><br>\n');
+  const opH = readInline('Optics') + opSections.join('<br><br>\n');
 
   const funcExtra = extrasHtml(funcExtras);
-  const funcTxtFull = [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
-  const bH = bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None';
+  const funcTxtFull = readInline('Functional') + [funcDef ? 'It works properly.' : '', funcExtra].filter(Boolean).join('<br>\n');
+  const bH = readInline('Bundled Items') + (bundles.length ? bundles.map(i=>`-${i}`).join('<br>\n') : '-None');
   const noteLines = [];
   if(noCharger) noteLines.push('*Battery charger is not included.');
   const noteH = noteLines.length ? noteLines.join('<br>\n') : '';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
-  const escRead = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const readLines = readOn ? readExtras.filter(x=>x.en.trim()) : [];
   const readH = readLines.length ? `<div class="wt-read">
 <div class="wt-read-title">&#9888; PLEASE READ</div>
 <ul>
-${readLines.map(x=>`<li>${escRead(x.en.trim())}${x.ref && x.ref!=='なし' ? `<span class="wt-read-see"> (See ${escRead(x.ref)})</span>` : ''}</li>`).join('\n')}
+${readLines.map(x=>`<li>${escRead(x.en.trim())}</li>`).join('\n')}
 </ul>
 </div>\n` : '';
 
@@ -466,7 +468,7 @@ ${readLines.map(x=>`<li>${escRead(x.en.trim())}${x.ref && x.ref!=='なし' ? `<s
 .wt-read-title{font-weight:800;color:#C62828;letter-spacing:1.5px;font-size:15px;margin-bottom:8px}
 .wt-read ul{margin:0;padding-left:20px}
 .wt-read li{font-size:16px;line-height:1.7;color:#1A1A1A}
-.wt-read-see{color:#888888;font-size:13px}
+.wt-read-inline{font-weight:700;color:#0A0A0A}
 .wt-unit{text-transform:none}
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
@@ -596,6 +598,8 @@ async function uploadToCloudinary(base64) {
 
 function genWatchHTML(d) {
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const readLines = d.wReadOn ? (d.wReadExtras || []).filter(x=>x.en.trim()) : [];
+  const readInline = ref => readLines.filter(x=>x.ref===ref).map(x=>`<span class="wt-read-inline">${esc(x.en.trim())}</span><br>`).join('\n');
   const extraLines = extras => extras.filter(x=>x.en.trim()).map(x=>esc(x.en.trim())).join('<br>\n');
   const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice] || '';
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice] || '';
@@ -607,13 +611,12 @@ function genWatchHTML(d) {
     ? (hasCm ? `Free (MAX ${esc(cmRaw)} cm / ${(cm*.3937).toFixed(2)} inch)` : 'Free')
     : (hasCm ? `${esc(cmRaw)} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free');
   const funcBase=d.wFuncDef ? `The watch has been checked and is working properly.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
-  const functional=[funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
-  const bundleLines=[...d.wBundles, ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
-  const readLines = d.wReadOn ? (d.wReadExtras || []).filter(x=>x.en.trim()) : [];
+  const functional=readInline('Functional') + [funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
+  const bundleLines=readInline('Bundled Items') + [...d.wBundles, ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
   const readH = readLines.length ? `<div class="wt-read">
 <div class="wt-read-title">&#9888; PLEASE READ</div>
 <ul>
-${readLines.map(x=>`<li>${esc(x.en.trim())}${x.ref && x.ref!=='なし' ? `<span class="wt-read-see"> (See ${esc(x.ref)})</span>` : ''}</li>`).join('\n')}
+${readLines.map(x=>`<li>${esc(x.en.trim())}</li>`).join('\n')}
 </ul>
 </div>\n` : '';
   return `<meta charset="utf-8">
@@ -626,7 +629,7 @@ ${readLines.map(x=>`<li>${esc(x.en.trim())}${x.ref && x.ref!=='なし' ? `<span 
 .wt-read-title{font-weight:800;color:#C62828;letter-spacing:1.5px;font-size:15px;margin-bottom:8px}
 .wt-read ul{margin:0;padding-left:20px}
 .wt-read li{font-size:16px;line-height:1.7;color:#1A1A1A}
-.wt-read-see{color:#888888;font-size:13px}
+.wt-read-inline{font-weight:700;color:#0A0A0A}
 .wt-unit{text-transform:none}
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
@@ -711,9 +714,9 @@ ${SELLER_STATS.map(stat => `<span class="wt-sat-stat-item">${stat}</span>`).join
 <div class="wt-body">
 <table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(HTML_CONDITION_MAP[d.cond] || d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
 <h3>Appearance</h3>
-<p>[Case]<br>${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
-<p>[Crystal]<br>${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
-<p>[Belt]<br>${[beltText, extraLines(d.wBeltExtras)].filter(Boolean).join('<br>')}</p>
+<p>[Case]<br>${readInline('Case')}${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
+<p>[Crystal]<br>${readInline('Crystal')}${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
+<p>[Belt]<br>${readInline('Belt')}${[beltText, extraLines(d.wBeltExtras)].filter(Boolean).join('<br>')}</p>
 <p>Please check the photos carefully for details.</p>
 <h3>Belt Size</h3>
 <p>${beltSize}</p>
@@ -1037,7 +1040,7 @@ function ExtraEditor({extras,onAdd,onUpdate,onRemove,onChat,presets,onAddPreset}
   );
 }
 
-function ReadEditor({extras,refs,onAdd,onUpdate,onRemove,onChat}) {
+function ReadEditor({extras,refs,onAdd,onUpdate,onRemove,onChat,getWarning}) {
   return (
               <div>
                 <div className="input-label">READの中身</div>
@@ -1056,6 +1059,7 @@ function ReadEditor({extras,refs,onAdd,onUpdate,onRemove,onChat}) {
                           <div key={ref} className={`chkbtn ${(x.ref || 'なし')===ref?'on':''}`} onClick={()=>onUpdate(x.id,'ref',ref)}><span className="dot" />{ref}</div>
                         ))}
                       </div>
+                      {getWarning(x.ref) && <div style={{color:'var(--acc)',fontSize:11}}>{getWarning(x.ref)}</div>}
                     </div>
                   ))}
                   <button className="btn bblu bsm" onClick={onChat}>ChatGPTで相談</button>
@@ -1642,6 +1646,14 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     openChatGPT(chatText);
   };
 
+  const readWarning = ref => {
+    if(!isWatch && ref==='Optics') return 'Opticsの各項目（Fungus / Haze など）の なし／あり がREADと合っているか確認してください';
+    const baseOn = isWatch
+      ? {Case:!!wCaseChoice,Crystal:wCrystalOn,Belt:!!wBeltChoice,Functional:wFuncDef}
+      : {Appearance:appChoice==='beautiful',Functional:funcDef};
+    return baseOn[ref] ? `${ref}の基本文がオンのままです。READの内容と食い違わないか確認してください` : '';
+  };
+
   const handleChatRead = extras => {
     const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
     const chatText = `あなたはeBayで${isWatch ? '腕時計' : 'カメラ・レンズ'}を日本から海外に販売するセラーのアシスタントです。
@@ -2010,7 +2022,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
             </div>
 
             {specials.includes('READ') && (
-              <ReadEditor extras={readExtras} refs={['Appearance','Optics','Functional','Bundled Items','なし']} onAdd={()=>addReadExtra(setReadExtras)} onUpdate={(id,f,v)=>updateExtra(setReadExtras,id,f,v)} onRemove={id=>removeExtra(setReadExtras,id)} onChat={()=>handleChatRead(readExtras)} />
+              <ReadEditor getWarning={readWarning} extras={readExtras} refs={['Appearance','Optics','Functional','Bundled Items','なし']} onAdd={()=>addReadExtra(setReadExtras)} onUpdate={(id,f,v)=>updateExtra(setReadExtras,id,f,v)} onRemove={id=>removeExtra(setReadExtras,id)} onChat={()=>handleChatRead(readExtras)} />
             )}
 
             <div className="input-label">付属品 w/（任意）</div>
@@ -2167,7 +2179,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
             <div className="sec">
               <div className="sttl">腕時計 基本情報</div>
               <div className="chklist"><div className={`chkbtn ${wReadOn?'on':''}`} onClick={()=>setWReadOn(p=>!p)}><span className="dot" />READ</div></div>
-              {wReadOn && <ReadEditor extras={wReadExtras} refs={['Case','Crystal','Belt','Functional','Bundled Items','なし']} onAdd={()=>addReadExtra(setWReadExtras)} onUpdate={(id,f,v)=>updateExtra(setWReadExtras,id,f,v)} onRemove={id=>removeExtra(setWReadExtras,id)} onChat={()=>handleChatRead(wReadExtras)} />}
+              {wReadOn && <ReadEditor getWarning={readWarning} extras={wReadExtras} refs={['Case','Crystal','Belt','Functional','Bundled Items','なし']} onAdd={()=>addReadExtra(setWReadExtras)} onUpdate={(id,f,v)=>updateExtra(setWReadExtras,id,f,v)} onRemove={id=>removeExtra(setWReadExtras,id)} onChat={()=>handleChatRead(wReadExtras)} />}
               <div className="input-label">先頭修飾語</div><div className="chklist">{WATCH_MODIFIERS.map(x=><div key={x.key} className={`chkbtn ${wModifier===x.key?'on':''}`} onClick={()=>setWModifier(x.key)}><span className="dot" />{x.label}</div>)}</div>
               {wModifier==='vintageYear'&&<input type="text" value={wModifierYear} onChange={e=>setWModifierYear(e.target.value)} placeholder="1970s" style={{marginTop:7}} />}
               <div className="input-label">Accessories（タイトル w/）</div><div className="chklist">{WATCH_ACCESSORIES.map(x=><div key={x} className={`chkbtn ${wAccessories.includes(x)?'on':''}`} onClick={()=>toggleWatchAccessory(x)}><span className="dot" />{x}</div>)}</div>
