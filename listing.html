@@ -1419,12 +1419,14 @@ function App() {
 - Specialキーワード（READ / Rare / Meter Works / All Works）はConditionの前
 - 80文字超えた場合の短縮順：
   1. Fromを削除（JAPANは残す）
+    ※ Colorが【Sold検索結果】の売れたタイトルにほとんど出ない場合は、2より先にColorを削除する（Silver・Chromeなど、色違いで値段が変わる機種の色は残す）
   2. f/数値→f数値（スラッシュ削除）
   3. Colorを削除
   4. [Near MINT w/ Hood]→[Near MINT]（付属品削除）
   5. S/NまたはS/Cをまるごと削除
 - 絶対に削除しない：Special・Condition・Brand・Model・JAPAN
 - Brand・Modelは入力文字列をそのまま使用（補完・変更禁止）
+- タイトル候補に書かれていない付属品（ケース・ストラップ・フードなど）や、実際と違う数量（2Lens など）は、Sold検索結果に多く出ていても足さない
 
 出力形式：
 - 最終タイトル1行のみ
@@ -1462,10 +1464,11 @@ ${sold}`;
 - 「From JAPAN」「JAPAN」は付けない
 - 80文字超えた場合の短縮順：
   1. Movementを短縮形にする（Quartz→Qz、Automatic→Auto）
-  2. 可変枠を優先度の低いものから削除
+  2. 可変枠（サイズ・ダイアル色・防水性能・素材・機能・装飾）は、Sold検索結果の売れたタイトルに出てくる回数が少ないものから削除
   3. 付属品（w/以降）を削除
 - 絶対に削除しない：READ（ある場合）・先頭修飾語（ある場合）・コンディション・Brand・Model・Movement・Gender・Watch
 - Brand・Model・RefNumberは入力文字列をそのまま使用（補完・変更禁止）
+- タイトル候補に書かれていない付属品（Box・Papers・Case・New Belt など）は、Sold検索結果に多く出ていても足さない
 
 出力形式：
 - 最終タイトル1行のみ
