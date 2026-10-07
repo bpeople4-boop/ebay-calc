@@ -424,7 +424,7 @@ const SELLER_STATS = [
 ];
 
 function genHTML(d) {
-  const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true} = d;
+  const {title,pType,cond,condFree='',serialBody,serialLens,hasLensSerial,appChoice,appExtras=[],lensOp,finOp,funcDef,funcCus,lensExtras=[],finExtras=[],funcExtras=[],bundles,noCharger,lensOpen=true,finderOpen=true,readOn=false,readExtras=[]} = d;
   const extrasHtml = extras => extras.filter(x=>x.en.trim()).map(x=>x.en.trim()).join('<br>\n');
   const htmlCondition = String(condFree || '').trim() || HTML_CONDITION_MAP[cond] || cond;
   let appH = '';
@@ -447,6 +447,14 @@ function genHTML(d) {
   if(noCharger) noteLines.push('*Battery charger is not included.');
   const noteH = noteLines.length ? noteLines.join('<br>\n') : '';
   const ttl = title||'[CONDITION] Item Name From JAPAN';
+  const escRead = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  const readLines = readOn ? readExtras.filter(x=>x.en.trim()) : [];
+  const readH = readLines.length ? `<div class="wt-read">
+<div class="wt-read-title">&#9888; PLEASE READ</div>
+<ul>
+${readLines.map(x=>`<li>${escRead(x.en.trim())}${x.ref && x.ref!=='なし' ? `<span class="wt-read-see"> (See ${escRead(x.ref)})</span>` : ''}</li>`).join('\n')}
+</ul>
+</div>\n` : '';
 
   return `<meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -454,6 +462,11 @@ function genHTML(d) {
 <style>
 .wt-main{word-break:break-word;max-width:100%;background:#FFFFFF;border:1px solid #D9D9D9;padding:0 24px 34px 24px;box-sizing:border-box;font-family:"Montserrat","Helvetica Neue",Arial,sans-serif;color:#1A1A1A}
 .wt-main h1{font-weight:700;font-size:32px!important;letter-spacing:1px;margin:0;padding:34px 0 22px 0;text-align:center;color:#0A0A0A;border-bottom:1px solid #D9D9D9;word-break:break-word}
+.wt-read{border:2px solid #C62828;background:#FFF5F5;border-radius:4px;padding:14px 20px;margin:20px 30px 6px}
+.wt-read-title{font-weight:800;color:#C62828;letter-spacing:1.5px;font-size:15px;margin-bottom:8px}
+.wt-read ul{margin:0;padding-left:20px}
+.wt-read li{font-size:16px;line-height:1.7;color:#1A1A1A}
+.wt-read-see{color:#888888;font-size:13px}
 .wt-unit{text-transform:none}
 .wt-crest{text-align:center;padding-top:26px}
 .wt-crest .dot{display:inline-block;width:6px;height:6px;border-radius:50%;border:1px solid #0A0A0A;background:#FFFFFF}
@@ -493,6 +506,8 @@ function genHTML(d) {
 .wt-footer-arigato img{width:36px;height:36px;vertical-align:middle;margin-right:8px;display:inline-block}
 .wt-footer-arigato span{vertical-align:middle}
 @media (max-width:600px){
+.wt-read{margin:16px 4px 6px;padding:12px 14px}
+.wt-read li{font-size:15px}
 .wt-main{padding:0 12px 28px 12px}
 .wt-main .wt-body{padding:0 14px 18px}
 .wt-sat-wrap{padding:4px 14px 22px}
@@ -512,7 +527,7 @@ function genHTML(d) {
 <div class="wt-main">
 <div class="img-area"><img src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1785070737/camera_cover_crop_preview_v3_urxzxp.png" alt="Cover Image"></div>
 <h1>${lowerUnits(ttl)}</h1>
-<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
+${readH}<div class="wt-crest"><span class="line"></span><span class="dot"></span><span class="line"></span></div>
 <p class="wt-price-note">Price adjustment possible.<br>Please feel free to contact me if you're interested.</p>
 <section>
 <div class="wt-body">
@@ -1042,6 +1057,7 @@ function App() {
   const [promptCopied,setPromptCopied]=useState(false);
   const [finalTitleInput,setFinalTitleInput]=useState('');
   const [specials,setSpecials]=useState([]);
+  const [readExtras,setReadExtras]=useState([]);
   const [withItems,setWithItems]=useState([]);
   const [color,setColor]=useState('');
   const [snType,setSnType]=useState('');
@@ -1133,14 +1149,14 @@ function App() {
     photos:photos.filter(p=>p.cloudinaryUrl).map(p=>({cloudinaryUrl:p.cloudinaryUrl})),
     category,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
-    specials,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
+    specials,readExtras,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
     wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wCrystalOn,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
     specPasteText,specChecked,
   });
 
   const updateExtraIdRefFromDraft=draft=>{
-    const maxId=[...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[]),...(draft.wCaseExtras||[]),...(draft.wBeltExtras||[]),...(draft.wCrystalExtras||[]),...(draft.wFuncExtras||[])]
+    const maxId=[...(draft.readExtras||[]),...(draft.appExtras||[]),...(draft.lensExtras||[]),...(draft.finExtras||[]),...(draft.funcExtras||[]),...(draft.wCaseExtras||[]),...(draft.wBeltExtras||[]),...(draft.wCrystalExtras||[]),...(draft.wFuncExtras||[])]
       .reduce((m,x)=>Math.max(m, Number(x.id)||0), 0);
     extraIdRef.current=Math.max(extraIdRef.current, maxId + 1);
   };
@@ -1172,6 +1188,7 @@ function App() {
     setTitleCandidates(draft.titleCandidates ?? []);
     setFinalTitleInput(draft.finalTitleInput ?? '');
     setSpecials(draft.specials ?? []);
+    setReadExtras(draft.readExtras ?? []);
     setWithItems(draft.withItems ?? []);
     setColor(draft.color ?? '');
     setSnType(draft.snType ?? '');
@@ -1235,6 +1252,7 @@ function App() {
     setTitleCandidates([]);
     setFinalTitleInput('');
     setSpecials([]);
+    setReadExtras([]);
     setWithItems([]);
     setColor('');
     setSnType('');
@@ -1574,12 +1592,39 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     openChatGPT(chatText);
   };
 
+  const handleChatRead = extras => {
+    const inputs = extras.map((x,i)=>x.jp.trim() ? `Extra ${i+1}: ${x.jp.trim()}` : '').filter(Boolean);
+    const chatText = `あなたはeBayでカメラ・レンズを日本から海外に販売するセラーのアシスタントです。
+出品商品：${ebayTitle || titleCandidates[0] || '（未設定）'}
+
+以下の入力内容に応じて対応してください。
+■ 症状が明確に書かれている場合
+→ eBayバイヤー向けの自然な英語1文に変換してください。
+
+■ 質問・迷っている場合
+→ 出品商品名からカメラの構造・特徴を推測し、最適な英文表現を提案してください。
+最終的なゴールは「eBayバイヤー向けの自然な英語1文」です。
+
+【READ（購入前に必ず伝えたい注意点）の状態・質問】
+${inputs.length ? inputs.join('\n') : '（入力なし）'}
+
+【出力ルール・厳守】
+- 注意点を短く1文で。詳細説明ではなく要点だけ
+- 英文はコードブロック（\`\`\`）で囲んでコピペしやすく出力すること
+- 英文の直後に日本語で翻訳を1行添える
+- さらに1〜2文で簡単な解説（なぜその表現か・部位名の根拠など）を日本語で添える
+- 提案が複数ある場合は案1・案2の形で並べる
+- 前置きや締めの挨拶は不要
+- 出力の英文部分は「Fungus: 」などの項目名プレフィックスは含めず、英文本体のみをコードブロックに入れる`;
+    openChatGPT(chatText);
+  };
+
   const handleGenerate=async()=>{
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
         ? genWatchHTML({title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
-        : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen}));
+        : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen,readOn:specials.includes('READ'),readExtras}));
     }finally{setGenBusy(false);}
   };
 
@@ -1913,6 +1958,32 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
                 </div>
               ))}
             </div>
+
+            {specials.includes('READ') && (
+              <div>
+                <div className="input-label">READの中身</div>
+                <div className="extra-list">
+                  <button className="btn bsec bsm" disabled={readExtras.length>=5} onClick={()=>setReadExtras(p=>p.length>=5 ? p : [...p,{id:extraIdRef.current++,jp:'',en:'',ref:'なし'}])}>＋ 行を追加</button>
+                  {readExtras.map(x=>(
+                    <div key={x.id} className="extra-card">
+                      <div className="extra-head">
+                        <textarea value={x.jp} onChange={e=>updateExtra(setReadExtras,x.id,'jp',e.target.value)} placeholder="日本語で状態を入力、またはChatGPTに相談" />
+                        <button className="xbtn" onClick={()=>removeExtra(setReadExtras,x.id)}>✕</button>
+                      </div>
+                      <input type="text" value={x.en} onChange={e=>updateExtra(setReadExtras,x.id,'en',e.target.value)} placeholder="ChatGPTの英文をここに貼り付け" />
+                      <div className="input-label">どこの話か</div>
+                      <div className="chklist">
+                        {['Appearance','Optics','Functional','Bundled Items','なし'].map(ref=>(
+                          <div key={ref} className={`chkbtn ${(x.ref || 'なし')===ref?'on':''}`} onClick={()=>updateExtra(setReadExtras,x.id,'ref',ref)}><span className="dot" />{ref}</div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                  <button className="btn bblu bsm" onClick={()=>handleChatRead(readExtras)}>ChatGPTで相談</button>
+                </div>
+                {!readExtras.some(x=>x.en.trim()) && <div style={{color:'#C62828'}}>READの中身が未入力です（説明文に枠が出ません）</div>}
+              </div>
+            )}
 
             <div className="input-label">付属品 w/（任意）</div>
             <div className="chklist">
