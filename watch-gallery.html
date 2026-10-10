@@ -371,10 +371,10 @@ function yomokuChecks(v){
   const note=v?.['備考'];
   if(typeof note!=='string') return [];
   const kinds={
-    ratio:{icon:'',msg:'NMかEXC+5か、写真で慎重に判断しよう',why:'状態で上限が大きく変わる'},
-    range:{icon:'',msg:'売れた額に差がある。上限より控えめに入札しよう',why:'上限は真ん中の値。安く売れることもある'},
-    high:{icon:'',msg:'高額商品。リサーチは慎重に',why:'上限が8万円以上'},
-    usuk:{icon:'',msg:'国で相場が違う。上限は控えめに見よう',why:'USとUKで相場の差が大きい'},
+    ratio:{icon:'\u{1F50D}',msg:'NMかEXC+5か、写真で慎重に判断しよう',why:'状態で上限が大きく変わる'},
+    range:{icon:'\u{1F4C9}',msg:'売れた額に差がある。上限より控えめに入札しよう',why:'上限は真ん中の値。安く売れることもある'},
+    high:{icon:'\u{1F4B0}',msg:'高額商品。リサーチは慎重に',why:'上限が8万円以上'},
+    usuk:{icon:'\u{1F310}',msg:'国で相場が違う。上限は控えめに見よう',why:'USとUKで相場の差が大きい'},
     gyaku:{icon:'⚖️',msg:'EXC+5の上限は下げてある。状態をよく確かめよう',why:'EXC+5の相場がNear MINTより高かった'},
     other:{icon:'⚠',msg:'備考を確認しよう',why:''}
   };
