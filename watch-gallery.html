@@ -390,15 +390,24 @@ function yomokuChecks(v){
     return type==='other'?{...check,why:check.reasons.join('／')}:check;
   });
 }
+function iroCheck(v){
+  const check=v?.['色チェック'];
+  if(!check || typeof check!=='object' || Array.isArray(check)) return null;
+  const verdict=check['判定'];
+  if(verdict==='分けた' || verdict==='分ける予定') return {type:'iro',icon:'\u{1F3A8}',msg:'文字盤の色を写真で確かめよう',why:check['内容']};
+  if(verdict==='様子見') return {type:'iro',icon:'\u{1F3A8}',msg:'文字盤の色で値段が違うかも',why:check['内容']};
+  return null;
+}
 function YomokuChecks({v}){
-  const checks=yomokuChecks(v);
+  const iro=iroCheck(v);
+  const checks=[...(iro?[iro]:[]),...yomokuChecks(v)];
   if(!checks.length) return null;
-  return <section className="yomoku-box"><h3>⚠ 入札前にチェック</h3>{checks.map(check=><div className="yomoku-item" key={check.type}><span className="yomoku-icon">{check.icon}</span><div><div className="yomoku-msg">{check.msg}</div><p className="yomoku-why">{check.why}（{check.reasons.join('／')}）</p></div></div>)}</section>;
+  return <section className="yomoku-box"><h3>⚠ 入札前にチェック</h3>{checks.map(check=><div className="yomoku-item" key={check.type}><span className="yomoku-icon">{check.icon}</span><div><div className="yomoku-msg">{check.msg}</div><p className="yomoku-why">{check.why}{check.type!=='iro' && <>（{check.reasons.join('／')}）</>}</p></div></div>)}</section>;
 }
 function ResearchDetails({v}){
   const data=researchSnapshot(v);
   const unresearched=key=>v['調べた範囲']!=null && blank(v['調べた範囲'][key]);
-  return <section className="research-box"><h3>調査根拠</h3>{GRADES.map(([g,label])=><div key={g} className="research-grade"><b>{label}</b> <ResearchBadge value={data[g]['ラベル']}/><p>A：UK 90日 {unresearched('UK90日')?'未調査':<>{showValue(data[g]['a件数'])}件 / 中央値 {showValue(data[g]['a中央値'])}</>}</p><p>B：US 1年 {unresearched('US1年')?'未調査':<>{showValue(data[g]['b件数'])}件 / 中央値 {showValue(data[g]['b中央値'])}</>}</p><p>レンジ：{showValue(data[g]['最小'])} 〜 {showValue(data[g]['最大'])} / 採用元：{showValue(data[g]['採用元'])}</p></div>)}<p>調査日：{showValue(data['調査日'])}</p><p>その他件数：{OTHER_COUNTS.map(k=>`${k} ${showValue(data['その他件数'][k])}`).join(' / ')}</p><p style={{whiteSpace:'pre-wrap'}}>備考：{showValue(data['備考'])}</p><p className="bkmeta">調査データの追加・更新はブランド一覧の「調査JSON一括取り込み」から行えます。</p>{(v.researchHistory||[]).length>0 && <details><summary>変更履歴（{v.researchHistory.length}件）</summary>{[...v.researchHistory].reverse().map((h,i)=><details key={i}><summary>{h['日時']} / {h['操作']}</summary><ResearchDiff before={h['変更前']} after={h['変更後']}/></details>)}</details>}</section>;
+  return <section className="research-box"><h3>調査根拠</h3>{GRADES.map(([g,label])=><div key={g} className="research-grade"><b>{label}</b> <ResearchBadge value={data[g]['ラベル']}/><p>A：UK 90日 {unresearched('UK90日')?'未調査':<>{showValue(data[g]['a件数'])}件 / 中央値 {showValue(data[g]['a中央値'])}</>}</p><p>B：US 1年 {unresearched('US1年')?'未調査':<>{showValue(data[g]['b件数'])}件 / 中央値 {showValue(data[g]['b中央値'])}</>}</p><p>レンジ：{showValue(data[g]['最小'])} 〜 {showValue(data[g]['最大'])} / 採用元：{showValue(data[g]['採用元'])}</p></div>)}<p>調査日：{showValue(data['調査日'])}</p>{v['色チェック'] && <p>文字盤の色：{v['色チェック']['判定']}（{v['色チェック']['内容']}）調査日 {v['色チェック']['調査日']}</p>}<p>その他件数：{OTHER_COUNTS.map(k=>`${k} ${showValue(data['その他件数'][k])}`).join(' / ')}</p><p style={{whiteSpace:'pre-wrap'}}>備考：{showValue(data['備考'])}</p><p className="bkmeta">調査データの追加・更新はブランド一覧の「調査JSON一括取り込み」から行えます。</p>{(v.researchHistory||[]).length>0 && <details><summary>変更履歴（{v.researchHistory.length}件）</summary>{[...v.researchHistory].reverse().map((h,i)=><details key={i}><summary>{h['日時']} / {h['操作']}</summary><ResearchDiff before={h['変更前']} after={h['変更後']}/></details>)}</details>}</section>;
 }
 function ResearchImport({lines,onApply}){
   const [text,setText]=useState(''), [entries,setEntries]=useState(null), [targets,setTargets]=useState({}), [preview,setPreview]=useState(null), [message,setMessage]=useState('');
@@ -593,7 +602,7 @@ function App(){
         <p><span className="research-badge label-参考">参考</span> 実績が1〜2件。入札額は出ない（自分で決める）</p>
         <p><span className="research-badge label-なし">なし</span> 実績0件。仕入れない</p>
         <p className="legend-note">実績は、上限の計算に使った側（UK90日。3件未満ならUS1年）の落札数。外れ値は除く。「写真確認」の札のラインは、棚卸しで写真を見て数え直す。</p>
-        <p><span className="yomoku-tag">⚠ 入札前チェック</span> 調査で「要目視」になった型番。開くと何に気をつけるか出る</p>
+        <p><span className="yomoku-tag">⚠ 入札前チェック</span> 調査で「要目視」になった型番。開くと何に気をつけるか出る。{'\u{1F3A8}'}は文字盤の色で値段が分かれる型番（色を写真で確かめる）</p>
         <p className="legend-note">販売ドル＝その上限で仕入れたとき、目標の利益が出る売値（送料込み・DDP別）。</p>
       </aside>
       <div className="topbar">
@@ -774,14 +783,14 @@ function LinePage({line,onCommon,onKind,onPhotoCheck,onOpen,onAdd,onRename,onDel
       {displayVars.map(v=>{
         const cov = coverOf(v);
         const sold = soldCount(v);
-        const checks = yomokuChecks(v);
+        const checkCount = yomokuChecks(v).length + (iroCheck(v)?1:0);
         return (
           <div key={v.id} className={'vcard'+(v.ng?' isng':'')+(GRADES.some(([g])=>v[g]?.['ラベル']==='なし')?' research-blocked':'')} onClick={()=>onOpen(v)}>
             <div className="vimg">{cov ? <img src={srcOf(cov)} alt="" /> : '写真なし'}
               {v.noSales && <div className="vnosales">実績ゼロ</div>}
             </div>
             {v.ng && <div className="vng">買わない</div>}
-            {checks.length>0 && <div className="yomoku-tag">⚠ 入札前チェック {checks.length}</div>}
+            {checkCount>0 && <div className="yomoku-tag">⚠ 入札前チェック {checkCount}</div>}
             <div className="vfoot">
               <div className="vlabel">{v.label||''}</div>
               <div className="vsold">売れた件数 {sold === null ? '—' : `${sold}件`}</div>
