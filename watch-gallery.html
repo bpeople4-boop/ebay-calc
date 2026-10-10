@@ -36,6 +36,16 @@ body{color:var(--txt);font-family:var(--ui);font-size:14px;-webkit-text-size-adj
 .legend p{margin-bottom:6px}
 .legend .research-badge{margin-left:0;margin-right:4px}
 .legend-note{color:var(--mut);font-size:10.5px}
+.yomoku-tag{background:#fbbf24;color:#000;font-size:11px;font-weight:700;border-radius:10px;padding:3px 9px;display:inline-block}
+.vcard .yomoku-tag{position:absolute;top:8px;left:8px;z-index:2}
+.vcard.isng .yomoku-tag{top:34px}
+.yomoku-box{border:2px solid #fbbf24;background:rgba(251,191,36,.08);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.yomoku-box h3{color:#fbbf24;font-size:15px;font-weight:700;margin:0 0 10px}
+.yomoku-item{display:flex;gap:10px;padding:10px 0}
+.yomoku-item+.yomoku-item{border-top:1px solid rgba(251,191,36,.25)}
+.yomoku-icon{font-size:22px;flex:0 0 26px}
+.yomoku-msg{font-size:15px;font-weight:700}
+.yomoku-why{font-size:12px;color:#c7cbe0;margin-top:4px;overflow-wrap:anywhere}
 .legend.open{display:block;position:fixed;right:16px;top:60px;width:min(300px,calc(100vw - 32px));max-height:calc(100vh - 80px);overflow:auto;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.45)}
 .legend-backdrop{position:fixed;inset:0;z-index:35;background:transparent}
 @media(min-width:1560px){
@@ -357,6 +367,34 @@ function ResearchBadge({value}){
 function ResearchDiff({before,after}){
   return <div className="research-table"><table><thead><tr><th>項目</th><th>変更前</th><th>変更後</th></tr></thead><tbody>{researchDiff(before,after).map(r=><tr key={r.name} className={r.large?'research-large':r.changed?'research-changed':'research-same'}><th>{r.name}{r.large?'（10%以上変更）':''}</th><td>{r.before}</td><td>→ {r.after}</td></tr>)}</tbody></table></div>;
 }
+function yomokuChecks(v){
+  const note=v?.['備考'];
+  if(typeof note!=='string') return [];
+  const kinds={
+    ratio:{icon:'',msg:'NMかEXC+5か、写真で慎重に判断しよう',why:'状態で上限が大きく変わる'},
+    range:{icon:'',msg:'売れた額に差がある。上限より控えめに入札しよう',why:'上限は真ん中の値。安く売れることもある'},
+    high:{icon:'',msg:'高額商品。リサーチは慎重に',why:'上限が8万円以上'},
+    usuk:{icon:'',msg:'国で相場が違う。上限は控えめに見よう',why:'USとUKで相場の差が大きい'},
+    gyaku:{icon:'⚖️',msg:'EXC+5の上限は下げてある。状態をよく確かめよう',why:'EXC+5の相場がNear MINTより高かった'},
+    other:{icon:'⚠',msg:'備考を確認しよう',why:''}
+  };
+  const grouped={};
+  for(const match of note.matchAll(/要目視[：:]([^。\r\n]*)/g)){
+    const reason=match[1].trim();
+    const type=reason.includes('比')?'ratio':reason.includes('US')&&reason.includes('UK')?'usuk':reason.includes('幅')?'range':reason.includes('高額')?'high':reason.includes('逆転')||reason.includes('上回')?'gyaku':'other';
+    if(!grouped[type]) grouped[type]={type,...kinds[type],reasons:[]};
+    grouped[type].reasons.push(reason);
+  }
+  return ['ratio','range','high','usuk','gyaku','other'].filter(type=>grouped[type]).map(type=>{
+    const check=grouped[type];
+    return type==='other'?{...check,why:check.reasons.join('／')}:check;
+  });
+}
+function YomokuChecks({v}){
+  const checks=yomokuChecks(v);
+  if(!checks.length) return null;
+  return <section className="yomoku-box"><h3>⚠ 入札前にチェック</h3>{checks.map(check=><div className="yomoku-item" key={check.type}><span className="yomoku-icon">{check.icon}</span><div><div className="yomoku-msg">{check.msg}</div><p className="yomoku-why">{check.why}（{check.reasons.join('／')}）</p></div></div>)}</section>;
+}
 function ResearchDetails({v}){
   const data=researchSnapshot(v);
   const unresearched=key=>v['調べた範囲']!=null && blank(v['調べた範囲'][key]);
@@ -555,6 +593,7 @@ function App(){
         <p><span className="research-badge label-参考">参考</span> 実績が1〜2件。入札額は出ない（自分で決める）</p>
         <p><span className="research-badge label-なし">なし</span> 実績0件。仕入れない</p>
         <p className="legend-note">実績は、上限の計算に使った側（UK90日。3件未満ならUS1年）の落札数。外れ値は除く。「写真確認」の札のラインは、棚卸しで写真を見て数え直す。</p>
+        <p><span className="yomoku-tag">⚠ 入札前チェック</span> 調査で「要目視」になった型番。開くと何に気をつけるか出る</p>
         <p className="legend-note">販売ドル＝その上限で仕入れたとき、目標の利益が出る売値（送料込み・DDP別）。</p>
       </aside>
       <div className="topbar">
@@ -735,12 +774,14 @@ function LinePage({line,onCommon,onKind,onPhotoCheck,onOpen,onAdd,onRename,onDel
       {displayVars.map(v=>{
         const cov = coverOf(v);
         const sold = soldCount(v);
+        const checks = yomokuChecks(v);
         return (
           <div key={v.id} className={'vcard'+(v.ng?' isng':'')+(GRADES.some(([g])=>v[g]?.['ラベル']==='なし')?' research-blocked':'')} onClick={()=>onOpen(v)}>
             <div className="vimg">{cov ? <img src={srcOf(cov)} alt="" /> : '写真なし'}
               {v.noSales && <div className="vnosales">実績ゼロ</div>}
             </div>
             {v.ng && <div className="vng">買わない</div>}
+            {checks.length>0 && <div className="yomoku-tag">⚠ 入札前チェック {checks.length}</div>}
             <div className="vfoot">
               <div className="vlabel">{v.label||''}</div>
               <div className="vsold">売れた件数 {sold === null ? '—' : `${sold}件`}</div>
@@ -838,6 +879,7 @@ function VarPage({v,onSave,onCancel,onDelete}){
       </div>
 
       <div className="dform">
+        <YomokuChecks v={d}/>
         <ResearchDetails v={d}/>
         <label>呼び名（一覧に表示されます）</label>
         <input type="text" value={d.label||''} onChange={set('label')} placeholder="例：金×黒、チェンジベゼル など短く"/>
