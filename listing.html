@@ -233,8 +233,8 @@ const parseSpecPairs = text => String(text||'')
 const WATCH_MOVEMENTS = ['Quartz','Automatic','Hand-winding','Solar','Kinetic','Digital'];
 const WATCH_GENDERS = ["Men's","Women's",'Unisex'];
 const WATCH_ACCESSORIES = ['Box','Case','Papers','New Belt','Chain'];
-const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra Belt(s)','Chain','Watch Winder'];
-const WATCH_BUNDLE_LABELS_JP = {'Box':'箱','Case':'ケース','Warranty Card / Papers':'保証書・書類','Manual':'説明書','Extra Belt(s)':'予備ベルト','Chain':'チェーン','Watch Winder':'ワインダー'};
+const WATCH_BUNDLE_LIST = ['Box','Case','Warranty Card / Papers','Manual','Extra Belt(s)','Extra Links','Chain','Watch Winder'];
+const WATCH_BUNDLE_LABELS_JP = {'Box':'箱','Case':'ケース','Warranty Card / Papers':'保証書・書類','Manual':'説明書','Extra Belt(s)':'予備ベルト','Extra Links':'予備コマ','Chain':'チェーン','Watch Winder':'ワインダー'};
 const WATCH_ITEM_SPEC_AI_FIELDS = ['Brand','Department','Reference Number','Model','Features','Movement','Dial Color','Band Color','Case Color','Band Material','Case Material','Water Resistance','Year Manufactured','Case Size','Country of Origin','Watch Shape','Style','Caseback','Band Width','Lug Width','Indices','Band/Strap','Bezel Color'];
 const WATCH_ITEM_SPEC_FIXED_VALUES = {
 'Type': 'Wristwatch',
@@ -607,12 +607,17 @@ function genWatchHTML(d) {
   const cmRaw = String(d.wBeltSizeCm ?? '').trim();
   const cm = parseFloat(cmRaw);
   const hasCm = cmRaw && Number.isFinite(cm);
-  const beltSize = d.wBeltFree
+  let beltSize = d.wBeltFree
     ? (hasCm ? `Free (MAX ${esc(cmRaw)} cm / ${(cm*.3937).toFixed(2)} inch)` : 'Free')
     : (hasCm ? `${esc(cmRaw)} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free');
+  if(d.wBeltDiverExt && !d.wBeltFree && hasCm) beltSize += ' with the diver extension unfolded';
   const funcBase=d.wFuncDef ? `The watch has been checked and is working properly.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const functional=readInline('Functional') + [funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
-  const bundleLines=readInline('Bundled Items') + [...d.wBundles, ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
+  const extraLinksRaw=String(d.wExtraLinksCount ?? '').trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  const extraLinksCount=Number(extraLinksRaw);
+  const extraLinksLabel=/^[0-9]+$/.test(extraLinksRaw) && Number.isSafeInteger(extraLinksCount) && extraLinksCount>=1
+    ? `${extraLinksCount} Extra ${extraLinksCount===1?'Link':'Links'}` : 'Extra Links';
+  const bundleLines=readInline('Bundled Items') + [...d.wBundles.map(x=>x==='Extra Links'?extraLinksLabel:x), ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
   const readH = readLines.length ? `<div class="wt-read">
 <div class="wt-read-title">&#9888; PLEASE READ</div>
 <ul>
@@ -1133,10 +1138,12 @@ function App() {
   const [wCrystalOn,setWCrystalOn]=useState(true);
   const [wBeltSizeCm,setWBeltSizeCm]=useState('');
   const [wBeltFree,setWBeltFree]=useState(false);
+  const [wBeltDiverExt,setWBeltDiverExt]=useState(false);
   const [wFuncDef,setWFuncDef]=useState(true);
   const [wFuncExtras,setWFuncExtras]=useState([]);
   const [wBundles,setWBundles]=useState([]);
   const [wBundleOther,setWBundleOther]=useState('');
+  const [wExtraLinksCount,setWExtraLinksCount]=useState('');
 
   const [html,setHtml]=useState('');
   const [genBusy,setGenBusy]=useState(false);
@@ -1199,7 +1206,7 @@ function App() {
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,readExtras,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
     wReadOn,wReadExtras,wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
-    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wCrystalOn,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther,
+    wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wCrystalOn,wBeltSizeCm,wBeltFree,wBeltDiverExt,wFuncDef,wFuncExtras,wBundles,wBundleOther,wExtraLinksCount,
     specPasteText,specChecked,
   });
 
@@ -1252,8 +1259,8 @@ function App() {
     setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
     setWCaseChoice(draft.wCaseChoice ?? 'scuffs'); setWCaseExtras(draft.wCaseExtras ?? []);
     setWBeltChoice(draft.wBeltChoice ?? 'scuffs'); setWBeltExtras(draft.wBeltExtras ?? []);
-    setWCrystalExtras(draft.wCrystalExtras ?? []); setWCrystalOn(draft.wCrystalOn ?? true); setWBeltSizeCm(draft.wBeltSizeCm ?? ''); setWBeltFree(!!draft.wBeltFree);
-    setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []); setWBundleOther(draft.wBundleOther ?? '');
+    setWCrystalExtras(draft.wCrystalExtras ?? []); setWCrystalOn(draft.wCrystalOn ?? true); setWBeltSizeCm(draft.wBeltSizeCm ?? ''); setWBeltFree(!!draft.wBeltFree); setWBeltDiverExt(!!draft.wBeltDiverExt);
+    setWFuncDef(draft.wFuncDef ?? true); setWBundles(draft.wBundles ?? []); setWBundleOther(draft.wBundleOther ?? ''); setWExtraLinksCount(draft.wExtraLinksCount ?? '');
     setWFuncExtras(draft.wFuncExtras ?? []);
     setItemSpecifics(draft.itemSpecifics ?? {});
     setHtml(draft.html ?? '');
@@ -1315,7 +1322,7 @@ function App() {
     setWSlotSize(''); setWSlotDial(''); setWSlotWater(''); setWSlotMaterial(''); setWSlotFunction(''); setWSlotDecoration('');
     setWMovement('Quartz'); setWGender("Women's"); setWAccessories([]); setWSerial('');
     setWCaseChoice('scuffs'); setWCaseExtras([]); setWBeltChoice('scuffs'); setWBeltExtras([]);
-    setWCrystalExtras([]); setWBeltSizeCm(''); setWBeltFree(false); setWFuncDef(true); setWBundles([]); setWBundleOther('');
+    setWCrystalExtras([]); setWBeltSizeCm(''); setWBeltFree(false); setWBeltDiverExt(false); setWFuncDef(true); setWBundles([]); setWBundleOther(''); setWExtraLinksCount('');
     setWFuncExtras([]);
     setPhotos([]);
     setItemSpecifics({});
@@ -1688,7 +1695,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({wReadOn,wReadExtras,title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wFuncDef,wFuncExtras,wBundles,wBundleOther})
+        ? genWatchHTML({wReadOn,wReadExtras,title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wBeltDiverExt,wFuncDef,wFuncExtras,wBundles,wBundleOther,wExtraLinksCount})
         : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen,readOn:specials.includes('READ'),readExtras}));
     }finally{setGenBusy(false);}
   };
@@ -2225,6 +2232,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
             <div className="sec">
               <div className="sttl">Belt Size</div>
               <div className="chklist"><div className={`chkbtn ${wBeltFree?'on':''}`} onClick={()=>setWBeltFree(p=>!p)}><span className="dot" />Free</div></div>
+              <div className="fcol" style={{marginTop:6}}><div className={`fopt2 ${wBeltDiverExt?'on':''}`} onClick={()=>setWBeltDiverExt(p=>!p)}><span className="en">with the diver extension unfolded</span><span className="jp">ダイバーエクステンションを広げた状態のサイズ（Freeオフのときだけ有効）</span></div></div>
               <input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5" style={{marginTop:4}} />
               <div className="note">cm単位。未入力＝Free / 数値のみ＝実寸表記 / Free＋数値＝「Free (MAX ○cm / ○inch)」</div>
               <div className="note" style={{marginTop:4,color:'var(--acc)'}}>
@@ -2232,12 +2240,12 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
                   const raw=String(wBeltSizeCm ?? '').trim();
                   const cm=parseFloat(raw);
                   const has=raw && Number.isFinite(cm);
-                  return wBeltFree ? (has?`Free (MAX ${raw} cm / ${(cm*.3937).toFixed(2)} inch)`:'Free') : (has?`${raw} cm (${(cm*.3937).toFixed(2)} inch)`:'Free');
+                  return wBeltFree ? (has?`Free (MAX ${raw} cm / ${(cm*.3937).toFixed(2)} inch)`:'Free') : (has?`${raw} cm (${(cm*.3937).toFixed(2)} inch)${wBeltDiverExt?' with the diver extension unfolded':''}`:'Free');
                 })()}
               </div>
             </div>
             <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
-            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div><div className="input-label" style={{marginTop:8}}>その他（カンマ区切りで自由入力）</div><input type="text" value={wBundleOther} onChange={e=>setWBundleOther(e.target.value)} placeholder="Extra Winder, Spare Pin" /></div>
+            <div className="sec"><div className="sttl">Bundled Items</div><div className="bgrid">{WATCH_BUNDLE_LIST.map(x=><div key={x} className={`bi ${wBundles.includes(x)?'on':''}`} onClick={()=>toggleWatchBundle(x)}><input type="checkbox" readOnly checked={wBundles.includes(x)}/><span className="bilbl">{x}{WATCH_BUNDLE_LABELS_JP[x]?`（${WATCH_BUNDLE_LABELS_JP[x]}）`:''}</span></div>)}</div>{wBundles.includes('Extra Links') && <><div className="input-label" style={{marginTop:8}}>予備コマの数（空欄なら数なしで表示）</div><input type="text" value={wExtraLinksCount} onChange={e=>setWExtraLinksCount(e.target.value)} placeholder="2" style={{width:80}} /></>}<div className="input-label" style={{marginTop:8}}>その他（カンマ区切りで自由入力）</div><input type="text" value={wBundleOther} onChange={e=>setWBundleOther(e.target.value)} placeholder="Extra Winder, Spare Pin" /></div>
           </>}
 
         </div>
