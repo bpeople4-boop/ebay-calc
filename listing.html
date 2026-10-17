@@ -611,6 +611,20 @@ function splitWatchBundleOther(value) {
   return items;
 }
 
+function normalizeBeltSizeCm(value) {
+  const raw = String(value ?? '').trim();
+  return /^[+-]?\d+$/.test(raw) ? `${raw}.0` : value;
+}
+
+function formatWatchBeltSize({wBeltSizeCm,wBeltFree,wBeltDiverExt}) {
+  const raw = String(normalizeBeltSizeCm(wBeltSizeCm) ?? '').trim();
+  const cm = parseFloat(raw);
+  const hasCm = raw && Number.isFinite(cm);
+  if(!hasCm) return 'Free';
+  if(wBeltFree) return `Free (MAX ${raw} cm / ${(cm*.3937).toFixed(2)} inch)`;
+  return `${raw} cm (${(cm*.3937).toFixed(2)} inch)${wBeltDiverExt?' with the diver extension unfolded':''}`;
+}
+
 function genWatchHTML(d) {
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const readLines = d.wReadOn ? (d.wReadExtras || []).filter(x=>x.en.trim()) : [];
@@ -619,13 +633,7 @@ function genWatchHTML(d) {
   const caseText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minor scratches from normal use.',signs:'Some light scuffs are visible upon close inspection.'}[d.wCaseChoice] || '';
   const beltText={beautiful:'Pristine condition with barely any signs of use.',scuffs:'Beautiful condition with minimal signs of wear.',signs:'Shows slight signs of wear due to normal use.'}[d.wBeltChoice] || '';
   const crystalText = d.wCrystalOn===false ? '' : 'Crystal is clear and beautiful.';
-  const cmRaw = String(d.wBeltSizeCm ?? '').trim();
-  const cm = parseFloat(cmRaw);
-  const hasCm = cmRaw && Number.isFinite(cm);
-  let beltSize = d.wBeltFree
-    ? (hasCm ? `Free (MAX ${esc(cmRaw)} cm / ${(cm*.3937).toFixed(2)} inch)` : 'Free')
-    : (hasCm ? `${esc(cmRaw)} cm (${(cm*.3937).toFixed(2)} inch)` : 'Free');
-  if(d.wBeltDiverExt && !d.wBeltFree && hasCm) beltSize += ' with the diver extension unfolded';
+  const beltSize = esc(formatWatchBeltSize(d));
   const funcBase=d.wFuncDef ? `The watch has been checked and is working properly.<br>\n<span style="font-size:13.5px;color:#B0B0B0;">*If battery-powered, please note there is a small chance the battery may run out during transit. In that case, please replace the battery.</span>` : '';
   const functional=readInline('Functional') + [funcBase, extraLines(d.wFuncExtras||[])].filter(Boolean).join('<br>\n');
   const extraLinksRaw=String(d.wExtraLinksCount ?? '').trim().replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
@@ -1179,6 +1187,7 @@ function App() {
   const [genBusy,setGenBusy]=useState(false);
   const [copied,setCopied]=useState(false);
   const [finalTitleCopied,setFinalTitleCopied]=useState(false);
+  const [beltSizeCopied,setBeltSizeCopied]=useState(false);
   const [finalTitleConfirmed,setFinalTitleConfirmed]=useState(false);
   const [itemSpecifics,setItemSpecifics]=useState({});
   const [currentDraftId,setCurrentDraftId]=useState(null);
@@ -2266,15 +2275,10 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
               <div className="sttl">Belt Size</div>
               <div className="chklist"><div className={`chkbtn ${wBeltFree?'on':''}`} onClick={()=>setWBeltFree(p=>!p)}><span className="dot" />Free</div></div>
               <div className="fcol" style={{marginTop:6}}><div className={`fopt2 ${wBeltDiverExt?'on':''}`} onClick={()=>setWBeltDiverExt(p=>!p)}><span className="en">with the diver extension unfolded</span><span className="jp">ダイバーエクステンションを広げた状態のサイズ（Freeオフのときだけ有効）</span></div></div>
-              <input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} placeholder="16.5" style={{marginTop:4}} />
+              <input type="text" value={wBeltSizeCm} onChange={e=>setWBeltSizeCm(e.target.value)} onBlur={()=>setWBeltSizeCm(p=>normalizeBeltSizeCm(p))} placeholder="16.5" style={{marginTop:4}} />
               <div className="note">cm単位。未入力＝Free / 数値のみ＝実寸表記 / Free＋数値＝「Free (MAX ○cm / ○inch)」</div>
               <div className="note" style={{marginTop:4,color:'var(--acc)'}}>
-                出力プレビュー：{(()=>{
-                  const raw=String(wBeltSizeCm ?? '').trim();
-                  const cm=parseFloat(raw);
-                  const has=raw && Number.isFinite(cm);
-                  return wBeltFree ? (has?`Free (MAX ${raw} cm / ${(cm*.3937).toFixed(2)} inch)`:'Free') : (has?`${raw} cm (${(cm*.3937).toFixed(2)} inch)${wBeltDiverExt?' with the diver extension unfolded':''}`:'Free');
-                })()}
+                <span style={{whiteSpace:'nowrap'}}>出力プレビュー：{formatWatchBeltSize({wBeltSizeCm,wBeltFree,wBeltDiverExt})}<button type="button" className={`spec-copy-btn ${beltSizeCopied?'done':''}`} style={{position:'static',transform:'none',display:'inline-flex',verticalAlign:'middle',marginLeft:6,width:'auto',minWidth:24,padding:'0 5px'}} title="Belt Sizeをコピー" onClick={()=>copyText(formatWatchBeltSize({wBeltSizeCm,wBeltFree,wBeltDiverExt})).then(()=>{setBeltSizeCopied(true);setTimeout(()=>setBeltSizeCopied(false),2500);})}>{beltSizeCopied?'コピー済み':'⧉'}</button></span>
               </div>
             </div>
             <div className="sec"><div className="sttl">Functional</div><div className={`fopt ${wFuncDef?'on':''}`} onClick={()=>setWFuncDef(p=>!p)}>✓ It works properly.</div><ExtraEditor extras={wFuncExtras} onAdd={()=>addExtra(setWFuncExtras)} onUpdate={(id,f,v)=>updateExtra(setWFuncExtras,id,f,v)} onRemove={id=>removeExtra(setWFuncExtras,id)} onChat={()=>handleChatFunctional(wFuncExtras)} presets={WATCH_FUNC_PRESETS} onAddPreset={p=>addPresetExtra(setWFuncExtras,p)}/></div>
