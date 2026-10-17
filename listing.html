@@ -596,6 +596,21 @@ async function uploadToCloudinary(base64) {
   return data.secure_url;
 }
 
+function splitWatchBundleOther(value) {
+  let depth=0, current='';
+  const items=[];
+  for(const char of value || '') {
+    if(char==='(' || char==='（') depth++;
+    if(char===')' || char==='）') depth=Math.max(0,depth-1);
+    if(depth===0 && /[,，、]/.test(char)) {
+      if(current.trim()) items.push(current.trim());
+      current='';
+    } else current+=char;
+  }
+  if(current.trim()) items.push(current.trim());
+  return items;
+}
+
 function genWatchHTML(d) {
   const esc = value => String(value ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const readLines = d.wReadOn ? (d.wReadExtras || []).filter(x=>x.en.trim()) : [];
@@ -617,7 +632,7 @@ function genWatchHTML(d) {
   const extraLinksCount=Number(extraLinksRaw);
   const extraLinksLabel=/^[0-9]+$/.test(extraLinksRaw) && Number.isSafeInteger(extraLinksCount) && extraLinksCount>=1
     ? `${extraLinksCount} Extra ${extraLinksCount===1?'Link':'Links'}` : 'Extra Links';
-  const bundleLines=readInline('Bundled Items') + [...d.wBundles.map(x=>x==='Extra Links'?extraLinksLabel:x), ...(d.wBundleOther||'').split(',').map(s=>s.trim()).filter(Boolean)].map(x=>`-${esc(x)}`).join('<br>\n');
+  const bundleLines=readInline('Bundled Items') + [...d.wBundles.map(x=>x==='Extra Links'?extraLinksLabel:x), ...splitWatchBundleOther(d.wBundleOther)].map(x=>`-${esc(x)}`).join('<br>\n');
   const readH = readLines.length ? `<div class="wt-read">
 <div class="wt-read-title">&#9888; PLEASE READ</div>
 <ul>
@@ -717,7 +732,7 @@ ${SELLER_STATS.map(stat => `<span class="wt-sat-stat-item">${stat}</span>`).join
 </div>
 <div class="wt-hdr"><img class="wt-hdr-pc" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784906670/Ah5_description_pc_z39sdb.png" alt="Description"><img class="wt-hdr-mobile" src="https://res.cloudinary.com/dlsmimq4x/image/upload/v1784423312/description_1_r4h4lu.png" alt="Description"></div>
 <div class="wt-body">
-<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(HTML_CONDITION_MAP[d.cond] || d.cond)}</td><td>${esc(d.wRefNumber)||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
+<table><tr><th>Total Condition</th><th>Model Number</th><th>Serial Number</th></tr><tr><td class="wt-emph">${esc(HTML_CONDITION_MAP[d.cond] || d.cond)}</td><td>${esc((d.wRefNumber||'').trim() || (d.model||'').trim())||'—'}</td><td>${esc(d.wSerial)||'—'}</td></tr></table>
 <h3>Appearance</h3>
 <p>[Case]<br>${readInline('Case')}${[caseText, extraLines(d.wCaseExtras)].filter(Boolean).join('<br>')}</p>
 <p>[Crystal]<br>${readInline('Crystal')}${[crystalText, extraLines(d.wCrystalExtras)].filter(Boolean).join('<br>')}</p>
@@ -899,6 +914,20 @@ function buildTitleAuto({cond, specials, withItems, color, snType, snValue, bran
   return makeTitle(steps[steps.length - 1]);
 }
 
+function watchReferenceForTitle(line, reference) {
+  const ref=(reference||'').trim();
+  const text=(line||'').trim().toLowerCase(), target=ref.toLowerCase();
+  if(!ref || text===target) return '';
+  let start=text.indexOf(target);
+  while(start!==-1) {
+    const end=start+target.length;
+    if((start===0 || !/[\p{L}\p{N}_]/u.test(text[start-1])) &&
+       (end===text.length || !/[\p{L}\p{N}_]/u.test(text[end]))) return '';
+    start=text.indexOf(target,start+1);
+  }
+  return ref;
+}
+
 function buildWatchTitleAuto(d) {
   const modifier = {
     vintage:'Vintage', vintageYear:`Vintage ${d.wModifierYear.trim()}`,
@@ -907,10 +936,10 @@ function buildWatchTitleAuto(d) {
   const slots = [normalizeMm(d.wSlotSize),d.wSlotDial,d.wSlotWater,d.wSlotMaterial,d.wSlotFunction,d.wSlotDecoration].map(x=>(x||'').trim()).filter(Boolean);
   const makeTitle = ({shortMovement=false,slotCount=slots.length,keepAccessories=true}={}) => {
     const condition = keepAccessories && d.wAccessories.length
-      ? `${d.cond} w/${d.wAccessories.join(', ')}` : d.cond;
+      ? `[${d.cond} w/${d.wAccessories.join(', ')}]` : `[${d.cond}]`;
     const movement = shortMovement
       ? ({Quartz:'Qz',Automatic:'Auto'}[d.wMovement] || d.wMovement) : d.wMovement;
-    return [d.wReadOn ? 'READ' : '',modifier,condition,d.brand.trim(),d.model.trim(),d.wRefNumber.trim(),
+    return [d.wReadOn ? 'READ' : '',modifier,condition,d.brand.trim(),d.model.trim(),watchReferenceForTitle(d.model,d.wRefNumber),(d.wFeature||'').trim(),
       ...slots.slice(0,slotCount),movement,d.wGender,'Watch'].filter(Boolean).join(' ').replace(/\s+/g,' ').trim();
   };
   let title=makeTitle();
@@ -1120,6 +1149,7 @@ function App() {
   const [wModifier,setWModifier]=useState('none');
   const [wModifierYear,setWModifierYear]=useState('');
   const [wRefNumber,setWRefNumber]=useState('');
+  const [wFeature,setWFeature]=useState('');
   const [wSlotSize,setWSlotSize]=useState('');
   const [wSlotDial,setWSlotDial]=useState('');
   const [wSlotWater,setWSlotWater]=useState('');
@@ -1205,7 +1235,7 @@ function App() {
     category,pType,cond,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,lensOpen,finderOpen,
     funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,ebayTitle,titleCandidates,finalTitleInput,
     specials,readExtras,withItems,color,snType,snValue,brand,model,itemSpecifics,html,finalTitleConfirmed,
-    wReadOn,wReadExtras,wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
+    wReadOn,wReadExtras,wModifier,wModifierYear,wRefNumber,wFeature,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories,wSerial,
     wCaseChoice,wCaseExtras,wBeltChoice,wBeltExtras,wCrystalExtras,wCrystalOn,wBeltSizeCm,wBeltFree,wBeltDiverExt,wFuncDef,wFuncExtras,wBundles,wBundleOther,wExtraLinksCount,
     specPasteText,specChecked,
   });
@@ -1254,6 +1284,7 @@ function App() {
     setWReadExtras(draft.wReadExtras ?? []);
     setWModifier(draft.wModifier ?? 'none'); setWModifierYear(draft.wModifierYear ?? '');
     setWRefNumber(draft.wRefNumber ?? '');
+    setWFeature(draft.wFeature ?? '');
     setWSlotSize(draft.wSlotSize ?? ''); setWSlotDial(draft.wSlotDial ?? ''); setWSlotWater(draft.wSlotWater ?? ''); setWSlotMaterial(draft.wSlotMaterial ?? ''); setWSlotFunction(draft.wSlotFunction ?? ''); setWSlotDecoration(draft.wSlotDecoration ?? '');
     setWMovement(draft.wMovement ?? 'Quartz'); setWGender(draft.wGender ?? "Women's");
     setWAccessories(draft.wAccessories ?? []); setWSerial(draft.wSerial ?? '');
@@ -1361,12 +1392,12 @@ function App() {
 
   const handleGenTitle=()=>{
     setRtab('html');
-    if(!brand.trim() || !model.trim()) {
-      setTitleCandidates(['Brand and Model are required.']);
+    if(!brand.trim() || (isWatch ? !model.trim() && !wRefNumber.trim() : !model.trim())) {
+      setTitleCandidates([isWatch ? 'Brand and Line or Reference Number are required.' : 'Brand and Model are required.']);
       return;
     }
     const title=isWatch
-      ? buildWatchTitleAuto({wReadOn,cond,brand,model,wModifier,wModifierYear,wRefNumber,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories})
+      ? buildWatchTitleAuto({wReadOn,cond,brand,model,wModifier,wModifierYear,wRefNumber,wFeature,wSlotSize,wSlotDial,wSlotWater,wSlotMaterial,wSlotFunction,wSlotDecoration,wMovement,wGender,wAccessories})
       : buildTitleAuto({cond,specials,withItems,color,snType,snValue,brand,model});
     setTitleCandidates([title]);
   };
@@ -1463,7 +1494,7 @@ ${sold}`;
 - 最大80文字（半角スペースのみ使用）
 - 大文字ルール：基本的に各単語の先頭は大文字（例：Automatic, Black, Dial）
 - ただしSold検索結果に実際に出ている売れたタイトルの表記を最優先とする（ブランド・型番・ラインは慣習的な表記に従う）
-- 構造：{READ} {先頭修飾語} [{コンディション w/付属品}] {Brand} {Line/SubModel} {RefNumber} {可変枠：サイズ/ダイアル色/防水性能/素材/機能/装飾} {Movement} {Gender} Watch
+- 構造：{READ} {先頭修飾語} [{コンディション w/付属品}] {Brand} {Line/SubModel} {RefNumber} {特徴ワード} {可変枠：サイズ/ダイアル色/防水性能/素材/機能/装飾} {Movement} {Gender} Watch
 - READ（ある場合）はタイトルの一番前。先頭修飾語より前
 - 先頭修飾語（Vintage / Vintage [年号] / Rare / Rare Vintage）は任意で、コンディションの前
 - Movement→Genderの順（例：Quartz Men's Watch）
@@ -1473,8 +1504,9 @@ ${sold}`;
   1. Movementを短縮形にする（Quartz→Qz、Automatic→Auto）
   2. 可変枠（サイズ・ダイアル色・防水性能・素材・機能・装飾）は、Sold検索結果の売れたタイトルに出てくる回数が少ないものから削除
   3. 付属品（w/以降）を削除
+- 特徴ワードは可変枠より優先して残す（可変枠を先に削る）
 - 絶対に削除しない：READ（ある場合）・先頭修飾語（ある場合）・コンディション・Brand・Model・Movement・Gender・Watch
-- Brand・Model・RefNumberは入力文字列をそのまま使用（補完・変更禁止）
+- Brand・Model・RefNumber・特徴ワードは入力文字列の綴りと中身をそのまま使用（補完・変更禁止）。ただし大文字・小文字の表記だけは、Sold検索結果の売れたタイトルの慣習に合わせてよい（例：fendi → FENDI）
 - タイトル候補に書かれていない付属品（Box・Papers・Case・New Belt など）は、Sold検索結果に多く出ていても足さない
 
 出力形式：
@@ -1695,7 +1727,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
     setGenBusy(true); setRtab('html');
     try{
       setHtml(isWatch
-        ? genWatchHTML({wReadOn,wReadExtras,title:ebayTitle,cond,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wBeltDiverExt,wFuncDef,wFuncExtras,wBundles,wBundleOther,wExtraLinksCount})
+        ? genWatchHTML({wReadOn,wReadExtras,title:ebayTitle,cond,model,wRefNumber,wSerial,wCaseChoice,wCaseExtras,wCrystalExtras,wCrystalOn,wBeltChoice,wBeltExtras,wBeltSizeCm,wBeltFree,wBeltDiverExt,wFuncDef,wFuncExtras,wBundles,wBundleOther,wExtraLinksCount})
         : genHTML({title:ebayTitle,pType,cond,condFree,serialBody,serialLens,hasLensSerial,appChoice,appExtras,lensOp,finOp,funcDef,funcCus,lensExtras,finExtras,funcExtras,bundles,noCharger,lensOpen,finderOpen,readOn:specials.includes('READ'),readExtras}));
     }finally{setGenBusy(false);}
   };
@@ -1798,7 +1830,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
   const titleTools = titleCandidates.length>0 && (
     <div className="title-cands" style={{marginTop:12}}>
       {titleCandidates.map((t,i)=>{
-        const isError=t.startsWith('Error:')||t.startsWith('Brand and Model');
+        const isError=t.startsWith('Error:')||t.startsWith('Brand and ');
         const chars=t.length;
         return (
           <div key={i} className="cand">
@@ -1814,7 +1846,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
           </div>
         );
       })}
-      {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and Model')&&(
+      {titleCandidates[0]&&!titleCandidates[0].startsWith('Error:')&&!titleCandidates[0].startsWith('Brand and ')&&(
         <>
           <label className="input-label" htmlFor="sold-text" style={{display:'block'}}>Sold検索結果を貼り付け（eBayのSold画面でCtrl+A → Ctrl+C）</label>
           <textarea
@@ -2196,6 +2228,7 @@ ${inputs.length ? inputs.join('\n') : '（入力なし）'}
               <div className="input-label">Brand</div><input type="text" value={brand} onChange={e=>setBrand(e.target.value)} placeholder="RADO / SEIKO / Longines ..." />
               <div className="input-label">Line / SubModel</div><input type="text" value={model} onChange={e=>setModel(e.target.value)} placeholder="DiaStar" />
               <div className="input-label">Reference Number</div><input type="text" value={wRefNumber} onChange={e=>setWRefNumber(e.target.value)} />
+              <div className="input-label" style={{marginTop:8}}>特徴ワード（自由入力）</div><input type="text" value={wFeature} onChange={e=>setWFeature(e.target.value)} placeholder="5 Colors Change Belts" />
               <div className="input-label">サイズ</div><div className="chklist">{WATCH_SLOT_PRESETS.size.map(x=><div key={x} className={`chkbtn ${wSlotSize===x?'on':''}`} onClick={()=>setWSlotSize(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotSize} onChange={e=>setWSlotSize(e.target.value)} onBlur={()=>setWSlotSize(p=>normalizeMm(p))} placeholder="28（mmは省略可）" style={{marginTop:4}} />
               <div className="input-label" style={{marginTop:8}}>ダイアル色</div><div className="chklist">{WATCH_SLOT_PRESETS.dial.map(x=><div key={x} className={`chkbtn ${wSlotDial===x?'on':''}`} onClick={()=>setWSlotDial(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotDial} onChange={e=>setWSlotDial(e.target.value)} placeholder="Gold Dial" style={{marginTop:4}} />
               <div className="input-label" style={{marginTop:8}}>防水性能</div><div className="chklist">{WATCH_SLOT_PRESETS.water.map(x=><div key={x} className={`chkbtn ${wSlotWater===x?'on':''}`} onClick={()=>setWSlotWater(x)}><span className="dot" />{x}</div>)}</div><input type="text" value={wSlotWater} onChange={e=>setWSlotWater(e.target.value)} placeholder="100m" style={{marginTop:4}} />
