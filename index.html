@@ -451,15 +451,38 @@ function calcBundle(leader, members) {
   return calcFull(leader, totalCost);
 }
 
+/* 再出品・分割・まとめ売りを含めた在庫金額の計算（v3.4）
+   ・再出品の商品は、元の商品から引き継いだ金額＋自分の転送送料
+   ・元がまとめ売りのリーダーなら、自分で再出品されていないメンバーの分も引き継ぐ
+   ・再出品を分割した商品は、分割時に割り当てた金額（relistShare）＋自分の転送送料 */
+function makeStockValue(items) {
+  const byId = new Map(items.map(i => [i.id, i]));
+  const relistedIds = new Set(items.filter(i => i.relistFromId).map(i => i.relistFromId));
+  const membersOf = l => items.filter(m => m.bundleGroupId === l.bundleGroupId && !m.isBundleLeader);
+  const costOf = i => (+i.cost||0) + (+i.storageShipping||0);
+  const hasShare = i => i.relistShare !== undefined && i.relistShare !== null && i.relistShare !== "";
+  const passOn = (p, seen) => {
+    if (seen.has(p.id)) return 0;
+    seen.add(p.id);
+    let v = stockValue(p, seen);
+    if (p.isBundleLeader) v += membersOf(p).filter(m => !relistedIds.has(m.id)).reduce((s, m) => s + stockValue(m, seen), 0);
+    return v;
+  };
+  const stockValue = (i, seen = new Set()) => {
+    if (hasShare(i)) return (+i.relistShare||0) + (+i.storageShipping||0);
+    if (i.relistFromId && byId.has(i.relistFromId)) return passOn(byId.get(i.relistFromId), seen) + costOf(i);
+    return costOf(i);
+  };
+  return stockValue;
+}
+
 /* 基準日（YYYY-MM-DD）時点の在庫を計算する（絞り込み検索の基準日在庫モード用） */
 function calcStockAt(items, baseDate) {
   const okDate = d => !!d && !String(d).startsWith("1900");
   const byId = new Map(items.map(i => [i.id, i]));
   const relistedIds = new Set(items.filter(i => i.relistFromId).map(i => i.relistFromId));
   const membersOf = l => items.filter(m => m.bundleGroupId === l.bundleGroupId && !m.isBundleLeader);
-  const costOf = i => (+i.cost||0) + (+i.storageShipping||0);
-  /* 再出品をさかのぼって元の商品を返す */
-  const rootOf = i => { let cur = i; const seen = new Set(); while (cur.relistFromId && byId.has(cur.relistFromId) && !seen.has(cur.id)) { seen.add(cur.id); cur = byId.get(cur.relistFromId); } return cur; };
+  const stockValue = makeStockValue(items);
   /* 個々の商品の仕入れ・損切り条件（in / out / unknown） */
   const ownState = i => {
     if (i.status === "purchaseReturned") return "out";
@@ -476,16 +499,17 @@ function calcStockAt(items, baseDate) {
     if (i.status === "sold") return "unknown";
     return "in";
   };
-  /* 再出品された商品は元の商品の仕入れ値で数える（元がまとめ売りならメンバー込み） */
-  const relistValue = i => { const r = rootOf(i); return r.isBundleLeader ? [r, ...membersOf(r)].reduce((s, m) => s + costOf(m), 0) : costOf(r); };
   const rows = [];
   items.filter(i => !i.bundleGroupId || i.isBundleLeader).forEach(i => {
     const ss = saleState(i);
     if (ss === "out") return;
-    const group = i.isBundleLeader ? [i, ...membersOf(i)] : [i];
+    const afterReturn = i.status === "returned" && okDate(i.returnDate) && baseDate >= i.returnDate;
+    let group = i.isBundleLeader ? [i, ...membersOf(i)] : [i];
+    /* 返品後、自分で再出品されたメンバーは元のまとめ売りから外す（再出品側で数える） */
+    if (afterReturn) group = group.filter(m => m === i || !relistedIds.has(m.id));
     let value = 0, inCount = 0, unknown = ss === "unknown";
     const parts = [];
-    group.forEach(m => { const os = ownState(m); if (os === "unknown") unknown = true; if (os !== "in") return; inCount++; const v = (m === i && i.relistFromId) ? relistValue(i) : costOf(m); value += v; parts.push({ item: m, value: v }); });
+    group.forEach(m => { const os = ownState(m); if (os === "unknown") unknown = true; if (os !== "in") return; inCount++; const v = stockValue(m); value += v; parts.push({ item: m, value: v }); });
     if (unknown) rows.push({ item: i, value: 0, unknown: true });
     else if (inCount > 0) rows.push({ item: i, value, unknown: false, parts });
   });
@@ -1427,26 +1451,28 @@ function ReturnModal({ item, onConfirm, onClose }) {
 // ═══════════════════════════════════════════════════════════════
 // Split Modal
 // ═══════════════════════════════════════════════════════════════
-function SplitModal({ item, onConfirm, onClose }) {
+function SplitModal({ item, stockBase = null, onConfirm, onClose }) {
+  const isRelist = stockBase !== null;
   const [count, setCount] = useState(2);
   const [parts, setParts] = useState([
-    { name: item.productName + " ①", cost: Math.floor((+item.cost||0)/2) },
-    { name: item.productName + " ②", cost: Math.ceil((+item.cost||0)/2) },
+    { name: item.productName + " ①", cost: isRelist ? 0 : Math.floor((+item.cost||0)/2), ...(isRelist ? { share: stockBase - Math.floor(stockBase/2) } : {}) },
+    { name: item.productName + " ②", cost: isRelist ? 0 : Math.ceil((+item.cost||0)/2), ...(isRelist ? { share: Math.floor(stockBase/2) } : {}) },
   ]);
   const updateCount = (n) => {
     const c = Math.max(2, Math.min(10, +n));
-    const base = Math.floor((+item.cost||0) / c);
-    const extra = (+item.cost||0) - base * c;
+    const base = Math.floor((isRelist ? stockBase : (+item.cost||0)) / c);
+    const extra = (isRelist ? stockBase : (+item.cost||0)) - base * c;
     const nums = ["①","②","③","④","⑤","⑥","⑦","⑧","⑨","⑩"];
-    setParts(Array.from({ length:c }, (_, i) => ({ name: item.productName + ` ${nums[i]||`(${i+1})`}`, cost: i === 0 ? base + extra : base })));
+    setParts(Array.from({ length:c }, (_, i) => ({ name: item.productName + ` ${nums[i]||`(${i+1})`}`, cost: isRelist ? 0 : (i === 0 ? base + extra : base), ...(isRelist ? { share: i === 0 ? base + extra : base } : {}) })));
     setCount(c);
   };
   const setPart = (i, k, v) => setParts(p => p.map((x,idx) => idx===i ? {...x,[k]:v} : x));
-  const totalCost = parts.reduce((s,p) => s + (+p.cost||0), 0);
-  const origCost = +item.cost || 0;
+  const totalCost = parts.reduce((s,p) => s + (+(isRelist ? p.share : p.cost)||0), 0);
+  const origCost = isRelist ? stockBase : +item.cost || 0;
   const diff = totalCost - origCost;
   return (
     <Modal title={`セット分割：${item.productName}`} onClose={onClose} width={500}>
+      {isRelist && <p style={{ fontFamily:C.jp, fontSize:12, color:C.textSub }}>再出品の商品です。原価は0円のまま（返品のときに損失として計上済み）で、在庫の金額だけを分けます。</p>}
       <div style={{ marginBottom:16 }}>
         <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:16 }}>
           <span style={{ fontFamily:C.jp, fontSize:13, color:C.textSub }}>分割数</span>
@@ -1459,15 +1485,16 @@ function SplitModal({ item, onConfirm, onClose }) {
             <div key={i} style={{ display:"grid", gridTemplateColumns:"1fr auto", gap:10, alignItems:"center", padding:"10px 12px", background:C.bg, borderRadius:9, border:`1px solid ${C.border}` }}>
               <input style={inpS({ background:"#fff", fontSize:13 })} type="text" value={p.name} onChange={e=>setPart(i,"name",e.target.value)} placeholder="商品名" />
               <div style={{ display:"flex", alignItems:"center", gap:6, flexShrink:0 }}>
+                {isRelist && <span style={{ color:C.muted, fontSize:12, fontFamily:C.jp }}>在庫の金額</span>}
                 <span style={{ color:C.muted, fontSize:12, fontFamily:C.num }}>¥</span>
-                <input style={inpS({ width:100, background:"#fff", fontSize:13 })} type="text" inputMode="decimal" value={p.cost} onChange={e=>setPart(i,"cost",e.target.value)} />
+                <input style={inpS({ width:100, background:"#fff", fontSize:13 })} type="text" inputMode="decimal" value={isRelist ? p.share : p.cost} onChange={e=>setPart(i,isRelist ? "share" : "cost",e.target.value)} />
               </div>
             </div>
           ))}
         </div>
         <div style={{ marginTop:12, padding:"10px 14px", borderRadius:9, background: diff===0 ? C.greenLo : C.amberLo, border:`1px solid ${diff===0?C.green:C.amber}40` }}>
           <div style={{ display:"flex", justifyContent:"space-between", fontFamily:C.num, fontSize:13 }}>
-            <span style={{ color:C.textSub, fontFamily:C.jp }}>元の原価</span><span>{yen(origCost)}</span>
+            <span style={{ color:C.textSub, fontFamily:C.jp }}>{isRelist ? "元の在庫金額" : "元の原価"}</span><span>{yen(origCost)}</span>
           </div>
           <div style={{ display:"flex", justifyContent:"space-between", fontFamily:C.num, fontSize:13, marginTop:4 }}>
             <span style={{ color:C.textSub, fontFamily:C.jp }}>配分合計</span>
@@ -3630,7 +3657,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
     return true;
   }) : fStatus==="all" ? filtered.filter(i => i.status==="returned" && (!i.bundleGroupId||i.isBundleLeader)) : [];
   const returnedLossDisplay = _returnedBase.reduce((s,i) => {
-    const c=calcFull(i);
+    const c=i.isBundleLeader ? calcBundle(i, items.filter(m=>m.bundleGroupId===i.bundleGroupId&&!m.isBundleLeader)) : calcFull(i);
     return s+(c?c.profitJPY:-(+i.cost||0)-(+i.storageShipping||0)-(+i.returnShippingJPY||0));
   },0);
   // totalへの加算はsold時のみ（all時はsoldCalcsに既に含まれているため加算不要）
@@ -3776,7 +3803,7 @@ function DesktopTable({ items, selectedId, selectedBundleId, onRowClick, onBundl
             <button onClick={()=>onRowClick(item)} title="編集" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Pencil size={13}/></button>
             {(item.status==="unsold"||item.status==="stored")&&!item.bundleGroupId&&<button onClick={()=>onSplit(item)} title="分割" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}>✂️</button>}
             {item.status==="sold"&&!item.bundleGroupId&&<button onClick={()=>onReturn(item)} title="返品" style={{ background:"none", border:"none", cursor:"pointer", color:C.muted, padding:"4px 5px", borderRadius:5 }}><RotateCcw size={13}/></button>}
-            {item.status==="returned"&&<button onClick={()=>{if(window.confirm("再出品しますか？"))onRelist(item);}} title="再出品" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Plus size={13}/></button>}
+            {item.status==="returned"&&<button onClick={()=>{if(window.confirm(item.bundleGroupId ? "再出品しますか？\n\nこの商品はまとめ売りです。\n・セットのまま売り直す：リーダー（先頭の商品）の＋だけ押してください\n・バラで売る：すべての商品の＋を押してください\n・バラで再出品したあと、もう一度まとめ売りにすることもできます" : "再出品しますか？"))onRelist(item);}} title="再出品" style={{ background:"none", border:"none", cursor:"pointer", color:C.accent, padding:"4px 5px", borderRadius:5 }}><Plus size={13}/></button>}
             <button onClick={()=>{if(window.confirm("削除しますか？"))onDelete(item.id);}} title="削除" style={{ background:"none", border:"none", cursor:"pointer", color:C.red, padding:"4px 5px", borderRadius:5 }}><Trash2 size={13}/></button>
           </div>
         </td>
@@ -4219,7 +4246,7 @@ function DesktopApp({ items, onSave, onDelete, onReturn, onReturnConfirm, onReli
       </div>
 
       {returnItem  && <ReturnModal item={returnItem} onConfirm={onReturnConfirm} onClose={()=>setReturnItem(null)}/>}
-      {splitItem   && <SplitModal item={splitItem} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
+      {splitItem   && <SplitModal item={splitItem} stockBase={splitItem.relistFromId ? makeStockValue(items)(splitItem) - (+splitItem.storageShipping||0) : null} onConfirm={onSplitConfirm} onClose={()=>setSplitItem(null)}/>}
       {showReport  && <ReportModal items={items} onClose={()=>setShowReport(false)}/>}
       {showSearch  && <SearchModal items={items} onClose={()=>setShowSearch(false)}/>}
       {showSync    && <EbaySyncModal items={items} ebayAuth={ebayAuth} settings={settings} adRateMap={adRateMap} onAdRateMapChange={setAdRateMap} onClose={()=>setShowSync(false)} onApply={item=>{ onSave(item); setSyncedItem(item); setSelectedId(item.id); setSelectedBundleGroupId(null); setFormKey(k=>k+1); setShowRight(true); }}/>}
@@ -4399,6 +4426,7 @@ function App() {
       // 販売情報リセット
       salePrice:"", saleDate:"", saleShipping:"", status:"stored",
       // 返品情報リセット
+      relistShare:"",
       returnDate:"", returnNotes:"",
       refundDate:"", refundUSD:"", refundExchangeRate:"", refundType:"none", returnShippingJPY:"",
       refundRateLocked:false, refundRateNotFetched:false,
@@ -4420,7 +4448,8 @@ function App() {
     const newItems = parts.map((p, i) => ({
       ...orig, id: genId(),
       managementNumber: i === 0 ? orig.managementNumber : nextNo([...items, ...parts.slice(0,i).map((_,j)=>({managementNumber:String(+orig.managementNumber+j+1)}))]),
-      productName: p.name, cost: +p.cost || 0,
+      productName: p.name, cost: orig.relistFromId ? 0 : +p.cost || 0,
+      ...(orig.relistFromId ? { relistShare: +p.share || 0 } : {}),
       storageShipping: i === 0 ? orig.storageShipping : 0,
       notes: `${orig.productName}より分割`, splitFromId: orig.id,
     }));
