@@ -229,6 +229,7 @@ const BRANDS = ['RADO','ロンジン','セイコー','タグホイヤー','フ�
 const STORAGE_KEY = 'watch_gallery_v2';
 const BRAND_NOTES_KEY = 'watch_gallery_brand_notes_v1';
 const BRAND_DEFS_KEY = 'watch_gallery_brand_defs_v1';
+const DEFS_UNDO_KEY = 'watch_gallery_defs_undo_v1';
 const VAR_STATES = ['レギュラー','補欠','確認中','登録しない','買わない'];
 const EDITABLE_STATES = VAR_STATES.filter(state=>state!=='買わない');
 
@@ -469,6 +470,98 @@ function ResearchImport({lines,onApply}){
   return <section className="backupbar"><h3>調査JSON一括取り込み</h3><p className="bkmeta">型番はバリエーションの型番・呼び名、またはライン名と完全一致で照合します。未一致・複数候補は反映先を選択してください。省略項目は現在値を維持します。上限は円、中央値・レンジは調査元の数値です。</p><textarea aria-label="調査結果JSON" rows={7} value={text} placeholder={'{"調査日":"2026-09-20","結果":[{"型番":"WK1312","exc5":{"上限":29500,"ラベル":"確定"}}]}'} onChange={e=>{setText(e.target.value);setEntries(null);setPreview(null);setMessage('');}}/><button className="btn bsec" disabled={!text.trim()} onClick={parse}>JSONを確認</button>{message && <p role="status">{message}</p>}{entries && <div>{entries.map((r,i)=><label className="research-target" key={i}>{r.model}<select aria-label={r.model+'の反映先'} value={targets[i]||''} onChange={e=>{setTargets({...targets,[i]:e.target.value});setPreview(null);}}><option value="">反映先を選択（自動確定できません）</option>{options.map(o=><option key={o.key} value={o.key}>{o.title}</option>)}</select></label>)}<button className="btn bsec" onClick={review}>変更前 → 変更後を確認</button></div>}{preview && <div className="bkconfirm"><h3>反映前の確認</h3><p>確定するまで保存されません。薄い行は変更なし、強調行は上限が10%以上変わります。</p>{preview.updates.map(u=><section key={u.key}><h4>{u.model} — {u.title}</h4><ResearchDiff before={u.v} after={u.after}/></section>)}<div className="bkbtns"><button className="btn bsec" onClick={()=>setPreview(null)}>キャンセル</button><button className="btn bprim" disabled={!preview.updates.some(u=>researchDiff(u.v,u.after).some(r=>r.changed))} onClick={confirm}>確定して反映</button></div></div>}</section>;
 }
 
+// Only known IDs and explicitly supported fields participate in rules imports.
+function planDefsImport(data, lines, brandDefs, overwrite=false){
+  const object=x=>x!==null && typeof x==='object' && !Array.isArray(x);
+  const own=(x,k)=>Object.prototype.hasOwnProperty.call(x,k);
+  if(!object(data) || (own(data,'brandDefs') && !object(data.brandDefs)) || (own(data,'lines') && !object(data.lines)) || (!own(data,'brandDefs') && !own(data,'lines'))) throw Error('brandDefs と lines はオブジェクトで指定してください。');
+  const counts={brands:0,lines:0,variants:0,states:0,overwrites:0,missing:0}, issues=[];
+  const nextBrands={...brandDefs};
+  Object.entries(data.brandDefs||{}).forEach(([brand,defs])=>{
+    if(!BRANDS.includes(brand) && !lines.some(l=>l.brand===brand)){
+      counts.missing++;issues.push(`ブランド ${brand}：見つかりません`);return;
+    }
+    nextBrands[brand]=defs;counts.brands++;
+  });
+  const byId=new Map(lines.map(l=>[String(l.id),l]));
+  Object.entries(data.lines||{}).forEach(([id,entry])=>{
+    if(!object(entry) || (entry.variants!==undefined && !object(entry.variants))) throw Error(`${id}：ラインの形式が違います。`);
+    const line=byId.get(id);
+    if(!line){
+      counts.missing++;issues.push(`ライン ${id}：見つかりません`);
+      Object.keys(entry.variants||{}).forEach(vid=>{counts.missing++;issues.push(`子 ${id} / ${vid}：見つかりません`);});
+      return;
+    }
+    counts.lines++;
+    const variants=new Map((line.vars||[]).map(v=>[String(v.id),v]));
+    Object.entries(entry.variants||{}).forEach(([vid,patch])=>{
+      if(!object(patch)) throw Error(`${vid}：子の形式が違います。`);
+      if(!variants.has(vid)){counts.missing++;issues.push(`子 ${id} / ${vid}：見つかりません`);}
+    });
+  });
+  const nextLines=lines.map(line=>{
+    if(!own(data.lines||{},String(line.id))) return line;
+    const entry=data.lines[String(line.id)];
+    return {...line,...(own(entry,'defs')?{defs:entry.defs}:{}),vars:(line.vars||[]).map(v=>{
+      if(!own(entry.variants||{},String(v.id))) return v;
+      const patch=entry.variants[String(v.id)], next={...v,...(own(patch,'defs')?{defs:patch.defs}:{})};
+      counts.variants++;
+      if(own(patch,'state')){
+        if(!EDITABLE_STATES.includes(patch.state)) issues.push(`子 ${line.id} / ${v.id}：状態が不正（${String(patch.state)}）`);
+        else{
+          ['stateReason','stateDate'].forEach(k=>{if(own(patch,k) && typeof patch[k]!=='string') throw Error(`${v.id}：状態の理由・日付は文字列で指定してください。`);});
+          if(!v.state || overwrite){
+            const statePatch={state:patch.state,stateReason:patch.stateReason||'',stateDate:patch.stateDate||''};
+            if(Object.entries(statePatch).some(([k,value])=>(v[k]||'')!==value)){
+              counts.states++;if(v.state) counts.overwrites++;
+            }
+            Object.assign(next,statePatch);
+          }
+        }
+      }
+      return next;
+    })};
+  });
+  return {lines:nextLines,brandDefs:nextBrands,counts,issues};
+}
+
+function DefsImport({lines,brandDefs,onApply,undo,onUndo}){
+  const fileRef=useRef(null), readVersion=useRef(0);
+  const [pending,setPending]=useState(null), [overwrite,setOverwrite]=useState(false), [message,setMessage]=useState(''), [issues,setIssues]=useState([]);
+  const stored=()=>[localStorage.getItem(STORAGE_KEY),localStorage.getItem(BRAND_DEFS_KEY)];
+  const read=async file=>{
+    const version=++readVersion.current;
+    setPending(null);setMessage('');setIssues([]);setOverwrite(false);
+    try{
+      const data=JSON.parse(await file.text());
+      if(version!==readVersion.current) return;
+      planDefsImport(data,lines,brandDefs);
+      setPending({data,lines,brandDefs,stored:stored()});
+    }catch(e){if(version===readVersion.current) setMessage('読み込めませんでした：'+e.message);}
+  };
+  let plan=null;
+  if(pending) plan=planDefsImport(pending.data,pending.lines,pending.brandDefs,overwrite);
+  const apply=()=>{try{
+    if(lines!==pending.lines || brandDefs!==pending.brandDefs || JSON.stringify(stored())!==JSON.stringify(pending.stored)) throw Error('確認後にデータが変わりました。ファイルを選び直してください。');
+    onApply(plan.lines,plan.brandDefs);
+    setIssues(plan.issues);setPending(null);setMessage('決まりごとを反映しました。');
+  }catch(e){setMessage('反映できませんでした：'+e.message);}};
+  return <section className="backupbar"><h3>決まりごとJSON取り込み</h3>
+    <p className="bkmeta">IDが一致するブランド・ライン・子に反映します。写真確認と買わないの印は変更しません。</p>
+    <div className="bkbtns"><button className="btn bsec" onClick={()=>fileRef.current.click()}>決まりごとのファイルを選ぶ</button>
+      <button className="btn bsec" disabled={!undo} onClick={()=>{try{onUndo();setPending(null);setIssues([]);setMessage('取り込み前に戻しました。');}catch(e){setMessage('元に戻せませんでした：'+e.message);}}}>元に戻す</button></div>
+    <input ref={fileRef} type="file" accept="application/json,.json" style={{display:'none'}} onChange={e=>{if(e.target.files[0]) read(e.target.files[0]);e.target.value='';}}/>
+    {message && <p role="status">{message}</p>}
+    {pending && <div className="bkconfirm"><h3>反映前の確認</h3>
+      <label><input type="checkbox" checked={overwrite} onChange={e=>setOverwrite(e.target.checked)}/>取り込みで上書きする（画面の状態）</label>
+      <p>ブランド {plan.counts.brands}件・ライン {plan.counts.lines}件・子 {plan.counts.variants}件・状態の変更 {plan.counts.states}件・画面の状態を上書き {plan.counts.overwrites}件・見つからなかった {plan.counts.missing}件</p>
+      <p>まだ反映されていません。決まりごとは置き換えます。「元に戻す」は反映直前のデータ全体に戻します。</p>
+      <div className="bkbtns"><button className="btn bsec" onClick={()=>{setPending(null);setMessage('取り込みをやめました。');}}>やめる</button><button className="btn bprim" onClick={apply}>了承して反映</button></div>
+    </div>}
+    {(pending?plan.issues:issues).length>0 && <div className="bkerr"><b>見つからないID・状態が不正</b><ul>{(pending?plan.issues:issues).map((issue,i)=><li key={i} style={{overflowWrap:'anywhere',marginLeft:18}}>{issue}</li>)}</ul></div>}
+  </section>;
+}
+
 function binUrl(u){
   if(!u) return '#';
   try{
@@ -584,6 +677,9 @@ function App(){
   const [brandDefs, setBrandDefs] = useState(loadBrandDefs);
   const [view, setView] = useState({page:'brands'});
   const [legendOpen,setLegendOpen] = useState(false);
+  const [defsUndo,setDefsUndo] = useState(()=>{
+    try{const saved=JSON.parse(localStorage.getItem(DEFS_UNDO_KEY)||'null');return saved && Array.isArray(saved.lines) && saved.brandDefs ? saved : null;}catch(e){return null;}
+  });
   useSaveOnChange(lines, saveLines);
   useSaveOnChange(brandNotes, saveBrandNotes);
   useSaveOnChange(brandDefs, saveBrandDefs);
@@ -597,6 +693,14 @@ function App(){
     {...l, vars:l.vars.map(v=>v.id===vid?{...v, ...(typeof patch==='function'?patch(v):patch)}:v)}));
 
   const cancelVar = () => setView({page:'line', lineId:view.lineId});
+
+  const persistDefs = (nextLines,nextBrands,snapshot) => {
+    const entries=[[STORAGE_KEY,JSON.stringify(nextLines)],[BRAND_DEFS_KEY,JSON.stringify(nextBrands)],[DEFS_UNDO_KEY,JSON.stringify(snapshot)]];
+    const before=entries.map(([key])=>[key,localStorage.getItem(key)]);
+    try{entries.forEach(([key,value])=>localStorage.setItem(key,value));}
+    catch(e){before.forEach(([key,value])=>{if(localStorage.getItem(key)!==value){if(value===null) localStorage.removeItem(key);else localStorage.setItem(key,value);}});throw e;}
+    setLines(nextLines);setBrandDefs(nextBrands);setDefsUndo(snapshot);
+  };
 
   let title='ブランドを選ぶ', crumb='', back=null;
   if(view.page==='lines'){ title=view.brand; crumb='ライン一覧'; back=()=>setView({page:'brands'}); }
@@ -644,6 +748,10 @@ function App(){
               setBrandDefs(newBrandDefs);
               if(hasBrandNotes) setBrandNotes(newBrandNotes);
             }} />
+          <ResearchImport lines={lines} onApply={setLines}/>
+          <DefsImport lines={lines} brandDefs={brandDefs} undo={defsUndo}
+            onApply={(nextLines,nextBrands)=>persistDefs(nextLines,nextBrands,{lines,brandDefs})}
+            onUndo={()=>{if(defsUndo) persistDefs(defsUndo.lines,defsUndo.brandDefs,null);}}/>
         </>}
 
         {view.page==='lines' && <>
