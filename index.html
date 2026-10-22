@@ -1729,6 +1729,8 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
     refundRateLocked: leader.refundRateLocked || false,
     refundRateNotFetched: leader.refundRateNotFetched || false,
     returnShippingJPY: leader.returnShippingJPY || "",
+    returnDate: leader.returnDate || "",
+    returnNotes: leader.returnNotes || "",
     status: leader.status || "unsold",
     notes: leader.notes || "",
     photos: leader.photos || [],
@@ -2140,6 +2142,12 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
               </div>
             </div>
           )}
+
+          {/* 返品フィールド */}
+          {form.status === "returned" && (<>
+            <DateField label="返品日" value={form.returnDate} onChange={set("returnDate")} col="1/-1" />
+            <Field label="返品メモ" value={form.returnNotes} onChange={set("returnNotes")} placeholder="理由など" col="1/-1" />
+          </>)}
 
           {(form.status==="sold"||form.status==="returned") && (
             <div style={{ gridColumn:"1/-1", borderTop:`1px solid ${C.border}`, paddingTop:16, marginTop:4 }}>
@@ -4495,7 +4503,7 @@ function App() {
         return { ...i, ...leaderData, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping } : {}) };
       } else {
         // メンバーの原価・転送送料を更新、ステータスと落札日を同期
-        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping, serialNumber: mc.serialNumber } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate, ebaySynced: leaderData.ebaySynced || i.ebaySynced };
+        return { ...i, ...(mc ? { cost: mc.cost, storageShipping: mc.storageShipping, serialNumber: mc.serialNumber } : {}), status: leaderData.status || i.status, saleDate: leaderData.saleDate || i.saleDate, returnDate: leaderData.returnDate ?? i.returnDate, returnNotes: leaderData.returnNotes ?? i.returnNotes, ebaySynced: leaderData.ebaySynced || i.ebaySynced };
       }
     }));
   };
