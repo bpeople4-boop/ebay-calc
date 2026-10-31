@@ -2433,6 +2433,18 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const isUS     = country === "US";
     const itemId   = line.legacyItemId || "";
     const saleDate = (order.creationDate || "").slice(0, 10);
+    const getOrderNet = () => {
+      const hasConversion = !!tx?.amount?.convertedFromCurrency;
+      if (hasConversion) {
+        return tx?.amount?.value || "";
+      } else {
+        const basis = +(tx?.totalFeeBasisAmount?.value || 0);
+        const fee   = +(tx?.totalFeeAmount?.value || 0);
+        const promo = tx?._promoFee != null ? +tx._promoFee : 0;
+        return tx ? (basis - fee - promo).toFixed(2) : "";
+      }
+    };
+    let allocated = false, orderNetUSD = "";
     let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
     if (multi) {
       if (isUS) {
@@ -2469,7 +2481,19 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           else needsCheck.push("プロモ費用");
         }
       } else {
-        needsCheck.push("落札価格（手取りUSD）");
+        const orderNet = getOrderNet();
+        const weights = order.lineItems.map(li => +(li.lineItemCost?.value || 0) + +(li.deliveryCost?.shippingCost?.value || 0));
+        const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+        if (orderNet === "" || !Number.isFinite(+orderNet) || !Number.isFinite(weightTotal) || weightTotal === 0) {
+          needsCheck.push("落札価格（手取りUSD）");
+        } else {
+          const netCents = Math.round(+orderNet * 100);
+          const shares = weights.slice(0, -1).map(weight => Math.round(netCents * weight / weightTotal));
+          const cents = idx === weights.length - 1 ? netCents - shares.reduce((sum, share) => sum + share, 0) : shares[idx];
+          salePrice = (cents / 100).toFixed(2);
+          allocated = true;
+          orderNetUSD = (netCents / 100).toFixed(2);
+        }
         saleShipping = "0";
         ebayFee = "0";
         promoFee = "0";
@@ -2483,15 +2507,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         promoFee = tx._promoFee != null ? tx._promoFee : "";
       }
     } else {
-      const hasConversion = !!tx?.amount?.convertedFromCurrency;
-      if (hasConversion) {
-        salePrice = tx?.amount?.value || "";
-      } else {
-        const basis = +(tx?.totalFeeBasisAmount?.value || 0);
-        const fee   = +(tx?.totalFeeAmount?.value || 0);
-        const promo = tx?._promoFee != null ? +tx._promoFee : 0;
-        salePrice = tx ? (basis - fee - promo).toFixed(2) : "";
-      }
+      salePrice = getOrderNet();
       saleShipping = "0";
       ebayFee      = "0";
       promoFee     = "0";
@@ -2499,7 +2515,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     const imageUrl = (itemId && orderImages[itemId]) ? orderImages[itemId] : (order.ebayImageUrl || "");
     return {
       orderId: order.orderId, title: line.title || "—",
-      salePrice, saleShipping, ebayFee, promoFee,
+      salePrice, saleShipping, ebayFee, promoFee, allocated, orderNetUSD,
       lineItemId: line.lineItemId || "", lineIndex: idx, lineCount: order._lineCount || 1,
       needsCheck, rowKey: order._rowKey || order.orderId,
       currency, isUSD, country, isUS, itemId, saleDate,
@@ -2810,16 +2826,18 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
           <div style={{ fontFamily:C.jp, fontSize:13, fontWeight:700, color:C.text, marginBottom:8, overflow:"hidden", display:"-webkit-box", WebkitLineClamp:3, WebkitBoxOrient:"vertical" }}>{p.title}</div>
           <div style={{ display:"flex", gap:8, flexWrap:"wrap", alignItems:"center" }}>
             <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>
-              {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
+              {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.allocated ? `${p.salePrice}（按分）` : p.netUSD}`}
             </span>
             <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
             <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
             {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
           </div>
           {p.lineCount > 1 && <div style={{ fontFamily:C.jp, fontSize:10, color:C.muted, marginTop:4 }}>
+            {!p.isUS ? `この商品：手取り ${p.allocated ? `$${p.salePrice}（按分）` : "—"}／注文全体の手取り：${p.orderNetUSD !== "" ? `$${p.orderNetUSD}` : "—"}` : <>
             この商品：送料 {p.saleShipping !== "" ? `$${p.saleShipping}` : "—"}・手数料 {p.ebayFee !== "" ? `$${p.ebayFee}` : "—"}／注文全体：商品 {order.pricingSummary?.priceSubtotal?.value != null ? `$${order.pricingSummary.priceSubtotal.value}` : "—"}・送料 {order.pricingSummary?.deliveryCost?.value != null ? `$${order.pricingSummary.deliveryCost.value}` : "—"}・手数料 {txMap[order.orderId]?.totalFeeAmount?.value != null ? `$${txMap[order.orderId].totalFeeAmount.value}` : "—"}
+            </>}
           </div>}
-          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
+          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.allocated && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>按分</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
         </div>
       </div>
     );
@@ -2833,14 +2851,14 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             </div>
             <div style={{ display:"flex", gap:10, flexWrap:"wrap", alignItems:"center" }}>
               <span style={{ fontFamily:C.num, fontSize:12, color:C.accent, fontWeight:700 }}>
-                {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.netUSD}`}
+                {p.isUS ? `$${p.salePrice}` : `${p.displayAmount} → $${p.allocated ? `${p.salePrice}（按分）` : p.netUSD}`}
               </span>
               <span style={{ fontSize:13 }}>{countryFlag(p.country)}</span>
               <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
               {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
               {listingLinkedItem && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</span>}
             </div>
-            <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
+            <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.allocated && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>按分</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
             {linked && linkedItem && (
               <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#fff", borderRadius:6, border:`1px solid ${C.green}30` }}>
                 {linkedItem.photos?.[0] && (
