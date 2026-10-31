@@ -23,7 +23,7 @@
     };
   </script>
   <script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef } = React;
+const { useState, useEffect, useRef, useMemo } = React;
 
 // ── Icons ─────────────────────────────────────────────────────
 const Ic = ({size=16,color="currentColor",children,...p}) =>
@@ -922,6 +922,7 @@ function ItemForm({ onSave, onCancel, initial={}, allItems=[], settings, onListi
         ebaySynced: false,
         rateNotFetched: false,
         ebayOrderId: "",
+        ebayLineItemId: "",
       }));
       return;
     }
@@ -1825,6 +1826,7 @@ function BundleEditForm({ leader, members, onSave, onCancel, onDissolve, setting
         ebaySynced: false,
         rateNotFetched: false,
         ebayOrderId: "",
+        ebayLineItemId: "",
       }));
       return;
     }
@@ -2261,6 +2263,12 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   const [loading,  setLoading]  = useState(true);
   const [error,    setError]    = useState("");
   const [orders,   setOrders]   = useState([]);
+  const orderRows = useMemo(() => orders.flatMap(order => {
+    const lines = order.lineItems || [];
+    return lines.length > 1
+      ? lines.map((line, i) => ({ ...order, _lineIndex: i, _lineCount: lines.length, _lineItemId: line.lineItemId, _rowKey: order.orderId + ":" + line.lineItemId }))
+      : [{ ...order, _lineIndex: 0, _lineCount: 1, _lineItemId: lines[0]?.lineItemId || "", _rowKey: order.orderId }];
+  }), [orders]);
   const [orderImages, setOrderImages] = useState({});
   const [listingImageMap, setListingImageMap] = useState({});
   const [activeListings, setActiveListings] = useState([]);
@@ -2328,7 +2336,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
               (t.references || []).some(r => r.referenceType === "ORDER_ID" && r.referenceId === order.orderId)
             );
             const promoFeeMax = promoTxs.length > 0 ? Math.max(...promoTxs.map(t => Math.abs(+t.amount?.value || 0))) : null;
-            if (saleTx) map[order.orderId] = { ...saleTx, _promoFee: promoFeeMax != null ? promoFeeMax.toFixed(2) : null };
+            if (saleTx) map[order.orderId] = { ...saleTx, _promoFee: promoFeeMax != null ? promoFeeMax.toFixed(2) : null, _adFeeTxs: promoTxs };
           } catch(_) {}
         }));
         setTxMap({...map});
@@ -2413,17 +2421,60 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const parseOrder = (order) => {
     const tx       = txMap[order.orderId];
-    const line     = order.lineItems?.[0] || {};
+    const idx      = order._lineIndex || 0;
+    const line     = order.lineItems?.[idx] || {};
+    const multi    = (order._lineCount || 1) > 1;
+    const needsCheck = [];
     const currency = order.pricingSummary?.total?.currency || "USD";
     const isUSD    = currency === "USD";
     const shipToCountry = order.fulfillmentStartInstructions?.[0]?.shippingStep?.shipTo?.contactAddress?.countryCode || "";
-    const marketplaceId = order.lineItems?.[0]?.listingMarketplaceId || "";
+    const marketplaceId = line.listingMarketplaceId || "";
     const country  = shipToCountry || (marketplaceId === "EBAY_US" ? "US" : "other");
     const isUS     = country === "US";
     const itemId   = line.legacyItemId || "";
     const saleDate = (order.creationDate || "").slice(0, 10);
     let salePrice = "", ebayFee = "", promoFee = "", saleShipping = "";
-    if (isUS) {
+    if (multi) {
+      if (isUS) {
+        salePrice = line.lineItemCost?.value || "";
+        saleShipping = line.deliveryCost?.shippingCost?.value ?? "";
+        if (saleShipping === "") needsCheck.push("送料");
+        const lineTx = tx?.orderLineItems?.find(li => li.lineItemId === line.lineItemId);
+        if (!lineTx) {
+          needsCheck.push("eBay手数料");
+        } else {
+          const fixedType = "FINAL_VALUE_FEE_FIXED_PER_ORDER";
+          const itemFee = (lineTx.marketplaceFees || []).filter(f => f.feeType !== fixedType)
+            .reduce((sum, f) => sum + Math.abs(+f.amount?.value || 0), 0);
+          const fixedCents = Math.round((tx.orderLineItems || []).flatMap(li => li.marketplaceFees || [])
+            .filter(f => f.feeType === fixedType)
+            .reduce((sum, f) => sum + Math.abs(+f.amount?.value || 0), 0) * 100);
+          const prices = order.lineItems.map(li => +(li.lineItemCost?.value || 0));
+          const priceTotal = prices.reduce((sum, price) => sum + price, 0);
+          if (fixedCents && (!priceTotal || order.lineItems.some(li => li.lineItemCost?.value == null))) {
+            needsCheck.push("eBay手数料");
+          } else {
+            const shares = prices.slice(0, -1).map(price => priceTotal ? Math.round(fixedCents * price / priceTotal) : 0);
+            const share = idx === prices.length - 1 ? fixedCents - shares.reduce((sum, cents) => sum + cents, 0) : shares[idx];
+            ebayFee = (itemFee + share / 100).toFixed(2);
+          }
+        }
+        const adTxs = tx?._adFeeTxs || [];
+        if (!adTxs.length) {
+          promoFee = tx?._promoFee != null ? tx._promoFee : "";
+        } else {
+          const matchingAds = adTxs.filter(t => (t.references || []).some(r =>
+            r.referenceType === "ITEM_ID" && r.referenceId === line.legacyItemId));
+          if (matchingAds.length) promoFee = Math.max(...matchingAds.map(t => Math.abs(+t.amount?.value || 0))).toFixed(2);
+          else needsCheck.push("プロモ費用");
+        }
+      } else {
+        needsCheck.push("落札価格（手取りUSD）");
+        saleShipping = "0";
+        ebayFee = "0";
+        promoFee = "0";
+      }
+    } else if (isUS) {
       salePrice    = line.lineItemCost?.value || "";
       saleShipping = order.pricingSummary?.deliveryCost?.value || "0";
       if (tx) {
@@ -2449,6 +2500,8 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
     return {
       orderId: order.orderId, title: line.title || "—",
       salePrice, saleShipping, ebayFee, promoFee,
+      lineItemId: line.lineItemId || "", lineIndex: idx, lineCount: order._lineCount || 1,
+      needsCheck, rowKey: order._rowKey || order.orderId,
       currency, isUSD, country, isUS, itemId, saleDate,
       displayAmount: `${order.pricingSummary?.total?.currency} ${order.pricingSummary?.total?.value || ""}`,
       netUSD: tx?.amount?.value || "",
@@ -2457,7 +2510,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
   };
 
   useEffect(() => {
-    const itemIds = [...new Set(orders.map(order => order.lineItems?.[0]?.legacyItemId || "").filter(Boolean))];
+    const itemIds = [...new Set(orders.flatMap(order => (order.lineItems || []).map(line => line.legacyItemId || "")).filter(Boolean))];
     if (!itemIds.length) { setOrderImages({}); return; }
     const result = Object.fromEntries(
       itemIds.map(itemId => {
@@ -2505,6 +2558,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ebayFeeRate:        p.isUS ? appItem.ebayFeeRate : 0,
       promotionRate:      p.isUS ? appItem.promotionRate : 0,
       ebayOrderId:        order.orderId,
+      ebayLineItemId:     p.lineItemId,
       ebaySynced:         true,
       ebayListingLinked:  false,
       ebayImageUrl:       appItem.ebayImageUrl || activeListings.find(l => String(l.itemId) === String(p.itemId))?.galleryUrl || orderImages[p.itemId] || "",
@@ -2525,6 +2579,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
         setLocalItems(prev => prev.map(i => i.id === memberPatch.id ? memberPatch : i));
       });
     }
+    if (p.needsCheck.length > 0) window.alert(`この注文はまとめ注文（${p.lineCount}点）です。
+次の項目はeBayから1点ごとの数字が取れなかったため空欄です。
+編集画面で手入力してください：${p.needsCheck.join("・")}`);
     setSelectedOrder(null);
   };
 
@@ -2535,6 +2592,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
       ...appItem,
       ebaySynced: false,
       ebayOrderId: "",
+      ebayLineItemId: "",
       saleDate: "",
       salePrice: "",
       saleShipping: "",
@@ -2560,15 +2618,17 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   // 紐づけ済み判定: items の ebayOrderId と orders の orderId を照合
   // これにより モーダルを閉じて再度開いても状態が維持される
-  const linkedItemByOrderId = {};
-  localItems.forEach(i => {
-    if (i.ebaySynced && i.ebayOrderId) linkedItemByOrderId[i.ebayOrderId] = i;
+  const linkedItemByRowKey = {};
+  orderRows.forEach(row => {
+    const linkedItem = localItems.find(i => i.ebaySynced && i.ebayOrderId === row.orderId &&
+      (i.ebayLineItemId ? i.ebayLineItemId === row._lineItemId : row._lineIndex === 0));
+    if (linkedItem) linkedItemByRowKey[row._rowKey] = linkedItem;
   });
 
-  const pendingOrdersAll = orders.filter(o => !linkedItemByOrderId[o.orderId]);
-  const pendingOrders = pendingOrdersAll.filter(o => !hiddenOrderIds.includes(o.orderId));
-  const hiddenOrders = pendingOrdersAll.filter(o => hiddenOrderIds.includes(o.orderId));
-  const linkedOrders  = orders.filter(o =>  linkedItemByOrderId[o.orderId]);
+  const pendingOrdersAll = orderRows.filter(o => !linkedItemByRowKey[o._rowKey]);
+  const pendingOrders = pendingOrdersAll.filter(o => !hiddenOrderIds.includes(o._rowKey));
+  const hiddenOrders = pendingOrdersAll.filter(o => hiddenOrderIds.includes(o._rowKey));
+  const linkedOrders  = orderRows.filter(o => linkedItemByRowKey[o._rowKey]);
 
   // 候補: ebaySynced済みを除外
   const candidates = localItems.filter(i =>
@@ -2737,7 +2797,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
 
   const OrderCard = ({ order, linked, onApply, selected, onSelect }) => {
     const p = parseOrder(order);
-    const linkedItem = linkedItemByOrderId[order.orderId];
+    const linkedItem = linkedItemByRowKey[order._rowKey];
     const listingLinkedItem = !linked ? findListingLinkedMatch(p) : null;
     if (selected) return (
       <div style={{ borderRadius:12, border:`2px solid ${C.accent}`, background:C.accentLo, overflow:"hidden", width:"100%" }}>
@@ -2756,7 +2816,10 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
             <span style={{ fontFamily:C.num, fontSize:11, color:C.muted }}>{p.saleDate}</span>
             {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
           </div>
-          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{order.orderId}</div>
+          {p.lineCount > 1 && <div style={{ fontFamily:C.jp, fontSize:10, color:C.muted, marginTop:4 }}>
+            この商品：送料 {p.saleShipping !== "" ? `$${p.saleShipping}` : "—"}・手数料 {p.ebayFee !== "" ? `$${p.ebayFee}` : "—"}／注文全体：商品 {order.pricingSummary?.priceSubtotal?.value != null ? `$${order.pricingSummary.priceSubtotal.value}` : "—"}・送料 {order.pricingSummary?.deliveryCost?.value != null ? `$${order.pricingSummary.deliveryCost.value}` : "—"}・手数料 {txMap[order.orderId]?.totalFeeAmount?.value != null ? `$${txMap[order.orderId].totalFeeAmount.value}` : "—"}
+          </div>}
+          <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:4 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
         </div>
       </div>
     );
@@ -2777,7 +2840,7 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
               {!p.isUS && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp }}>Net USD</span>}
               {listingLinkedItem && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, fontWeight:700 }}>出品紐付け済み</span>}
             </div>
-            <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}</div>
+            <div style={{ fontFamily:C.num, fontSize:10, color:C.muted, marginTop:3 }}>#{order.orderId}{p.lineCount > 1 && <span style={{ fontSize:10, color:C.indigo, background:C.indigoLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>まとめ注文 {p.lineIndex + 1}/{p.lineCount}</span>}{p.needsCheck.length > 0 && <span style={{ fontSize:10, color:C.red, background:C.redLo, padding:"1px 6px", borderRadius:4, fontFamily:C.jp, marginLeft:6 }}>要確認：{p.needsCheck.join("・")}</span>}</div>
             {linked && linkedItem && (
               <div style={{ marginTop:6, display:"flex", alignItems:"center", gap:6, padding:"5px 8px", background:"#fff", borderRadius:6, border:`1px solid ${C.green}30` }}>
                 {linkedItem.photos?.[0] && (
@@ -3009,9 +3072,9 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
                   left={pendingOrders.length === 0
                     ? <EmptyState>未紐づけの注文はありません</EmptyState>
                     : pendingOrders.map(order => (
-                      <div key={order.orderId} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
+                      <div key={order._rowKey} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
                         <div style={{ flex:1, minWidth:0 }}><OrderCard order={order} linked={false} onApply={handleUnlink} selected={selectedOrder === order} onSelect={()=>setSelectedOrder(order)} /></div>
-                        <button onClick={(e)=>{ e.stopPropagation(); hideOrder(order.orderId); }} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>非表示</button>
+                        <button onClick={(e)=>{ e.stopPropagation(); hideOrder(order._rowKey); }} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>非表示</button>
                       </div>
                     ))}
                   renderCandidate={item => {
@@ -3033,15 +3096,15 @@ function EbaySyncModal({ items, ebayAuth, onClose, onApply, settings, adRateMap,
               {soldTab === "linked" && (
                 linkedOrders.length === 0
                   ? <EmptyState>まだ紐づけした注文はありません</EmptyState>
-                  : <ScrollPane>{linkedOrders.map(order => <OrderCard key={order.orderId} order={order} linked={true} onApply={handleUnlink}/>)}</ScrollPane>
+                  : <ScrollPane>{linkedOrders.map(order => <OrderCard key={order._rowKey} order={order} linked={true} onApply={handleUnlink}/>)}</ScrollPane>
               )}
               {soldTab === "hidden" && (
                 hiddenOrders.length === 0
                   ? <EmptyState>非表示の注文はありません</EmptyState>
                   : <ScrollPane>{hiddenOrders.map(order => (
-                    <div key={order.orderId} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
+                    <div key={order._rowKey} style={{ display:"flex", alignItems:"stretch", gap:6 }}>
                       <div style={{ flex:1, minWidth:0 }}><OrderCard order={order} linked={false} onApply={handleUnlink} /></div>
-                      <button onClick={()=>unhideOrder(order.orderId)} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>復元</button>
+                      <button onClick={()=>unhideOrder(order._rowKey)} style={{ alignSelf:"center", flexShrink:0, fontSize:10, padding:"4px 8px", borderRadius:4, border:"1px solid #ccc", background:"#fff", cursor:"pointer" }}>復元</button>
                     </div>
                   ))}</ScrollPane>
               )}
