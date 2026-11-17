@@ -1,0 +1,210 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>腕時計ギャラリー</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* VOICE 仕事の道具。仕入れの直前に開いて、上限と「止まる理由」を一目で読む
+   IDEA 時計店のプライスカード：写真・型番・2段の値札・注意の赤札
+   PICTURE 種類のカードの並び自体が絵。詳しい画面は写真と値札が主役
+   COLOUR 白地・墨 #101418・注意の赤 #c8281e・レギュラーの緑 #1f7a4d・上限の黄 #ffd84a
+   TYPE Manrope（数字）＋ Noto Sans JP（本文）
+   LAYOUT PCは写真左・値札右、スマホは写真→値札→注意の順に縦 */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#101418);--ink:light-dark(#101418,#eef1f4);--sub:light-dark(#5b6570,#a7b0ba);--line:light-dark(#e3e6ea,#2a3138);--card:light-dark(#f6f7f8,#171d23);--red:light-dark(#c8281e,#ff6b5f);--redbg:light-dark(#fdecea,#3a1a18);--green:light-dark(#1f7a4d,#5fd39a);--greenbg:light-dark(#e6f4ec,#13301f);--amber:light-dark(#8a5a00,#ffc85a);--amberbg:light-dark(#fff3d6,#3a2c0c);--gray:light-dark(#5b6570,#a7b0ba);--graybg:light-dark(#eceff2,#232a31);--yellow:#ffd84a}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.6 "Noto Sans JP",system-ui,sans-serif;overflow-x:clip}
+.num{font-family:Manrope,system-ui,sans-serif;font-variant-numeric:tabular-nums}
+header{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--line);padding:10px max(4vw,16px);display:flex;gap:12px;align-items:center}
+header h1{font-size:20px;margin:0;line-height:1.2}
+header .crumb{font-size:13px;color:var(--sub)}
+header .sp{flex:1}
+button,.btn{font:inherit;font-size:15px;min-height:44px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+button:focus-visible,.btn:focus-visible,.tile:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.back{width:44px;padding:0;justify-content:center;font-size:20px}
+main{padding:20px max(4vw,16px) 60px;max-width:1240px;margin:0 auto}
+.note{font-size:13px;color:var(--sub);margin:0 0 16px}
+.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fill,minmax(min(100%,220px),1fr))}
+.tile{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;display:flex;flex-direction:column;text-align:left;padding:0;min-height:auto;color:var(--ink)}
+.tile.off{opacity:.45;cursor:default}
+.tile .ph{width:100%;aspect-ratio:1;background:var(--graybg);display:grid;place-items:center;color:var(--sub);font-size:13px;position:relative}
+.tile .ph img{width:100%;height:100%;object-fit:cover}
+.tile .body{width:100%;padding:10px 12px 12px;display:grid;gap:6px}
+.tile .name{font-weight:700;font-size:16px;line-height:1.3}
+.tile .meta{font-size:13px;color:var(--sub)}
+.badge{display:inline-flex;align-items:center;font-size:13px;font-weight:700;padding:2px 10px;border-radius:999px;white-space:nowrap}
+.b-レギュラー{background:var(--greenbg);color:var(--green)}
+.b-補欠{background:var(--amberbg);color:var(--amber)}
+.b-登録しない,.b-買わない{background:var(--graybg);color:var(--gray)}
+.b-買わない{background:var(--redbg);color:var(--red)}
+.ph .badge{position:absolute;left:8px;top:8px}
+.ph .warn{position:absolute;right:8px;top:8px;background:var(--red);color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:2px 8px}
+.price{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline;font-size:13px}
+.price b{font-size:17px}
+.price .lab{display:block;line-height:1.3}
+.lab{font-size:12px;color:var(--sub)}
+.model-h{display:flex;align-items:baseline;gap:10px;margin:26px 0 10px;border-bottom:2px solid var(--ink);padding-bottom:4px}
+.model-h h2{font-size:22px;margin:0}
+.model-h span{font-size:13px;color:var(--sub)}
+.save{border:2px solid var(--red);background:var(--redbg);border-radius:12px;padding:12px 16px;margin:0 0 18px}
+.save h3{margin:0 0 6px;font-size:16px;color:var(--red)}
+.save ul{margin:0;padding-left:1.2em}
+.save li{margin:3px 0}
+.save small{color:var(--sub)}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.detail{display:grid;gap:24px;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+@media(max-width:760px){.detail{grid-template-columns:minmax(0,1fr)}}
+.mainph{aspect-ratio:1;background:var(--graybg);border-radius:12px;overflow:hidden;display:grid;place-items:center;color:var(--sub)}
+.mainph img{width:100%;height:100%;object-fit:contain;background:#fff}
+.thumbs{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.thumbs button{width:64px;height:64px;padding:0;overflow:hidden;border-radius:8px;min-height:0}
+.thumbs img{width:100%;height:100%;object-fit:cover}
+.thumbs button[aria-pressed=true]{outline:3px solid var(--ink)}
+.tag{border-radius:12px;border:1px solid var(--line);overflow:hidden}
+.tag .r{display:grid;grid-template-columns:7.5em 1fr;gap:10px;padding:12px 16px;align-items:center;border-top:1px solid var(--line)}
+.tag .r:first-child{border-top:0}
+.tag .yen{font-size:clamp(28px,5vw,40px);font-weight:800;line-height:1.1}
+.tag .yen.hl{background:var(--yellow);color:#101418;padding:0 6px;border-radius:4px}
+.tag .sub{font-size:13px;color:var(--sub)}
+.statebox{margin:14px 0;font-size:15px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.links{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+details{border:1px solid var(--line);border-radius:12px;padding:10px 16px;margin:12px 0;background:var(--card)}
+summary{cursor:pointer;font-weight:700;min-height:28px}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:6px 8px;border-top:1px solid var(--line);vertical-align:top}
+td.n{text-align:right;white-space:nowrap}
+td img{width:48px;height:48px;object-fit:cover;border-radius:6px}
+.legend{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;z-index:10;padding:16px;overflow:auto}
+.legend.open{display:block}
+.legend .box{background:var(--bg);max-width:560px;margin:40px auto;border-radius:12px;padding:20px}
+.legend dl{display:grid;grid-template-columns:auto 1fr;gap:8px 12px;margin:0 0 16px}
+.legend dt{white-space:nowrap}
+.legend dd{margin:0}
+.backup{margin-top:28px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+[hidden]{display:none!important}#status:not(:empty){padding:10px max(4vw,16px);background:var(--card);white-space:pre-line}.title-only{display:inline-block;font-size:11px;background:var(--amberbg);color:var(--amber);padding:2px 6px;border-radius:4px}.ph .title-only{position:absolute;bottom:8px;left:8px}.colors{display:flex;gap:8px;flex-wrap:wrap;padding:8px}.colors figure{margin:0;width:58px;font-size:11px;text-align:center}.colors img{width:100%;aspect-ratio:1;object-fit:cover;border-radius:6px}.colors.large figure{width:120px;font-size:13px}.thumbs button{position:relative}.thumbs .title-only{position:absolute;bottom:0;left:0;font-size:9px;padding:0 2px}button:disabled{cursor:default;opacity:.5}
+</style>
+</head>
+<body>
+<header>
+  <button class="back" id="back" aria-label="戻る" hidden>←</button>
+  <div><h1 id="title">ギャラリー</h1><div class="crumb" id="crumb"></div></div>
+  <div class="sp"></div>
+  <button id="legendBtn">凡例</button>
+</header>
+<div id="status" role="status" aria-live="polite"></div><main id="main"></main>
+<div class="legend" id="legend" role="dialog" aria-label="凡例">
+  <div class="box">
+    <h2 style="margin-top:0">状態（カード1枚の扱い）</h2>
+    <dl>
+      <dt><span class="badge b-レギュラー">レギュラー</span></dt><dd>入札する</dd>
+      <dt><span class="badge b-補欠">補欠</span></dt><dd>登録はしたけど、まだ入札はしない（調査して育てる）</dd>
+      <dt><span class="badge b-登録しない">登録しない</span></dt><dd>基準に届かない（記録だけ残す）</dd>
+      <dt><span class="badge b-買わない">買わない</span></dt><dd>買わない（復活もしない）</dd>
+    </dl>
+    <h2>ラベル（上限の数字の信用度）</h2>
+    <dl>
+      <dt>自信のある相場</dt><dd>根拠5件以上</dd>
+      <dt>少し不安な相場</dt><dd>根拠3〜4件、または反対側の状態から換算</dd>
+      <dt>不安な相場</dt><dd>根拠1〜2件</dd>
+      <dt>相場なし</dt><dd>根拠0件</dd>
+    </dl>
+    <button id="legendClose">閉じる</button>
+  </div>
+</div>
+
+<script>
+'use strict';
+const BRANDS=['RADO','ロンジン','セイコー','タグホイヤー','フェンディ','グッチ','エルメス','オリス','ディオール','ブルガリ'];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const arr=v=>Array.isArray(v)?v:[];
+const present=v=>v!==null&&v!==undefined&&v!=='';
+const num=v=>present(v)?Number(v).toLocaleString('ja-JP'):'—';
+const yen=v=>present(v)?'¥'+num(v):'—';
+const url=v=>{try{const u=new URL(v);return /^https?:$/.test(u.protocol)?u.href:''}catch{return ''}};
+const img=(p,extra='')=>url(p)?`<img src="${esc(url(p))}" alt="" loading="lazy" ${extra}>`:'写真なし';
+const photo=k=>arr(k.evidence).find(e=>url(e.photo))?.photo||'';
+const big=p=>url(p).startsWith('https://i.ebayimg.com/')?p.replace('s-l500','s-l1600'):p;
+const badge=k=>k.state?`<span class="badge b-${esc(k.state)}">${esc(k.state)}</span>`:'';
+const titleMark='<span class="title-only">タイトルだけ</span>';
+const M=document.getElementById('main'),T=document.getElementById('title'),C=document.getElementById('crumb'),B=document.getElementById('back'),S=document.getElementById('status');
+let data=[],db,order='reg',filter='regular',busy=false;
+try{order=localStorage.getItem('wgv2_order')==='sold'?'sold':'reg';filter=localStorage.getItem('wgv2_filter')==='all'?'all':'regular'}catch{}
+const entries=d=>arr(d.lines).flatMap(l=>arr(l.models).flatMap(m=>arr(m.kinds).map(k=>({d,l,m,k}))));
+const path=(d,l,k)=>[d.brand.id,l?.id,k?.id].filter(v=>v!==undefined).map(encodeURIComponent).join('/');
+const nav=h=>{location.hash=h};
+function saveBox(items,title='買う前に確かめること'){
+ return arr(items).length?`<section class="save"><h3>⚠ ${esc(title)}</h3><ul>${items.map(x=>`<li>${x.title?`<b>${esc(x.title)}</b>`:''}${x.text?`<br><small>${esc(x.text)}</small>`:''}</li>`).join('')}</ul></section>`:'';
+}
+function colors(k,large=false){return arr(k.merged_colors).length?`<div class="colors ${large?'large':''}">${k.merged_colors.map(c=>`<figure>${img(large?big(c.photo):c.photo)}${c.color_ja?`<figcaption>${esc(c.color_ja)}</figcaption>`:''}</figure>`).join('')}</div>${large?`${k.merged_note?`<p>${esc(k.merged_note)}</p>`:''}<p>入るのはこの色だけ。ほかの色は対象外</p>`:''}`:''}
+function card({d,l,m,k}){
+ const warnings=arr(k.saves).filter(s=>s.card===true).length;
+ return `<button class="tile" data-go="${esc(path(d,l,k))}"><div class="ph">${img(photo(k))}${badge(k)}${warnings?`<span class="warn">⚠ ${warnings}</span>`:''}${k.photo_title_only?'<span class="title-only">タイトルだけで分けた写真</span>':''}</div>${colors(k)}<div class="body"><div class="name">${esc(m.model)}　${esc(k.name)}</div><div class="price">${[['Near MINT',k.near_mint],['EXC+5',k.exc5]].filter(([,v])=>v).map(([label,v])=>`<span>${label}</span><span><b class="num">${yen(v.limit_yen)}</b>${v.label?`<span class="lab">${esc(v.label)}</span>`:''}</span>`).join('')}</div></div></button>`;
+}
+function heading(title,crumb,back){T.textContent=title;C.textContent=crumb;B.hidden=back===null;B.onclick=()=>nav(back||'')}
+function brands(){
+ heading('ギャラリー','ブランドを選ぶ',null);
+ const ordered=BRANDS.map(name=>({name,d:data.find(d=>d.brand.name===name)}));
+ data.filter(d=>!BRANDS.includes(d.brand.name)).forEach(d=>ordered.push({name:d.brand.name,d}));
+ M.innerHTML=`<p class="note">ブランドのJSONを読み込んで使います。データはこのブラウザに保存されます。</p><div class="grid">${ordered.map(({name,d})=>d?`<button class="tile" data-go="${esc(path(d))}"><div class="body"><div class="name">${esc(name)}</div><div class="meta">${d.lines.length}ライン・${entries(d).length}種類（レギュラー ${entries(d).filter(e=>e.k.state==='レギュラー').length}）</div></div></button>`:`<div class="tile off"><div class="body"><div class="name">${esc(name)}</div><div class="meta">まだデータなし</div></div></div>`).join('')}</div><div class="backup"><button id="export" ${data.length?'':'disabled'}>書き出し</button><button id="import" ${busy?'disabled':''}>読み込み</button><input id="files" type="file" accept=".json,application/json" multiple hidden></div>`;
+ document.getElementById('import').onclick=()=>document.getElementById('files').click();
+ document.getElementById('files').onchange=e=>importFiles([...e.target.files]);
+ document.getElementById('export').onclick=exportAll;
+}
+function lines(d){
+ heading(d.brand.name,'ラインを選ぶ','');
+ M.innerHTML=saveBox(d.brand_saves,`${d.brand.name}全体で、買う前に確かめること`)+`<div class="grid">${d.lines.map(l=>{const es=entries(d).filter(e=>e.l===l);const p=photo((es.find(e=>e.k.state==='レギュラー')||es.find(e=>photo(e.k)))?.k||{});return `<button class="tile" data-go="${esc(path(d,l))}"><div class="ph">${img(p)}</div><div class="body"><div class="name">${esc(l.name)}</div><div class="meta">${l.models.length}型番・${es.length}種類／レギュラー ${es.filter(e=>e.k.state==='レギュラー').length}・補欠 ${es.filter(e=>e.k.state==='補欠').length}</div></div></button>`}).join('')}</div>`;
+}
+function kinds(d,l){
+ heading(l.name,`${d.brand.name} › 種類`,path(d));
+ const all=entries(d).filter(e=>e.l===l),visible=all.filter(e=>filter==='all'||e.k.state==='レギュラー');
+ let body=order==='sold'?`<div class="grid">${[...visible].sort((a,b)=>(b.k.sold??0)-(a.k.sold??0)).map(card).join('')}</div>`:l.models.map(m=>{const es=visible.filter(e=>e.m===m);return es.length?`<div class="model-h"><h2 class="num">${esc(m.model)}</h2><span>${m.size?esc(m.size)+'・':''}${es.length}種類</span></div><div class="grid">${es.map(card).join('')}</div>`:''}).join('');
+ const hidden=['補欠','登録しない','買わない'].map(s=>`${s}${all.filter(e=>e.k.state===s).length}枚`).join('・');
+ M.innerHTML=`<div class="row seg"><div role="group" aria-label="並べ方"><button data-order="reg" aria-pressed="${order==='reg'}">型番ごと</button><button data-order="sold" aria-pressed="${order==='sold'}">売れている順</button></div><div role="group" aria-label="表示する状態"><button data-filter="regular" aria-pressed="${filter==='regular'}">レギュラーだけ</button><button data-filter="all" aria-pressed="${filter==='all'}">全部</button></div></div>${arr(l.memo).length?`<details><summary>このラインのメモ（たまに見る）</summary>${l.memo.map(s=>`<p>${esc(s)}</p>`).join('')}</details>`:''}${body||'<p class="note">表示する種類はありません。</p>'}${filter==='regular'?`<p class="note" style="margin-top:20px">ほかに ${hidden} が隠れています（「全部」で表示）</p>`:''}`;
+}
+function detail(d,l,m,k){
+ heading(`${m.model}　${k.name||''}`,`${d.brand.name} › ${l.name}`,path(d,l));
+ const ph=arr(k.evidence).filter(e=>url(e.photo));
+ const terms=[['search_ja','https://auctions.yahoo.co.jp/search/search?p=','ヤフオクで探す',''],['search_en','https://www.ebay.com/sch/i.html?_nkw=','eBay 売れた（All）','&LH_Sold=1&_ipg=60'],['search_en','https://www.ebay.com/sch/i.html?_nkw=','eBay 売れた（BIN）','&LH_Sold=1&LH_BIN=1&_ipg=60']];
+ M.innerHTML=saveBox([...arr(k.saves),...arr(d.brand_saves)])+`<div class="detail"><div><div class="mainph" id="mp">${img(big(photo(k)))}</div>${k.photo_title_only?'<p class="title-only">タイトルだけで分けた写真</p>':''}<div class="thumbs">${ph.map((e,i)=>`<button data-ph="${esc(e.photo)}" aria-pressed="${i===0}" aria-label="写真${i+1}${e.title_only?' タイトルだけ':''}">${img(e.photo)}${e.title_only?titleMark:''}</button>`).join('')}</div>${colors(k,true)}</div><div><div class="tag">${[['Near MINT',k.near_mint],['EXC+5',k.exc5]].filter(([,v])=>v).map(([label,v])=>`<div class="r"><div><b>${label}</b>${v.label?`<div class="sub">${esc(v.label)}</div>`:''}</div><div><span class="yen num ${k.state==='レギュラー'&&present(v.limit_yen)?'hl':''}">${yen(v.limit_yen)}</span><div class="sub">販売 約$${num(v.sale_usd)}・根拠 ${num(v.n)}件${v.src?`（${esc(v.src)}）`:''}</div></div></div>`).join('')}</div><div class="statebox">${badge(k)}${k.state_desc?`<span>${esc(k.state_desc)}</span>`:''}</div><section><h3 style="margin:16px 0 6px">この種類の決まりごと</h3><p>${[`型番 ${esc(m.model)}`,m.size?esc(m.size):'',m.twin?`末尾の英字違いの別の型番：${esc(m.twin)}`:'',k.design?`デザイン：${esc(k.design)}`:'',k.color_ja?`文字盤の色：${esc(k.color_ja)}`:''].filter(Boolean).join('／')}</p>${!arr(k.merged_colors).length&&k.merged_note?`<p class="note">${esc(k.merged_note)}</p>`:''}${k.memo?`<p>${esc(k.memo)}</p>`:''}</section><div class="links">${terms.filter(([key])=>d.brand[key]).map(([key,base,label,suffix])=>`<a class="btn" href="${base}${encodeURIComponent(d.brand[key]+' '+m.model)}${esc(suffix)}" target="_blank" rel="noreferrer">${label}</a>`).join('')}</div></div></div><details><summary>くわしく（根拠・売れた件数・調査日）</summary><p>売れた件数（この種類）：${num(k.sold)}件${d.survey?`　／　調査日：${esc(d.survey)}`:''}</p><p>${[['Near MINT',k.near_mint],['EXC+5',k.exc5]].filter(([,v])=>v).map(([label,v])=>`${label}：相場 $${num(v.usd)}・${num(v.n)}件${v.src?'・'+esc(v.src):''}`).join('　／　')}</p><div class="scroll"><table><thead><tr><th>写真</th><th>落札日</th><th>出どころ</th><th>状態</th><th>本体＋送料</th><th>タイトル</th></tr></thead><tbody>${arr(k.evidence).map(e=>`<tr><td>${e.photo?img(e.photo):''}${e.title_only?titleMark:''}</td><td class="n num">${esc(e.date)}</td><td>${esc(e.src)}</td><td>${esc(e.cond)}</td><td class="n num">$${num(e.usd)}</td><td>${esc(e.title)}${e.title_only?titleMark:''}</td></tr>`).join('')||'<tr><td colspan="6">根拠の落札なし</td></tr>'}</tbody></table></div></details>${m.kinds.some(other=>other!==k)?`<h2>この型番のほかの種類</h2><div class="grid">${m.kinds.filter(other=>other!==k).map(k=>card({d,l,m,k})).join('')}</div>`:''}`;
+}
+function route(){
+ let parts;try{parts=location.hash.slice(1).split('/').map(decodeURIComponent)}catch{parts=[]}
+ const d=data.find(d=>d.brand.id===parts[0]),l=d?.lines.find(l=>l.id===parts[1]);
+ const m=l?.models.find(m=>m.kinds.some(k=>k.id===parts[2])),k=m?.kinds.find(k=>k.id===parts[2]);
+ if(k)detail(d,l,m,k);else if(l)kinds(d,l);else if(d)lines(d);else brands();
+ window.scrollTo(0,0);
+}
+function openDB(){return new Promise((resolve,reject)=>{const r=indexedDB.open('watchGalleryV2',1);r.onupgradeneeded=()=>r.result.createObjectStore('brands',{keyPath:'brand.id'});r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function readDB(){return new Promise((resolve,reject)=>{const r=db.transaction('brands').objectStore('brands').getAll();r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function persist(items){return new Promise((resolve,reject)=>{const tx=db.transaction('brands','readwrite');for(const d of items)tx.objectStore('brands').put(d);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error)})}
+function valid(d){return d?.format==='new-gallery-brand-v1'&&typeof d.brand?.id==='string'&&d.brand.id.length>0&&typeof d.brand.name==='string'&&Array.isArray(d.lines)&&d.lines.every(l=>typeof l.id==='string'&&Array.isArray(l.models)&&l.models.every(m=>Array.isArray(m.kinds)&&m.kinds.every(k=>typeof k.id==='string')))}
+async function importFiles(files){
+ if(busy)return;busy=true;route();const results=[];let imported=false;
+ try{for(const file of files){let ds;try{const json=JSON.parse(await file.text());ds=json.format==='new-gallery-all-v1'?json.brands:[json];if(!Array.isArray(ds)||!ds.every(valid))throw Error('format')}catch{results.push(`${file.name}：形式が違うファイルです`);continue}
+ await persist(ds);imported=true;for(const d of ds){const i=data.findIndex(x=>x.brand.id===d.brand.id);if(i<0)data.push(d);else data[i]=d;results.push(`${d.brand.name}を読み込みました（${entries(d).length}種類）`)}S.textContent=results.join('\n');route();}
+ S.textContent=results.join('\n');if(imported)await uploadPhotos(results);
+ }catch(e){S.textContent=results.concat('保存できませんでした。もう一度お試しください。').join('\n');console.error(e)}finally{busy=false;route()}
+}
+function photoRefs(){const refs=[];function walk(v){if(!v||typeof v!=='object')return;for(const [key,val]of Object.entries(v)){if(key==='photo'&&typeof val==='string'&&url(val))refs.push({obj:v,key,url:val});else if(val&&typeof val==='object')walk(val)}}data.forEach(walk);return refs}
+async function uploadPhotos(results){
+ const prefix='https://res.cloudinary.com/dlsmimq4x/';const urls=[...new Set(photoRefs().map(r=>r.url).filter(p=>!p.startsWith(prefix)))];let ok=0,failed=0;
+ for(let i=0;i<urls.length;i++){
+ S.textContent=results.concat(`写真を保存中 ${i+1}／${urls.length}`).join('\n');const original=urls[i];
+ try{const body=new FormData();body.append('file',original);body.append('upload_preset','ebay-calc');const response=await fetch('https://api.cloudinary.com/v1_1/dlsmimq4x/image/upload',{method:'POST',body,signal:AbortSignal.timeout(60000)});if(!response.ok)throw Error('upload');const result=await response.json();if(typeof result.secure_url!=='string'||!result.secure_url.startsWith(prefix))throw Error('url');const next=structuredClone(data);function replace(v){if(!v||typeof v!=='object')return;for(const key of Object.keys(v)){if(v[key]===original)v[key]=result.secure_url;else if(v[key]&&typeof v[key]==='object')replace(v[key])}}next.forEach(replace);await persist(next);data=next;ok++;route();}catch{failed++}
+ }
+ S.textContent=results.concat(`保存 ${ok}枚・失敗 ${failed}枚`).join('\n');
+}
+function exportAll(){const now=new Date(),pad=n=>String(n).padStart(2,'0'),stamp=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}-${pad(now.getHours())}${pad(now.getMinutes())}`;const blob=new Blob([JSON.stringify({format:'new-gallery-all-v1',exported_at:now.toISOString(),brands:data},null,2)],{type:'application/json'}),u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=`new-gallery-${stamp}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000)}
+M.addEventListener('click',e=>{const go=e.target.closest('[data-go]');if(go){nav(go.dataset.go);return}const o=e.target.closest('[data-order]'),f=e.target.closest('[data-filter]');if(o||f){if(o)order=o.dataset.order;if(f)filter=f.dataset.filter;try{localStorage.setItem('wgv2_order',order);localStorage.setItem('wgv2_filter',filter)}catch{}route();return}const p=e.target.closest('[data-ph]');if(p){document.getElementById('mp').innerHTML=img(big(p.dataset.ph));M.querySelectorAll('[data-ph]').forEach(b=>b.setAttribute('aria-pressed',String(b===p)))}});
+const L=document.getElementById('legend'),legendButton=document.getElementById('legendBtn');function closeLegend(){L.classList.remove('open');legendButton.focus()}legendButton.onclick=()=>{L.classList.add('open');document.getElementById('legendClose').focus()};document.getElementById('legendClose').onclick=closeLegend;L.onclick=e=>{if(e.target===L)closeLegend()};addEventListener('keydown',e=>{if(e.key==='Escape'&&L.classList.contains('open'))closeLegend()});
+addEventListener('hashchange',route);
+(async()=>{try{db=await openDB();data=await readDB();route()}catch(e){S.textContent='ブラウザの保存領域を開けませんでした。ブラウザの設定を確認して、再読み込みしてください。';M.textContent='データの読み込みを開始できません。';console.error(e)}})();
+</script>
+</body>
+</html>
+
